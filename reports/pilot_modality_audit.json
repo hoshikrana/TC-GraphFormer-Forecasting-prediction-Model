@@ -1,0 +1,827 @@
+{
+  "audit_timestamp_utc": "2026-11-05 10:58:46 UTC",
+  "download_status": {
+    "total_manifest": 2679,
+    "total_overpasses_manifest": 2599,
+    "total_environmental_manifest": 80,
+    "total_downloaded": 2679,
+    "total_missing": 0,
+    "total_wrong_size": 0,
+    "total_failed_open": 0,
+    "total_local_bytes": 19999443986,
+    "expected_total_bytes": 19999443986,
+    "total_local_gb_decimal": 19.9994,
+    "total_local_gib": 18.6259,
+    "completion_percentage": 100.0
+  },
+  "overpass_inspection": {
+    "total_inspected": 2599,
+    "ir_group_present_count": 2599,
+    "ir_group_present_pct": 100.0,
+    "ir_flag_available_count": 2262,
+    "ir_flag_available_pct": 87.03,
+    "ir_flag_breakdown": {
+      "flag_0_unavailable": 337,
+      "flag_1_mcidas": 2099,
+      "flag_2_hursat": 163
+    },
+    "irwin_present_count": 2262,
+    "irwin_present_pct": 87.03,
+    "irwin_valid_count": 2262,
+    "irwin_valid_pct": 87.03,
+    "irwin_missing_pixel_mean_pct": 0.81,
+    "irwin_missing_pixel_median_pct": 0.0,
+    "r5_present_count": 2429,
+    "r5_flag_1_count": 2429,
+    "r5_valid_data_count": 2429,
+    "r5_valid_pct": 93.46,
+    "ir_time_offset_minutes": {
+      "mean": 0.19,
+      "min": -177.97,
+      "max": 213.12
+    },
+    "ir_provenance_platforms": {
+      "Himawari-8": 305,
+      "Meteosat-7": 276,
+      "GMS-5": 135,
+      "Meteosat-5": 132,
+      "GOES-18 imager": 131,
+      "Meteosat-8 (MSG-1)": 122,
+      "GOES-8": 118,
+      "GOES-10": 118,
+      "GOES-16": 112,
+      "GOES-17": 111,
+      "GOES-13": 109,
+      "GMS-4": 104,
+      "GOES-9": 88,
+      "Himawari 9": 83,
+      "GOES-16 imager": 65,
+      "MTSAT-1R": 64,
+      "GOES-7": 56,
+      "MTSAT-2": 29,
+      "Himawari-9": 28,
+      "Meteosat-9 (MSG-2)": 22,
+      "GOES-12": 19,
+      "GOES-11": 10,
+      "GOES-6": 8,
+      "Meteosat-11 (MSG-4)": 8,
+      "GMS": 5,
+      "Meteosat-2": 3,
+      "GMS-3": 1
+    },
+    "ir_provenance_instruments": {
+      "GOES Imager": 462,
+      "MVIRI": 408,
+      "AHI": 333,
+      "Missing": 282,
+      "VISSR": 245,
+      "ABI": 223,
+      "SEVIRI": 152,
+      "VAS": 64,
+      "JAMI": 64,
+      "MTSAT-2 Imager": 29
+    }
+  },
+  "modality_5_state_distributions": {
+    "infrared": {
+      "AVAILABLE_VALID_DATA": 2000,
+      "AVAILABLE_SOME_VALID": 262,
+      "FLAG_FALSE": 337
+    },
+    "passive_microwave": {
+      "AVAILABLE_VALID_DATA": 2537,
+      "AVAILABLE_SOME_VALID": 58,
+      "AVAILABLE_ALL_MISSING": 4
+    },
+    "GPROF": {
+      "AVAILABLE_VALID_DATA": 1220,
+      "AVAILABLE_SOME_VALID": 1375,
+      "AVAILABLE_ALL_MISSING": 4
+    },
+    "radar_radiometer": {
+      "GROUP_ABSENT": 2392,
+      "AVAILABLE_VALID_DATA": 206,
+      "AVAILABLE_SOME_VALID": 1
+    }
+  },
+  "breakdowns": {
+    "by_era": {
+      "1987-1999": {
+        "total_overpasses": 423,
+        "ir_group_present": 423,
+        "ir_flag_available": 358,
+        "irwin_valid": 358,
+        "pmw_valid": 419,
+        "gprof_valid": 419,
+        "radar_valid": 15
+      },
+      "2000-2009": {
+        "total_overpasses": 671,
+        "ir_group_present": 671,
+        "ir_flag_available": 552,
+        "irwin_valid": 552,
+        "pmw_valid": 671,
+        "gprof_valid": 671,
+        "radar_valid": 100
+      },
+      "2010-2019": {
+        "total_overpasses": 673,
+        "ir_group_present": 673,
+        "ir_flag_available": 576,
+        "irwin_valid": 576,
+        "pmw_valid": 673,
+        "gprof_valid": 673,
+        "radar_valid": 46
+      },
+      "2020+": {
+        "total_overpasses": 832,
+        "ir_group_present": 832,
+        "ir_flag_available": 776,
+        "irwin_valid": 776,
+        "pmw_valid": 832,
+        "gprof_valid": 832,
+        "radar_valid": 46
+      }
+    },
+    "by_basin": {
+      "AL": {
+        "total_overpasses": 386,
+        "ir_group_present": 386,
+        "ir_flag_available": 363,
+        "irwin_valid": 363,
+        "pmw_valid": 382,
+        "gprof_valid": 382,
+        "radar_valid": 30
+      },
+      "CP": {
+        "total_overpasses": 442,
+        "ir_group_present": 442,
+        "ir_flag_available": 283,
+        "irwin_valid": 283,
+        "pmw_valid": 442,
+        "gprof_valid": 442,
+        "radar_valid": 34
+      },
+      "EP": {
+        "total_overpasses": 358,
+        "ir_group_present": 358,
+        "ir_flag_available": 334,
+        "irwin_valid": 334,
+        "pmw_valid": 358,
+        "gprof_valid": 358,
+        "radar_valid": 25
+      },
+      "IO": {
+        "total_overpasses": 707,
+        "ir_group_present": 707,
+        "ir_flag_available": 634,
+        "irwin_valid": 634,
+        "pmw_valid": 707,
+        "gprof_valid": 707,
+        "radar_valid": 61
+      },
+      "SH": {
+        "total_overpasses": 346,
+        "ir_group_present": 346,
+        "ir_flag_available": 298,
+        "irwin_valid": 298,
+        "pmw_valid": 346,
+        "gprof_valid": 346,
+        "radar_valid": 36
+      },
+      "WP": {
+        "total_overpasses": 360,
+        "ir_group_present": 360,
+        "ir_flag_available": 350,
+        "irwin_valid": 350,
+        "pmw_valid": 360,
+        "gprof_valid": 360,
+        "radar_valid": 21
+      }
+    },
+    "by_year": {
+      "1987": {
+        "total_overpasses": 8,
+        "ir_group_present": 8,
+        "ir_flag_available": 8,
+        "irwin_valid": 8,
+        "pmw_valid": 8,
+        "gprof_valid": 8,
+        "radar_valid": 0
+      },
+      "1988": {
+        "total_overpasses": 26,
+        "ir_group_present": 26,
+        "ir_flag_available": 19,
+        "irwin_valid": 19,
+        "pmw_valid": 23,
+        "gprof_valid": 23,
+        "radar_valid": 0
+      },
+      "1989": {
+        "total_overpasses": 26,
+        "ir_group_present": 26,
+        "ir_flag_available": 13,
+        "irwin_valid": 13,
+        "pmw_valid": 26,
+        "gprof_valid": 26,
+        "radar_valid": 0
+      },
+      "1990": {
+        "total_overpasses": 7,
+        "ir_group_present": 7,
+        "ir_flag_available": 7,
+        "irwin_valid": 7,
+        "pmw_valid": 7,
+        "gprof_valid": 7,
+        "radar_valid": 0
+      },
+      "1991": {
+        "total_overpasses": 24,
+        "ir_group_present": 24,
+        "ir_flag_available": 23,
+        "irwin_valid": 23,
+        "pmw_valid": 24,
+        "gprof_valid": 24,
+        "radar_valid": 0
+      },
+      "1992": {
+        "total_overpasses": 29,
+        "ir_group_present": 29,
+        "ir_flag_available": 29,
+        "irwin_valid": 29,
+        "pmw_valid": 29,
+        "gprof_valid": 29,
+        "radar_valid": 0
+      },
+      "1993": {
+        "total_overpasses": 47,
+        "ir_group_present": 47,
+        "ir_flag_available": 45,
+        "irwin_valid": 45,
+        "pmw_valid": 47,
+        "gprof_valid": 47,
+        "radar_valid": 0
+      },
+      "1994": {
+        "total_overpasses": 33,
+        "ir_group_present": 33,
+        "ir_flag_available": 33,
+        "irwin_valid": 33,
+        "pmw_valid": 33,
+        "gprof_valid": 33,
+        "radar_valid": 0
+      },
+      "1995": {
+        "total_overpasses": 13,
+        "ir_group_present": 13,
+        "ir_flag_available": 13,
+        "irwin_valid": 13,
+        "pmw_valid": 13,
+        "gprof_valid": 13,
+        "radar_valid": 0
+      },
+      "1996": {
+        "total_overpasses": 77,
+        "ir_group_present": 77,
+        "ir_flag_available": 74,
+        "irwin_valid": 74,
+        "pmw_valid": 77,
+        "gprof_valid": 77,
+        "radar_valid": 0
+      },
+      "1997": {
+        "total_overpasses": 80,
+        "ir_group_present": 80,
+        "ir_flag_available": 45,
+        "irwin_valid": 45,
+        "pmw_valid": 80,
+        "gprof_valid": 80,
+        "radar_valid": 0
+      },
+      "1998": {
+        "total_overpasses": 53,
+        "ir_group_present": 53,
+        "ir_flag_available": 49,
+        "irwin_valid": 49,
+        "pmw_valid": 52,
+        "gprof_valid": 52,
+        "radar_valid": 15
+      },
+      "2000": {
+        "total_overpasses": 41,
+        "ir_group_present": 41,
+        "ir_flag_available": 40,
+        "irwin_valid": 40,
+        "pmw_valid": 41,
+        "gprof_valid": 41,
+        "radar_valid": 8
+      },
+      "2001": {
+        "total_overpasses": 19,
+        "ir_group_present": 19,
+        "ir_flag_available": 19,
+        "irwin_valid": 19,
+        "pmw_valid": 19,
+        "gprof_valid": 19,
+        "radar_valid": 4
+      },
+      "2002": {
+        "total_overpasses": 290,
+        "ir_group_present": 290,
+        "ir_flag_available": 290,
+        "irwin_valid": 290,
+        "pmw_valid": 290,
+        "gprof_valid": 290,
+        "radar_valid": 52
+      },
+      "2003": {
+        "total_overpasses": 47,
+        "ir_group_present": 47,
+        "ir_flag_available": 47,
+        "irwin_valid": 47,
+        "pmw_valid": 47,
+        "gprof_valid": 47,
+        "radar_valid": 5
+      },
+      "2004": {
+        "total_overpasses": 20,
+        "ir_group_present": 20,
+        "ir_flag_available": 0,
+        "irwin_valid": 0,
+        "pmw_valid": 20,
+        "gprof_valid": 20,
+        "radar_valid": 2
+      },
+      "2005": {
+        "total_overpasses": 48,
+        "ir_group_present": 48,
+        "ir_flag_available": 48,
+        "irwin_valid": 48,
+        "pmw_valid": 48,
+        "gprof_valid": 48,
+        "radar_valid": 5
+      },
+      "2006": {
+        "total_overpasses": 156,
+        "ir_group_present": 156,
+        "ir_flag_available": 58,
+        "irwin_valid": 58,
+        "pmw_valid": 156,
+        "gprof_valid": 156,
+        "radar_valid": 18
+      },
+      "2009": {
+        "total_overpasses": 50,
+        "ir_group_present": 50,
+        "ir_flag_available": 50,
+        "irwin_valid": 50,
+        "pmw_valid": 50,
+        "gprof_valid": 50,
+        "radar_valid": 6
+      },
+      "2010": {
+        "total_overpasses": 29,
+        "ir_group_present": 29,
+        "ir_flag_available": 26,
+        "irwin_valid": 26,
+        "pmw_valid": 29,
+        "gprof_valid": 29,
+        "radar_valid": 2
+      },
+      "2013": {
+        "total_overpasses": 158,
+        "ir_group_present": 158,
+        "ir_flag_available": 103,
+        "irwin_valid": 103,
+        "pmw_valid": 158,
+        "gprof_valid": 158,
+        "radar_valid": 14
+      },
+      "2015": {
+        "total_overpasses": 176,
+        "ir_group_present": 176,
+        "ir_flag_available": 158,
+        "irwin_valid": 158,
+        "pmw_valid": 176,
+        "gprof_valid": 176,
+        "radar_valid": 12
+      },
+      "2016": {
+        "total_overpasses": 33,
+        "ir_group_present": 33,
+        "ir_flag_available": 30,
+        "irwin_valid": 30,
+        "pmw_valid": 33,
+        "gprof_valid": 33,
+        "radar_valid": 2
+      },
+      "2017": {
+        "total_overpasses": 176,
+        "ir_group_present": 176,
+        "ir_flag_available": 176,
+        "irwin_valid": 176,
+        "pmw_valid": 176,
+        "gprof_valid": 176,
+        "radar_valid": 10
+      },
+      "2019": {
+        "total_overpasses": 101,
+        "ir_group_present": 101,
+        "ir_flag_available": 83,
+        "irwin_valid": 83,
+        "pmw_valid": 101,
+        "gprof_valid": 101,
+        "radar_valid": 6
+      },
+      "2020": {
+        "total_overpasses": 171,
+        "ir_group_present": 171,
+        "ir_flag_available": 145,
+        "irwin_valid": 145,
+        "pmw_valid": 171,
+        "gprof_valid": 171,
+        "radar_valid": 12
+      },
+      "2021": {
+        "total_overpasses": 204,
+        "ir_group_present": 204,
+        "ir_flag_available": 182,
+        "irwin_valid": 182,
+        "pmw_valid": 204,
+        "gprof_valid": 204,
+        "radar_valid": 8
+      },
+      "2022": {
+        "total_overpasses": 150,
+        "ir_group_present": 150,
+        "ir_flag_available": 142,
+        "irwin_valid": 142,
+        "pmw_valid": 150,
+        "gprof_valid": 150,
+        "radar_valid": 7
+      },
+      "2023": {
+        "total_overpasses": 28,
+        "ir_group_present": 28,
+        "ir_flag_available": 28,
+        "irwin_valid": 28,
+        "pmw_valid": 28,
+        "gprof_valid": 28,
+        "radar_valid": 0
+      },
+      "2024": {
+        "total_overpasses": 144,
+        "ir_group_present": 144,
+        "ir_flag_available": 144,
+        "irwin_valid": 144,
+        "pmw_valid": 144,
+        "gprof_valid": 144,
+        "radar_valid": 8
+      },
+      "2025": {
+        "total_overpasses": 135,
+        "ir_group_present": 135,
+        "ir_flag_available": 135,
+        "irwin_valid": 135,
+        "pmw_valid": 135,
+        "gprof_valid": 135,
+        "radar_valid": 11
+      }
+    },
+    "by_instrument": {
+      "AMSR2": {
+        "total_overpasses": 125,
+        "ir_group_present": 125,
+        "ir_flag_available": 111,
+        "irwin_valid": 111,
+        "pmw_valid": 125,
+        "gprof_valid": 125,
+        "radar_valid": 0
+      },
+      "AMSRE": {
+        "total_overpasses": 54,
+        "ir_group_present": 54,
+        "ir_flag_available": 41,
+        "irwin_valid": 41,
+        "pmw_valid": 54,
+        "gprof_valid": 54,
+        "radar_valid": 0
+      },
+      "AMSUB": {
+        "total_overpasses": 194,
+        "ir_group_present": 194,
+        "ir_flag_available": 156,
+        "irwin_valid": 156,
+        "pmw_valid": 194,
+        "gprof_valid": 194,
+        "radar_valid": 0
+      },
+      "ATMS": {
+        "total_overpasses": 348,
+        "ir_group_present": 348,
+        "ir_flag_available": 315,
+        "irwin_valid": 315,
+        "pmw_valid": 348,
+        "gprof_valid": 348,
+        "radar_valid": 0
+      },
+      "GMI": {
+        "total_overpasses": 76,
+        "ir_group_present": 76,
+        "ir_flag_available": 72,
+        "irwin_valid": 72,
+        "pmw_valid": 76,
+        "gprof_valid": 76,
+        "radar_valid": 76
+      },
+      "MHS": {
+        "total_overpasses": 597,
+        "ir_group_present": 597,
+        "ir_flag_available": 525,
+        "irwin_valid": 525,
+        "pmw_valid": 597,
+        "gprof_valid": 597,
+        "radar_valid": 0
+      },
+      "SSMI": {
+        "total_overpasses": 659,
+        "ir_group_present": 659,
+        "ir_flag_available": 563,
+        "irwin_valid": 563,
+        "pmw_valid": 655,
+        "gprof_valid": 655,
+        "radar_valid": 0
+      },
+      "SSMIS": {
+        "total_overpasses": 415,
+        "ir_group_present": 415,
+        "ir_flag_available": 366,
+        "irwin_valid": 366,
+        "pmw_valid": 415,
+        "gprof_valid": 415,
+        "radar_valid": 0
+      },
+      "TMI": {
+        "total_overpasses": 131,
+        "ir_group_present": 131,
+        "ir_flag_available": 113,
+        "irwin_valid": 113,
+        "pmw_valid": 131,
+        "gprof_valid": 131,
+        "radar_valid": 131
+      }
+    },
+    "by_platform": {
+      "AQUA": {
+        "total_overpasses": 54,
+        "ir_group_present": 54,
+        "ir_flag_available": 41,
+        "irwin_valid": 41,
+        "pmw_valid": 54,
+        "gprof_valid": 54,
+        "radar_valid": 0
+      },
+      "F08": {
+        "total_overpasses": 81,
+        "ir_group_present": 81,
+        "ir_flag_available": 61,
+        "irwin_valid": 61,
+        "pmw_valid": 78,
+        "gprof_valid": 78,
+        "radar_valid": 0
+      },
+      "F10": {
+        "total_overpasses": 115,
+        "ir_group_present": 115,
+        "ir_flag_available": 104,
+        "irwin_valid": 104,
+        "pmw_valid": 115,
+        "gprof_valid": 115,
+        "radar_valid": 0
+      },
+      "F11": {
+        "total_overpasses": 103,
+        "ir_group_present": 103,
+        "ir_flag_available": 94,
+        "irwin_valid": 94,
+        "pmw_valid": 102,
+        "gprof_valid": 102,
+        "radar_valid": 0
+      },
+      "F13": {
+        "total_overpasses": 166,
+        "ir_group_present": 166,
+        "ir_flag_available": 137,
+        "irwin_valid": 137,
+        "pmw_valid": 166,
+        "gprof_valid": 166,
+        "radar_valid": 0
+      },
+      "F14": {
+        "total_overpasses": 127,
+        "ir_group_present": 127,
+        "ir_flag_available": 103,
+        "irwin_valid": 103,
+        "pmw_valid": 127,
+        "gprof_valid": 127,
+        "radar_valid": 0
+      },
+      "F15": {
+        "total_overpasses": 67,
+        "ir_group_present": 67,
+        "ir_flag_available": 64,
+        "irwin_valid": 64,
+        "pmw_valid": 67,
+        "gprof_valid": 67,
+        "radar_valid": 0
+      },
+      "F16": {
+        "total_overpasses": 144,
+        "ir_group_present": 144,
+        "ir_flag_available": 123,
+        "irwin_valid": 123,
+        "pmw_valid": 144,
+        "gprof_valid": 144,
+        "radar_valid": 0
+      },
+      "F17": {
+        "total_overpasses": 123,
+        "ir_group_present": 123,
+        "ir_flag_available": 111,
+        "irwin_valid": 111,
+        "pmw_valid": 123,
+        "gprof_valid": 123,
+        "radar_valid": 0
+      },
+      "F18": {
+        "total_overpasses": 134,
+        "ir_group_present": 134,
+        "ir_flag_available": 119,
+        "irwin_valid": 119,
+        "pmw_valid": 134,
+        "gprof_valid": 134,
+        "radar_valid": 0
+      },
+      "F19": {
+        "total_overpasses": 14,
+        "ir_group_present": 14,
+        "ir_flag_available": 13,
+        "irwin_valid": 13,
+        "pmw_valid": 14,
+        "gprof_valid": 14,
+        "radar_valid": 0
+      },
+      "GCOMW1": {
+        "total_overpasses": 125,
+        "ir_group_present": 125,
+        "ir_flag_available": 111,
+        "irwin_valid": 111,
+        "pmw_valid": 125,
+        "gprof_valid": 125,
+        "radar_valid": 0
+      },
+      "GPM": {
+        "total_overpasses": 76,
+        "ir_group_present": 76,
+        "ir_flag_available": 72,
+        "irwin_valid": 72,
+        "pmw_valid": 76,
+        "gprof_valid": 76,
+        "radar_valid": 76
+      },
+      "METOPA": {
+        "total_overpasses": 82,
+        "ir_group_present": 82,
+        "ir_flag_available": 70,
+        "irwin_valid": 70,
+        "pmw_valid": 82,
+        "gprof_valid": 82,
+        "radar_valid": 0
+      },
+      "METOPB": {
+        "total_overpasses": 153,
+        "ir_group_present": 153,
+        "ir_flag_available": 138,
+        "irwin_valid": 138,
+        "pmw_valid": 153,
+        "gprof_valid": 153,
+        "radar_valid": 0
+      },
+      "METOPC": {
+        "total_overpasses": 101,
+        "ir_group_present": 101,
+        "ir_flag_available": 94,
+        "irwin_valid": 94,
+        "pmw_valid": 101,
+        "gprof_valid": 101,
+        "radar_valid": 0
+      },
+      "NOAA16": {
+        "total_overpasses": 118,
+        "ir_group_present": 118,
+        "ir_flag_available": 98,
+        "irwin_valid": 98,
+        "pmw_valid": 118,
+        "gprof_valid": 118,
+        "radar_valid": 0
+      },
+      "NOAA17": {
+        "total_overpasses": 76,
+        "ir_group_present": 76,
+        "ir_flag_available": 58,
+        "irwin_valid": 58,
+        "pmw_valid": 76,
+        "gprof_valid": 76,
+        "radar_valid": 0
+      },
+      "NOAA18": {
+        "total_overpasses": 98,
+        "ir_group_present": 98,
+        "ir_flag_available": 78,
+        "irwin_valid": 78,
+        "pmw_valid": 98,
+        "gprof_valid": 98,
+        "radar_valid": 0
+      },
+      "NOAA19": {
+        "total_overpasses": 163,
+        "ir_group_present": 163,
+        "ir_flag_available": 145,
+        "irwin_valid": 145,
+        "pmw_valid": 163,
+        "gprof_valid": 163,
+        "radar_valid": 0
+      },
+      "NOAA20": {
+        "total_overpasses": 120,
+        "ir_group_present": 120,
+        "ir_flag_available": 110,
+        "irwin_valid": 110,
+        "pmw_valid": 120,
+        "gprof_valid": 120,
+        "radar_valid": 0
+      },
+      "NOAA21": {
+        "total_overpasses": 41,
+        "ir_group_present": 41,
+        "ir_flag_available": 41,
+        "irwin_valid": 41,
+        "pmw_valid": 41,
+        "gprof_valid": 41,
+        "radar_valid": 0
+      },
+      "NPP": {
+        "total_overpasses": 187,
+        "ir_group_present": 187,
+        "ir_flag_available": 164,
+        "irwin_valid": 164,
+        "pmw_valid": 187,
+        "gprof_valid": 187,
+        "radar_valid": 0
+      },
+      "TRMM": {
+        "total_overpasses": 131,
+        "ir_group_present": 131,
+        "ir_flag_available": 113,
+        "irwin_valid": 113,
+        "pmw_valid": 131,
+        "gprof_valid": 131,
+        "radar_valid": 131
+      }
+    }
+  },
+  "environmental_inspection": {
+    "total_inspected": 80,
+    "expected_count": 80,
+    "groups_coverage": {
+      "cylindrical": 80,
+      "diagnostics": 80,
+      "overpass_metadata": 80,
+      "overpass_storm_metadata": 80,
+      "rectilinear": 80,
+      "storm_metadata": 80
+    },
+    "variables_available": {
+      "precipitable_water": 80,
+      "rain_large_scale": 80,
+      "rain_convective": 80,
+      "sst": 80,
+      "pressure_msl": 80,
+      "temperature_2m": 80,
+      "dewpoint_2m": 80,
+      "u_wind_10m": 80,
+      "v_wind_10m": 80,
+      "temperature": 80,
+      "relative_humidity": 80,
+      "specific_humidity": 80,
+      "u_wind": 80,
+      "v_wind": 80,
+      "geopotential_height": 80,
+      "vorticity": 80,
+      "divergence": 80,
+      "vertical_velocity": 80
+    },
+    "mean_duration_hours": 111.3
+  }
+}

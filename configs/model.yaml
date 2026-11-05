@@ -1,0 +1,53 @@
+# TC-GraphFormer Architecture Configuration
+model:
+  name: "TC-GraphFormer"
+  d_model: 128
+  grid_size: 64
+  num_tokens_per_modality: 16
+
+encoders:
+  ir:
+    in_channels: 1
+    stem_channels: 32
+    layer_channels: [64, 128, 128]
+  pmw:
+    in_channels: 4 # [S1_low_v, S1_low_h, S2_high_v, S2_high_h]
+    stem_channels: 32
+    layer_channels: [64, 128, 128]
+  gprof:
+    in_channels: 1
+    stem_channels: 32
+    layer_channels: [64, 128]
+  radar:
+    in_channels: 1
+    depth_bins: 16
+    conv3d_channels: [16, 32]
+  environmental:
+    in_channels: 1
+    stem_channels: 32
+    layer_channels: [64, 128]
+
+fusion:
+  num_heads: 4
+  num_layers: 2
+  feedforward_dim: 512
+  dropout: 0.1
+  mask_padding: true
+
+spatial_graph:
+  num_nodes: 16 # 4x4 spatial patches
+  num_layers: 2
+  edge_dim: 16
+  aggregation: "mean"
+
+temporal_transformer:
+  num_heads: 4
+  num_layers: 2
+  continuous_time_encoding: true
+  causal_attention: true
+
+heads:
+  num_stages: 6
+  hidden_dim: 64
+  horizons_hours: [6, 12, 18, 24]
+

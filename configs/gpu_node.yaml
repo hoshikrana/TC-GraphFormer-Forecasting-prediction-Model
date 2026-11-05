@@ -1,0 +1,39 @@
+# Machine B — Remote GPU Compute Node Configuration
+# Role: Self-Supervised Pretraining, Multi-Task Model Training, High-Throughput Fine-Tuning
+
+machine:
+  role: "gpu_node"
+  hostname: "gpu-node-bravo"
+  os: "Linux / Windows 11 with NVIDIA Drivers"
+  device: "cuda"
+  cuda_device_id: 0
+  num_workers: 8
+  precision: "fp16" # "fp16" or "bf16" (amp enabled)
+
+paths:
+  staged_data_dir: "data/processed/pilot" # Unpacked staged containers
+  staging_manifest: "staging/staging_manifest.json"
+  sample_index_path: "reports/pipeline/sample_index.csv"
+  split_manifest_path: "reports/pipeline/storm_split_manifest.csv"
+  checkpoints_dir: "checkpoints"
+  logs_dir: "logs/training"
+  reports_dir: "reports"
+
+capabilities:
+  can_train_heavy_models: true
+  can_run_smoke_tests: true
+  can_preprocess_raw_data: false # Preprocessing executed on Machine A
+  can_package_shards: false
+  distributed: false # single node, single or multi-GPU
+
+training:
+  batch_size: 32
+  accumulate_grad_batches: 2
+  max_epochs: 100
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-4
+  gradient_clip_val: 1.0
+  mixed_precision: true
+  pin_memory: true
+  persistent_workers: true
+

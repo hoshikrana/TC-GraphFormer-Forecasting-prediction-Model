@@ -1,0 +1,295 @@
+====================================================================================================
+TC PRIMED SCIENTIFIC DATA QUALITY AUDIT: sample_gmi.nc
+Timestamp: 2026-11-02 11:15:39 UTC | File Size: 14.872 MB
+File Path: C:\Users\hoshi\Desktop\Capstone_project\data\raw\sample_gmi.nc
+====================================================================================================
+
+1. STORM BEST-TRACK LABELS & SUPERVISED TARGET AUDIT
+----------------------------------------------------------------------------------------------------
+  Cyclone Identifier: IO32014 (Season: 2014)
+  Instrument/Platform: GMI on GPM
+  Center Coordinates: 10.819999694824219 deg N, 95.55999755859375 deg E
+  Intensity:          25 kt  [1-minute average sustained wind speed at 10 m (documented in long_name)]
+  Central Pressure:   1004 hPa
+  Development Stage:  TD (Tropical cyclone best-track development level closest to the passive microwave observation time)
+  Distance to Land:   321.2300109863281 km (positive = over ocean)
+  Intensity Change Targets (kt):
+    dI -24h: MISSING / NaN  (Best-track not available prior to genesis)
+    dI -18h: MISSING / NaN  (Best-track not available prior to genesis)
+    dI -12h: +9 kt       
+    dI  -6h: +4 kt       
+    dI  +0h: +0 kt       
+    dI  +6h: +0 kt       
+    dI +12h: +1 kt       
+    dI +18h: +5 kt       
+    dI +24h: +6 kt       
+
+2. INFRARED CHANNEL & SENSOR METADATA VERIFICATION
+----------------------------------------------------------------------------------------------------
+  Variable:               IRWIN
+  Long Name:              Brightness temperature at 11.20 microns
+  Units:                  K
+  Documented Wavelength:  11.20 microns (explicitly stated in long_name: 'Brightness temperature at 11.20 microns')
+  Geostationary Platform: Meteosat-7
+  Sensor/Instrument:      MVIRI
+  Source Granule:         IO0314_20142791830M.C04
+  Calibration / Binning:  1 K resolution above 242.5 K; 0.5 K resolution below 242.5 K (per McIDAS CIRA/RAMMB archive comment)
+
+3. GEOLOCATION & SENSOR COORDINATE ALIGNMENT AUDIT
+----------------------------------------------------------------------------------------------------
+  Sensor coordinate grids evaluated: 6
+  * Group: /passive_microwave/S1
+      Grid Shape: [168, 221]  Dimensions: ('scan', 'pixel')
+      Valid Coordinate Pct: 100.00% (37,128 of 37,128 pts)
+      Latitude Range:  [-0.9526 to 22.5736] deg N
+      Longitude Range: [90.359 to 105.7798] deg E
+      Aligned Observation Variables: 10 fields verified aligned
+  * Group: /passive_microwave/S2
+      Grid Shape: [157, 175]  Dimensions: ('scan', 'pixel')
+      Valid Coordinate Pct: 100.00% (27,475 of 27,475 pts)
+      Latitude Range:  [0.3306 to 21.3779] deg N
+      Longitude Range: [90.9197 to 104.9502] deg E
+      Aligned Observation Variables: 5 fields verified aligned
+  * Group: /GPROF/S1
+      Grid Shape: [168, 221]  Dimensions: ('scan', 'pixel')
+      Valid Coordinate Pct: 100.00% (37,128 of 37,128 pts)
+      Latitude Range:  [-0.9526 to 22.5736] deg N
+      Longitude Range: [90.359 to 105.7798] deg E
+      Aligned Observation Variables: 11 fields verified aligned
+  * Group: /radar_radiometer/KuGMI
+      Grid Shape: [352, 49]  Dimensions: ('scan', 'beam')
+      Valid Coordinate Pct: 100.00% (17,248 of 17,248 pts)
+      Latitude Range:  [3.063 to 18.5239] deg N
+      Longitude Range: [93.7222 to 101.7258] deg E
+      Aligned Observation Variables: 14 fields verified aligned
+  * Group: /radar_radiometer/KuKaGMI
+      Grid Shape: [339, 25]  Dimensions: ('scan', 'beam')
+      Valid Coordinate Pct: 100.00% (8,475 of 8,475 pts)
+      Latitude Range:  [3.5953 to 18.0112] deg N
+      Longitude Range: [94.3412 to 101.0852] deg E
+      Aligned Observation Variables: 15 fields verified aligned
+  * Group: /infrared
+      Grid Shape: [480, 640]  Dimensions: ('ny', 'nx')
+      Valid Coordinate Pct: 100.00% (307,200 of 307,200 pts)
+      Latitude Range:  [3.16 to 19.96] deg N
+      Longitude Range: [83.16 to 106.12] deg E
+      Aligned Observation Variables: 1 fields verified aligned
+      MISALIGNED: ['R5_availability_flag shape=(1,) vs coord=(480, 640)', 'R5_time shape=(59,) vs coord=(480, 640)', 'R5 shape=(59,) vs coord=(480, 640)', 'infrared_availability_flag shape=(1,) vs coord=(480, 640)', 'storm_latitude shape=(1,) vs coord=(480, 640)', 'storm_longitude shape=(1,) vs coord=(480, 640)', 'radius shape=(30,) vs coord=(480, 640)', 'brightness_temperature_thresholds shape=(6,) vs coord=(480, 640)', 'percent_pixel_below_threshold shape=(6, 1) vs coord=(480, 640)', 'brightness_temperature_annulus_mean shape=(2,) vs coord=(480, 640)', 'brightness_temperature_annulus_standard_deviation shape=(2,) vs coord=(480, 640)', 'brightness_temperature_eye_maximum shape=(1,) vs coord=(480, 640)', 'brightness_temperature_eye_mean shape=(1,) vs coord=(480, 640)', 'brightness_temperature_mean_radial_profile shape=(30,) vs coord=(480, 640)', 'brightness_temperature_radial_profile_eye_maximum_radius shape=(1,) vs coord=(480, 640)', 'brightness_temperature_radial_profile_annulus_minimum shape=(1,) vs coord=(480, 640)', 'brightness_temperature_radial_profile_annulus_mean shape=(1,) vs coord=(480, 640)', 'brightness_temperature_radial_profile_annulus_minimum_radius shape=(1,) vs coord=(480, 640)']
+
+4. TEMPORAL & SCAN SYNCHRONIZATION AUDIT
+----------------------------------------------------------------------------------------------------
+  Nominal Overpass Observation Time: 2014-10-06 18:41:28 UTC
+  Cross-Modality Time Offsets relative to Nominal Microwave Overpass:
+    /overpass_metadata             time       -> 2014-10-06 18:41:28 UTC (offset: +0.00 min / +0.0 s)
+    /overpass_storm_metadata       time       -> 2014-10-06 18:41:28 UTC (offset: +0.00 min / +0.0 s)
+    /passive_microwave             time       -> 2014-10-06 18:41:28 UTC (offset: +0.00 min / +0.0 s)
+    /passive_microwave/S1          ScanTime   -> 2014-10-06 18:38:47 UTC (offset: -2.68 min / -161.0 s)
+    /passive_microwave/S2          ScanTime   -> 2014-10-06 18:39:10 UTC (offset: -2.30 min / -138.0 s)
+    /GPROF                         time       -> 2014-10-06 18:41:28 UTC (offset: +0.00 min / +0.0 s)
+    /GPROF/S1                      ScanTime   -> 2014-10-06 18:38:47 UTC (offset: -2.68 min / -161.0 s)
+    /radar_radiometer              time       -> 2014-10-06 18:41:28 UTC (offset: +0.00 min / +0.0 s)
+    /radar_radiometer/KuGMI        ScanTime   -> 2014-10-06 18:38:52 UTC (offset: -2.60 min / -156.0 s)
+    /radar_radiometer/KuKaGMI      ScanTime   -> 2014-10-06 18:38:57 UTC (offset: -2.52 min / -151.0 s)
+    /infrared                      time       -> 2014-10-06 18:30:00 UTC (offset: -11.47 min / -688.0 s)
+
+5. QUALITY FLAGS & RETRIEVAL CONFIDENCE AUDIT
+----------------------------------------------------------------------------------------------------
+  * /overpass_metadata/basin  [Shape: (1,), Dtype: <class 'str'>]
+      Description: Tropical cyclone basin
+      Valid Pixels: 1 / 1  (Missing: 0)
+      Value Frequencies:
+        Val     IO:        1 pixels  ->  Documented meaning not present in attribute table
+  * /overpass_metadata/cyclone_number  [Shape: (1,), Dtype: int8]
+      Description: Tropical cyclone annual cyclone number
+      Valid Pixels: 1 / 1  (Missing: 0)
+      Value Frequencies:
+        Val      3:        1 pixels  ->  Documented meaning not present in attribute table
+  * /overpass_metadata/season  [Shape: (1,), Dtype: int16]
+      Description: Tropical cyclone basin season
+      Valid Pixels: 1 / 1  (Missing: 0)
+      Value Frequencies:
+        Val   2014:        1 pixels  ->  Documented meaning not present in attribute table
+  * /overpass_metadata/coverage_fraction  [Shape: (1,), Dtype: int16]
+      Description: Amount of satellite passive microwave coverage from the S1 swath within 750 km radius centered on the storm center
+      Valid Pixels: 1 / 1  (Missing: 0)
+      Value Frequencies:
+        Val  68.76:        1 pixels  ->  Documented meaning not present in attribute table
+  * /overpass_storm_metadata/development_level  [Shape: (1,), Dtype: <class 'str'>]
+      Description: Tropical cyclone best-track development level closest to the passive microwave observation time
+      Valid Pixels: 1 / 1  (Missing: 0)
+      Value Frequencies:
+        Val     TD:        1 pixels  ->  Documented meaning not present in attribute table
+  * /passive_microwave/S1/surface_type  [Shape: (168, 221), Dtype: int16]
+      Description: Surface type for the the center of the IFOV at the altitude of the Earth ellipsoid
+      Valid Pixels: 37,128 / 37,128  (Missing: 0)
+      Value Frequencies:
+        Val      0:   24,643 pixels  ->  ocean_or_lake
+        Val      1:   12,485 pixels  ->  land
+  * /passive_microwave/S2/surface_type  [Shape: (157, 175), Dtype: int16]
+      Description: Surface type for the the center of the IFOV at the altitude of the Earth ellipsoid
+      Valid Pixels: 27,475 / 27,475  (Missing: 0)
+      Value Frequencies:
+        Val      0:   18,010 pixels  ->  ocean_or_lake
+        Val      1:    9,465 pixels  ->  land
+  * /GPROF/availability_flag  [Shape: (1,), Dtype: int64]
+      Description: Availability flag for the GPROF variables
+      Valid Pixels: 1 / 1  (Missing: 0)
+      Value Frequencies:
+        Val      1:        1 pixels  ->  variables_available
+  * /GPROF/S1/qualityFlag  [Shape: (168, 221), Dtype: float64]
+      Description: Generalized quality of the retrieved pixel
+      Valid Pixels: 37,128 / 37,128  (Missing: 0)
+      Value Frequencies:
+        Val    0.0:   37,114 pixels  ->  Documented meaning not present in attribute table
+        Val    1.0:       14 pixels  ->  Documented meaning not present in attribute table
+  * /GPROF/S1/surfaceTypeIndex  [Shape: (168, 221), Dtype: float64]
+      Description: Type of surface in GPROF field-of-view
+      Valid Pixels: 37,128 / 37,128  (Missing: 0)
+      Value Frequencies:
+        Val    1.0:   21,156 pixels  ->  Documented meaning not present in attribute table
+        Val    3.0:      450 pixels  ->  Documented meaning not present in attribute table
+        Val    4.0:       15 pixels  ->  Documented meaning not present in attribute table
+        Val   12.0:    7,246 pixels  ->  Documented meaning not present in attribute table
+        Val   13.0:    2,363 pixels  ->  Documented meaning not present in attribute table
+        Val   14.0:    2,148 pixels  ->  Documented meaning not present in attribute table
+        Val   15.0:    1,138 pixels  ->  Documented meaning not present in attribute table
+        Val   17.0:    2,612 pixels  ->  Documented meaning not present in attribute table
+  * /radar_radiometer/availability_flag  [Shape: (1,), Dtype: int8]
+      Description: Availability flag for the combined radar-radiometer variables
+      Valid Pixels: 1 / 1  (Missing: 0)
+      Value Frequencies:
+        Val      1:        1 pixels  ->  variables_available
+  * /radar_radiometer/KuGMI/mainprecipitationType  [Shape: (352, 49), Dtype: int16]
+      Description: Main precipitation type
+      Valid Pixels: 17,248 / 17,248  (Missing: 0)
+      Value Frequencies:
+        Val      0:   12,818 pixels  ->  no_rain
+        Val      1:    2,547 pixels  ->  stratiform
+        Val      2:    1,196 pixels  ->  convective
+        Val      3:      504 pixels  ->  other
+        Val      4:      183 pixels  ->  shallow_rain
+  * /radar_radiometer/KuGMI/surfaceType  [Shape: (352, 49), Dtype: int32]
+      Description: Type of surface in precipitation radar field-of-view
+      Valid Pixels: 17,248 / 17,248  (Missing: 0)
+      Value Frequencies:
+        Val      0:    9,927 pixels  ->  Documented meaning not present in attribute table
+        Val    100:        1 pixels  ->  Documented meaning not present in attribute table
+        Val    101:        2 pixels  ->  Documented meaning not present in attribute table
+        Val    102:      227 pixels  ->  Documented meaning not present in attribute table
+        Val    103:    3,131 pixels  ->  Documented meaning not present in attribute table
+        Val    106:      175 pixels  ->  Documented meaning not present in attribute table
+        Val    107:        1 pixels  ->  Documented meaning not present in attribute table
+        Val    108:       92 pixels  ->  Documented meaning not present in attribute table
+        Val    110:      204 pixels  ->  Documented meaning not present in attribute table
+        Val    111:      690 pixels  ->  Documented meaning not present in attribute table
+        Val    113:    1,881 pixels  ->  Documented meaning not present in attribute table
+        Val    115:       54 pixels  ->  Documented meaning not present in attribute table
+        Val    200:      102 pixels  ->  Documented meaning not present in attribute table
+        Val    201:        3 pixels  ->  Documented meaning not present in attribute table
+        Val    202:       79 pixels  ->  Documented meaning not present in attribute table
+        Val    203:      349 pixels  ->  Documented meaning not present in attribute table
+        Val    206:       13 pixels  ->  Documented meaning not present in attribute table
+        Val    207:        3 pixels  ->  Documented meaning not present in attribute table
+        Val    208:        6 pixels  ->  Documented meaning not present in attribute table
+        Val    210:        7 pixels  ->  Documented meaning not present in attribute table
+        Val    211:      113 pixels  ->  Documented meaning not present in attribute table
+        Val    213:      185 pixels  ->  Documented meaning not present in attribute table
+        Val    215:        1 pixels  ->  Documented meaning not present in attribute table
+        Val    300:        2 pixels  ->  Documented meaning not present in attribute table
+  * /radar_radiometer/KuKaGMI/mainprecipitationType  [Shape: (339, 25), Dtype: int16]
+      Description: Main precipitation type
+      Valid Pixels: 8,475 / 8,475  (Missing: 0)
+      Value Frequencies:
+        Val      0:    5,954 pixels  ->  no_rain
+        Val      1:    1,260 pixels  ->  stratiform
+        Val      2:      756 pixels  ->  convective
+        Val      3:      347 pixels  ->  other
+        Val      4:      158 pixels  ->  shallow_rain
+  * /radar_radiometer/KuKaGMI/surfaceType  [Shape: (339, 25), Dtype: int32]
+      Description: Type of surface in precipitation radar field-of-view
+      Valid Pixels: 8,475 / 8,475  (Missing: 0)
+      Value Frequencies:
+        Val      0:    4,925 pixels  ->  Documented meaning not present in attribute table
+        Val    101:        1 pixels  ->  Documented meaning not present in attribute table
+        Val    102:       97 pixels  ->  Documented meaning not present in attribute table
+        Val    103:    1,666 pixels  ->  Documented meaning not present in attribute table
+        Val    106:      112 pixels  ->  Documented meaning not present in attribute table
+        Val    108:       58 pixels  ->  Documented meaning not present in attribute table
+        Val    110:       47 pixels  ->  Documented meaning not present in attribute table
+        Val    111:      245 pixels  ->  Documented meaning not present in attribute table
+        Val    113:      798 pixels  ->  Documented meaning not present in attribute table
+        Val    115:       20 pixels  ->  Documented meaning not present in attribute table
+        Val    200:       75 pixels  ->  Documented meaning not present in attribute table
+        Val    201:        1 pixels  ->  Documented meaning not present in attribute table
+        Val    202:       44 pixels  ->  Documented meaning not present in attribute table
+        Val    203:      205 pixels  ->  Documented meaning not present in attribute table
+        Val    206:        7 pixels  ->  Documented meaning not present in attribute table
+        Val    207:        2 pixels  ->  Documented meaning not present in attribute table
+        Val    208:        3 pixels  ->  Documented meaning not present in attribute table
+        Val    211:       54 pixels  ->  Documented meaning not present in attribute table
+        Val    213:      113 pixels  ->  Documented meaning not present in attribute table
+        Val    300:        2 pixels  ->  Documented meaning not present in attribute table
+  * /infrared/R5_availability_flag  [Shape: (1,), Dtype: int64]
+      Description: Availability flag for the R5 data
+      Valid Pixels: 1 / 1  (Missing: 0)
+      Value Frequencies:
+        Val      1:        1 pixels  ->  R5_data_available
+  * /infrared/infrared_availability_flag  [Shape: (1,), Dtype: int8]
+      Description: Availability flag for the infrared data
+      Valid Pixels: 1 / 1  (Missing: 0)
+      Value Frequencies:
+        Val      1:        1 pixels  ->  Mcidas_source
+
+6. VARIABLES WITH CONCERNING MISSING-VALUE PERCENTAGES (> 10%)
+----------------------------------------------------------------------------------------------------
+  Total flagged variables: 15
+  Group Path                          Variable                   Missing %    Missing/Total        Note
+  --------------------------------------------------------------------------------------------------
+  ///overpass_storm_metadata          intensity_change             22.22%    2 / 9                Missing label
+  ///GPROF/S1                         surfacePrecipitation         20.36%    7,560 / 37,128       Swath edge / land boundary
+  ///GPROF/S1                         convectivePrecipitation      20.36%    7,560 / 37,128       Swath edge / land boundary
+  ///GPROF/S1                         rainWaterPath                20.36%    7,560 / 37,128       Swath edge / land boundary
+  ///GPROF/S1                         cloudWaterPath               20.36%    7,560 / 37,128       Swath edge / land boundary
+  ///GPROF/S1                         iceWaterPath                 20.36%    7,560 / 37,128       Swath edge / land boundary
+  ///GPROF/S1                         rainWaterContent             21.41%    222,572 / 1,039,584  Swath edge / land boundary
+  ///GPROF/S1                         cloudWaterContent            20.36%    211,680 / 1,039,584  Swath edge / land boundary
+  ///GPROF/S1                         snowWaterContent            100.00%    1,039,584 / 1,039,584 100% unpopulated
+  ///GPROF/S1                         probabilityOfPrecip          20.36%    7,560 / 37,128       Swath edge / land boundary
+  ///radar_radiometer/KuGMI           correctedReflectFactor_Ku    95.21%    1,445,142 / 1,517,824 Radar non-precipitating background
+  ///radar_radiometer/KuGMI           cloudIceWaterCont           100.00%    1,517,824 / 1,517,824 100% unpopulated
+  ///radar_radiometer/KuKaGMI         correctedReflectFactor_Ka    94.70%    706,269 / 745,800    Radar non-precipitating background
+  ///radar_radiometer/KuKaGMI         correctedReflectFactor_Ku    94.70%    706,269 / 745,800    Radar non-precipitating background
+  ///radar_radiometer/KuKaGMI         cloudIceWaterCont           100.00%    745,800 / 745,800    100% unpopulated
+
+7. SELECTED PHYSICAL OBSERVATION VARIABLES: NUMERICAL DISTRIBUTION
+----------------------------------------------------------------------------------------------------
+  Variable               Units      Valid %   Min       Max       Mean      Std       Median(p50)
+  --------------------------------------------------------------------------------------------------
+  TB_10.65V              K          100.0%    171.52    283.89    212.77    43.51     186.51    
+  TB_10.65H              K          100.0%    91.89     281.75    162.33    73.33     118.39    
+  TB_18.7V               K          100.0%    202.74    287.62    238.11    30.38     223.43    
+  TB_18.7H               K          100.0%    140.09    284.32    203.46    53.13     178.54    
+  TB_23.8V               K          100.0%    239.63    288.81    263.19    13.88     258.48    
+  TB_36.64V              K          100.0%    222.67    288.86    251.34    21.66     246.27    
+  TB_36.64H              K          100.0%    165.86    286.21    223.61    41.88     215.03    
+  TB_89.0V               K          100.0%    130.05    288.66    274.49    14.42     278.02    
+  TB_89.0H               K          100.0%    125.55    288.29    267.81    15.57     268.62    
+  TB_166.0V              K          100.0%    94.76     281.28    264.13    24.85     274.08    
+  TB_166.0H              K          100.0%    91.02     281.52    262.85    27.42     274.30    
+  TB_183.31_3.0V         K          100.0%    95.92     258.82    248.87    13.98     253.02    
+  TB_183.31_7.0V         K          100.0%    94.16     270.11    256.30    20.55     263.93    
+  surfacePrecipitation   mm hr-1    79.6%     0.00      48.41     0.93      2.65      0.06      
+  rainWaterPath          kg m-2     79.6%     0.00      10.77     0.25      0.63      0.02      
+  iceWaterPath           kg m-2     79.6%     0.00      6.21      0.18      0.44      0.02      
+  correctedReflectFactor_Ku dBZ        4.8%      0.00      49.87     22.18     8.03      21.33     
+  nearSurfPrecipTotRate  mm hr-1    100.0%    0.00      66.19     0.55      2.03      0.00      
+  nearSurfPrecipTotRateSigma mm hr-1    100.0%    0.00      13.41     0.07      0.30      0.00      
+  correctedReflectFactor_Ka dBZ        5.3%      0.00      43.78     20.43     8.01      19.30     
+  correctedReflectFactor_Ku dBZ        5.3%      0.00      49.04     21.61     7.86      20.68     
+  nearSurfPrecipTotRate  mm hr-1    100.0%    0.00      59.24     0.58      2.28      0.00      
+  nearSurfPrecipTotRateSigma mm hr-1    100.0%    0.00      12.32     0.07      0.34      0.00      
+  IRWIN                  K          100.0%    191.00    292.00    259.85    24.35     266.00    
+
+====================================================================================================
+END OF SCIENTIFIC DATA QUALITY AUDIT REPORT
+====================================================================================================

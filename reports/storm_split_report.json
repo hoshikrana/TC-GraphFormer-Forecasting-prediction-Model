@@ -1,0 +1,70 @@
+{
+  "summary": {
+    "total_storms": 80,
+    "train_storms": 56,
+    "val_storms": 12,
+    "test_storms": 12,
+    "train_pct": 70.0,
+    "val_pct": 15.0,
+    "test_pct": 15.0
+  },
+  "observation_counts": {
+    "total_overpasses": 2599,
+    "train_overpasses": 1742,
+    "val_overpasses": 612,
+    "test_overpasses": 245,
+    "train_overpass_pct": 67.03,
+    "val_overpass_pct": 23.55,
+    "test_overpass_pct": 9.43
+  },
+  "leakage_verification": {
+    "train_val_intersection_size": 0,
+    "train_test_intersection_size": 0,
+    "val_test_intersection_size": 0,
+    "is_leak_free": true,
+    "methodology": "Storm-wise partitioning (no cyclone sequence crosses split boundaries)"
+  },
+  "basin_stratification": {
+    "train": {
+      "AL": 14,
+      "IO": 14,
+      "EP": 9,
+      "SH": 7,
+      "WP": 7,
+      "CP": 5
+    },
+    "val": {
+      "EP": 3,
+      "IO": 3,
+      "WP": 3,
+      "CP": 2,
+      "AL": 1
+    },
+    "test": {
+      "CP": 3,
+      "WP": 3,
+      "EP": 2,
+      "IO": 2,
+      "SH": 2
+    }
+  },
+  "era_stratification": {
+    "train": {
+      "1987-1999": 22,
+      "2000-2009": 20,
+      "2020+": 8,
+      "2010-2019": 6
+    },
+    "val": {
+      "2020+": 5,
+      "2010-2019": 4,
+      "1987-1999": 2,
+      "2000-2009": 1
+    },
+    "test": {
+      "2020+": 6,
+      "1987-1999": 4,
+      "2000-2009": 2
+    }
+  }
+}

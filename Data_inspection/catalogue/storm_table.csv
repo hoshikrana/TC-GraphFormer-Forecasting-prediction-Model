@@ -1,0 +1,4 @@
+storm,basin,season,n_overpass,max_wind_kt,n_usable,n_with_ir,n_dI24,instruments,first_obs,last_obs,split
+AL041999,AL,1999,3,99,3,3,3,2,1999-08-25 22:43:21,1999-08-29 13:13:52,train
+EP071999,EP,1999,2,118,1,2,2,2,1999-08-12 02:07:54,1999-08-22 04:51:44,train
+IO031999,IO,1999,2,22,0,2,0,2,1999-06-11 03:09:54,1999-06-11 17:14:15,holdout_NIO

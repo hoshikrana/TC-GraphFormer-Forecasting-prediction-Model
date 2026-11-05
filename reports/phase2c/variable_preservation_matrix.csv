@@ -1,0 +1,15 @@
+Sensor/Modality,Source Group/Variable,Processed Group/Variable,Raw Dimensions,Processed Dimensions,Data Type,Fill Value Raw,Fill Value Processed,Max Numerical Diff,Preservation Status,Omission / Treatment Reason
+Infrared (All Sensors),infrared/IRWIN,infrared/IRWIN,"(480, 640)","(480, 640)",float32,-999.0,-9999.0,0.000000,Exact Bitwise Match,Retained in full 480x640 resolution with zlib compression
+Infrared (All Sensors),infrared/R5,infrared/R5,"(31,)","(31,)",float32,-999.0,-9999.0,0.000000,Exact Bitwise Match,Retained as temporal displacement series in degrees_latitude
+Infrared (All Sensors),infrared/brightness_temperature_mean_radial_profile,infrared/brightness_temperature_mean_radial_profile,"(30,)","(30,)",float32,-999.0,-9999.0,0.000000,Exact Bitwise Match,Retained 30-bin radial profile separate from R5
+Infrared (All Sensors),infrared/pixel_quality_flag,None (Omitted),"(480, 640)",N/A,int16,-999,N/A,N/A,Intentionally Omitted,High-volume quality mask omitted; invalid pixels already masked with fill value
+GMI (GPM),passive_microwave/S1/TB_10.65V,passive_microwave/S1/TB_10.65V,"(168, 221)","(168, 221)",float32,-9999,-9999.0,0.000000,Exact Bitwise Match,Full swath preserved losslessly
+GMI (GPM),passive_microwave/S2/TB_166.0V,passive_microwave/S2/TB_166.0V,"(166, 175)","(166, 175)",float32,-9999,-9999.0,0.000000,Exact Bitwise Match,Full high-frequency swath preserved losslessly
+GMI (GPM),GPROF/S1/surfacePrecipitation,GPROF/surfacePrecipitation,"(168, 221)","(168, 221)",float32,-9999.0,-9999.0,0.000000,Exact Bitwise Match,Extracted from S1 sub-group to standardized GPROF root
+GMI (GPM),radar_radiometer/KuKaGMI/correctedReflectFactor_Ku,radar_radiometer/correctedReflectFactor_Ku,"(88, 373, 49)","(88, 373, 49)",float32,-9999.0,-9999.0,0.000000,Exact Bitwise Match,Dual-frequency matched DPR reflectivity volume preserved in full
+TMI (TRMM),passive_microwave/S1/TB_10.65V,passive_microwave/S1/TB_10.65V,"(104, 151)","(104, 151)",float32,-9999,-9999.0,0.000000,Exact Bitwise Match,Full low-frequency swath preserved losslessly
+AMSR2 (GCOM-W1),passive_microwave/S1/TB_10.65V,passive_microwave/S1/TB_10.65V,"(167, 243)","(167, 243)",float32,-9999,-9999.0,0.000000,Exact Bitwise Match,Full low-frequency swath preserved losslessly
+SSMI (DMSP F08-F15),passive_microwave/S1/TB_19.35V,passive_microwave/S1/TB_19.35V,"(70, 64)","(70, 64)",float32,-9999,-9999.0,0.000000,Exact Bitwise Match,Historical 1988 swath preserved losslessly
+SSMIS (DMSP F16-F19),passive_microwave/S1/TB_19.35V,passive_microwave/S1/TB_19.35V,"(76, 90)","(76, 90)",float32,-9999,-9999.0,0.000000,Exact Bitwise Match,Modern conical scanning swath preserved losslessly
+ERA5 Synoptic,rectilinear/precipitable_water,environmental_synoptic/precipitable_water,"(10, 121, 121)","(121, 121)",float32,-999.0,-9999.0,0.000000,Exact Bitwise Match (Causal Slice),Extracted exact causal synoptic time slice prior to overpass
+ERA5 Synoptic,"rectilinear/u_wind, v_wind, geopotential_height",None (Omitted),"(10, 16, 121, 121)",N/A,float32,-999.0,N/A,N/A,Intentionally Omitted,16-level 3D NWP volume omitted to achieve 13.25x compression; surface precipitable water retained

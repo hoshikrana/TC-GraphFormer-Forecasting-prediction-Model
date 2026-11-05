@@ -1,0 +1,3 @@
+# Data directory
+# Raw and processed NetCDF/HDF5 data are gitignored due to size limits.
+# Instructions for downloading NOAA TC PRIMED data are in README.md and docs/pipeline_guide.md.

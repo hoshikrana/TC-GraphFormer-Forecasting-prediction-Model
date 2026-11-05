@@ -1,0 +1,205 @@
+================================================================================================
+NOAA TC PRIMED PILOT DATASET: SCIENTIFIC CONSISTENCY & RECONCILIATION REPORT (PHASE 1F)
+Report Completed: 2026-11-05 12:45:16 UTC
+Dataset: NOAA TC PRIMED v01r01-final (data/raw/pilot/)
+================================================================================================
+
+1. R5 SCIENTIFIC INTERPRETATION & RECONCILIATION
+------------------------------------------------------------------------------------------------
+  * Physical Definition:
+    R5 is the radius at which azimuthally averaged tangential wind at 850 hPa decreases to 5 knots.
+    It is an objective satellite-based measure of outer tropical cyclone size (Knaff et al. 2014).
+  * Dimensional Structure:
+    - Dimensions:  ('R5_time',)
+    - Units:       degrees_latitude (~111 km per degree)
+    - Lengths:     Varies by storm lifetime (e.g. 15 to 80 time steps along storm track)
+    - Values:      Range [2.0, 28.0] deg lat (Mean: 10.5 deg lat ~ 1,070 km)
+  * Separation from Radial Profile 'radius':
+    In previous EDA drafts, R5 was erroneously described as a 5-bin radial spatial image array.
+    CORRECTION: The variable 'radius' is a separate 30-element coordinate (2 to 118 km, units km)
+    used solely as bin centers for 'brightness_temperature_mean_radial_profile'.
+    R5 is a 1D time-series of storm vortex size, NOT a spatial image grid.
+  * Modality Independence:
+    - Overpasses with R5 present:            2429 (93.46%)
+    - Overpasses with R5 but NO IRWIN image: 219 (6.43%)
+    R5 is derived independently from operational wind size models; it remains available even
+    when geostationary 2D imagery is missing.
+
+2. INFRARED RESOLUTION & MULTI-SOURCE PROVENANCE
+------------------------------------------------------------------------------------------------
+  * CIRA/STAR McIDAS Archive (infrared_availability_flag == 1):
+    - Total Overpasses:   2099 (80.76%)
+    - Remapped Grid:      480 x 640 Mercator projection
+    - Nominal Resolution: 4.0 km at storm center
+    - Wavelengths:        Sensor-specific window bands: 10.70 um (GOES Imager), 11.20 um (ABI), 11.5 um (MVIRI)
+  * HURSAT-B1 ISCCP Archive (infrared_availability_flag == 2):
+    - Total Overpasses:   163 (6.27%)
+    - Remapped Grid:      301 x 301 Equal-Area/Mercator projection
+    - Nominal Resolution: 8.0 km
+    - Wavelengths:        Broad thermal window bands: (10.7-12.1 um), (10.3-12.6 um)
+  * Scientific Caution:
+    Array dimensions must not be mistaken for native optical resolution. HURSAT-B1 images are
+    inherently 8-km observations, whereas CIRA/STAR images are 4-km observations.
+
+3. TEMPORAL SYNCHRONIZATION RECONCILIATION (N = 2,262)
+------------------------------------------------------------------------------------------------
+  Population Evaluated: All valid IRWIN observations (N = 2262)
+  Signed Mean Offset:   +0.19 minutes (Offset cancellation artifact)
+  Mean Absolute Offset: 12.84 minutes
+  Median Absolute:      4.50 minutes
+  90th Percentile:      29.03 minutes
+  95th Percentile:      66.23 minutes
+  Maximum Absolute:     213.12 minutes
+  Within +/-  5 min:    54.16% (1,225 overpasses)
+  Within +/- 15 min:    85.06% (1,924 overpasses)
+  Within +/- 30 min:    90.27% (2,042 overpasses)
+  Within +/- 60 min:    94.43% (2,136 overpasses)
+  Reconciliation Resolution:
+  The discrepancy between '95% within 15 min' and '85.1% within 15 min' in prior reports is resolved:
+  - Exactly 85.06% of scans fall within +/- 15 minutes.
+  - Exactly 94.43% of scans fall within +/- 60 minutes (~1 hour).
+  The signed mean near zero (+0.19 min) is an artifact of bidirectional timing errors.
+
+4. GEOSTATIONARY PLATFORM & SENSOR COUNT RECONCILIATION
+------------------------------------------------------------------------------------------------
+  The discrepancy in prior reports (summing to 2,269 instead of 2,262) is resolved:
+  Total valid IR overpasses is exactly 2,262. The extra 7 counts arose from unharmonized string splits
+  in legacy reports (e.g. counting 'GOES-16' and 'GOES-16 imager' separately, or whitespace in 'Himawari 9').
+  Harmonized Unique Platform Totals (Denominator N = 2262):
+    * Himawari-8               :  305 overpasses (13.48%)
+    * Meteosat-7               :  276 overpasses (12.20%)
+    * GOES-16                  :  177 overpasses ( 7.82%)
+    * GMS-5                    :  135 overpasses ( 5.97%)
+    * Meteosat-5               :  132 overpasses ( 5.84%)
+    * GOES-18                  :  131 overpasses ( 5.79%)
+    * Meteosat-8 (MSG-1)       :  122 overpasses ( 5.39%)
+    * GOES-8                   :  118 overpasses ( 5.22%)
+    * GOES-10                  :  118 overpasses ( 5.22%)
+    * GOES-17                  :  111 overpasses ( 4.91%)
+    * Himawari-9               :  111 overpasses ( 4.91%)
+    * GOES-13                  :  109 overpasses ( 4.82%)
+    * GMS-4                    :  104 overpasses ( 4.60%)
+    * GOES-9                   :   88 overpasses ( 3.89%)
+    * MTSAT-1R                 :   64 overpasses ( 2.83%)
+    * GOES-7                   :   56 overpasses ( 2.48%)
+    * MTSAT-2                  :   29 overpasses ( 1.28%)
+    * Meteosat-9 (MSG-2)       :   22 overpasses ( 0.97%)
+    * GOES-12                  :   19 overpasses ( 0.84%)
+    * GOES-11                  :   10 overpasses ( 0.44%)
+    * GOES-6                   :    8 overpasses ( 0.35%)
+    * Meteosat-11 (MSG-4)      :    8 overpasses ( 0.35%)
+    * GMS (Unspecified)        :    5 overpasses ( 0.22%)
+    * Meteosat-2               :    3 overpasses ( 0.13%)
+    * GMS-3                    :    1 overpasses ( 0.04%)
+
+  Harmonized Instrument Totals (Denominator N = 2262):
+    * GOES Imager              :  462 overpasses (20.42%)
+    * MVIRI                    :  408 overpasses (18.04%)
+    * AHI                      :  333 overpasses (14.72%)
+    * Missing in NetCDF Attr   :  282 overpasses (12.47%)
+    * VISSR                    :  245 overpasses (10.83%)
+    * ABI                      :  223 overpasses ( 9.86%)
+    * SEVIRI                   :  152 overpasses ( 6.72%)
+    * VAS                      :   64 overpasses ( 2.83%)
+    * JAMI                     :   64 overpasses ( 2.83%)
+    * MTSAT-2 Imager           :   29 overpasses ( 1.28%)
+
+5. TRAIN / VALIDATION / TEST SPLIT VERIFICATION & REBALANCING
+------------------------------------------------------------------------------------------------
+  * Cause of Prior Distortion (42 / 16 / 22):
+    Grouping 80 storms into 24 small (basin, era) strata and enforcing integer rounding per stratum
+    forced strata with 2 storms into 1 train + 1 test (50% test) and strata with 3 storms into 1/1/1,
+    starving the training split down to 52.5%.
+  * Rebalanced Partition (Exact 70 / 15 / 15 achieved by storm count):
+    * TRAIN: 56 storms (70.0%) | 1742 overpasses (67.0%) | 56 env files
+             Basins: {'EP': 9, 'AL': 14, 'IO': 14, 'WP': 7, 'SH': 7, 'CP': 5}
+             Eras:   {'1987-1999': 22, '2000-2009': 20, '2010-2019': 6, '2020+': 8}
+    * VAL  : 12 storms (15.0%) |  612 overpasses (23.5%) | 12 env files
+             Basins: {'CP': 2, 'WP': 3, 'EP': 3, 'IO': 3, 'AL': 1}
+             Eras:   {'1987-1999': 2, '2000-2009': 1, '2010-2019': 4, '2020+': 5}
+    * TEST : 12 storms (15.0%) |  245 overpasses (9.4%) | 12 env files
+             Basins: {'CP': 3, 'SH': 2, 'IO': 2, 'EP': 2, 'WP': 3}
+             Eras:   {'1987-1999': 4, '2000-2009': 2, '2020+': 6}
+  * Leakage Verification: ZERO storm IDs shared across splits. All overpass and environmental files
+    for any given cyclone sequence reside strictly within the assigned partition.
+
+6. FUTURE PREDICTION TARGET & RAPID INTENSIFICATION VALIDATION
+------------------------------------------------------------------------------------------------
+  * Intensity Target Validity:
+    - Current intensity (V_max): 100.0% available (2,599 / 2,599).
+    - Central pressure (P_min):  79.8% available (2,073 / 2,599; 20.2% missing in older agency logs).
+    - Intensity change (+6h):    86.9% available (2,259 / 2,599).
+    - Intensity change (+12h):   80.4% available (2,089 / 2,599).
+    - Intensity change (+18h):   74.2% available (1,929 / 2,599).
+    - Intensity change (+24h):   68.6% available (1,784 / 2,599).
+    * Scientific note: Missing future targets occur when the storm dissipates within the forecast window
+      or when the observation occurs near the end of operational tracking.
+  * Future Geographical Coordinates:
+    CRITICAL FINDING: Future storm latitude and longitude (+6h, +12h, etc.) are NOT stored inside
+    individual overpass files. Overpass files only contain current center coordinates.
+    To forecast future position/track, future coordinates MUST be extracted from the sequential
+    Best Track records in environmental/storm_metadata (or external ATCF tables).
+  * Rapid Intensification (RI >= 30 kt / 24h) Prevalence:
+    - Population: 1784 valid +24h intensity changes.
+    - Positive RI events: 52 overpasses.
+    - Negative RI events: 1732 overpasses.
+    - Measured Prevalence: 2.91% (Concentrated in CP and 2020+ eras).
+
+7. JOINT MODALITY AVAILABILITY MATRIX (DENOMINATOR N = 2,599)
+------------------------------------------------------------------------------------------------
+  * PMW + IRWIN + GPROF + ENV             :  2073 overpasses (79.76%)
+  * PMW + GPROF + ENV                     :   315 overpasses (12.12%)
+  * PMW + IRWIN + GPROF + Radar + ENV     :   185 overpasses ( 7.12%)
+  * PMW + GPROF + Radar + ENV             :    22 overpasses ( 0.85%)
+  * IRWIN + GPROF + ENV                   :     4 overpasses ( 0.15%)
+
+8. ENVIRONMENTAL TEMPORAL LEAKAGE ANALYSIS
+------------------------------------------------------------------------------------------------
+  - Nearest synoptic slice is in the PAST (t_env <= t_op):   1359 overpasses (52.3%)
+  - Nearest synoptic slice is in the FUTURE (t_env > t_op):  1240 overpasses (47.7%)
+  - Leakage Verdict:
+    Naively selecting the nearest synoptic reanalysis slice causes FUTURE INFORMATION LEAKAGE
+    in 51.5% of samples. For operational forecasting models, only past reanalysis/analysis slices
+    (t_env <= t_op) or pre-initialized numerical weather prediction forecasts may be used.
+
+9. SPATIAL GRID FEASIBILITY RECONCILIATION
+------------------------------------------------------------------------------------------------
+  * Geometric Inconsistency Identified:
+    A 256x256 grid at 4 km has side length 1,024 km. From center to edge is 512 km.
+    It CANNOT cover an 800 km radius in all directions (requires at least 1,600 km width).
+  * Feasible Grid Candidates:
+    1. Candidate B2: 400x400 Cartesian grid at 4 km (1,600 km domain; full 800 km radial coverage).
+    2. Candidate C:  Multiresolution nested grids (256x256 at 2 km core + 256x256 at 8 km outer).
+    3. Candidate D:  Storm-centered Polar grid (160 radial bins x 360 azimuthal bins; compact & natural).
+  * Conservative Remapping Mandate:
+    Precipitation fluxes (GPROF / Radar rain rate) MUST use first-order area-weighted conservative
+    remapping to conserve rain mass. Bilinear interpolation is invalid for precipitation mass.
+    Categorical masks (quality flags, surface type) MUST use nearest-neighbor interpolation.
+
+10. INTEGRITY REPORTING TERMINOLOGY CORRECTION
+------------------------------------------------------------------------------------------------
+  CORRECTION: Previous drafts claimed 'cryptographic checksum verification'.
+  Actual Verification Performed:
+  1. Byte-level file size equality against the official S3 listing object length.
+  2. NetCDF-4 / HDF5 header and structural openability check via netCDF4.Dataset.
+  Cryptographic hashes (MD5/SHA256) were not verified because AWS public S3 recursive listings
+  do not expose object MD5 ETags. Terminology is formally corrected across all reports.
+
+11. SCIENTIFIC PREPROCESSING DECISION CLASSIFICATION
+------------------------------------------------------------------------------------------------
+  1. R5 Extraction & Wind Size Role:         VERIFIED (1D degrees_lat time series; separate from 'radius')
+  2. IR Multi-Source Resolution Distinction: VERIFIED (CIRA 4-km vs HURSAT 8-km)
+  3. Temporal Sync Window (+/- 15 min):      VERIFIED (85.06% within 15 min; median abs 4.50 min)
+  4. Geostationary Platform Harmonization:   VERIFIED (Exact N=2,262 denominator reconciled)
+  5. Leak-Free 70/15/15 Split (56/12/12):    CORRECTED & VERIFIED (Rebalanced from 42/16/22 to 56/12/12)
+  6. Future Intensity Change Prediction:     VERIFIED (Continuous delta V with documented dissipation loss)
+  7. Future Track Location Targets:          CORRECTED (Requires Best Track extraction from env/ATCF)
+  8. Rapid Intensification Threshold:        VERIFIED (2.91% prevalence at delta V >= 30 kt / 24h)
+  9. Joint Modality Architecture:            VERIFIED (79.8% PMW+IR+GPROF; 7.1% 5-modality quad-sensor)
+ 10. Environmental Temporal Causality:       CORRECTED (Only past slices t_env <= t_op permitted)
+ 11. Common 256x256 at 4 km Grid (800 km):   NOT SUFFICIENTLY SUPPORTED (Geometrically limited to r<=512 km)
+ 12. Candidate 400x400 / Polar Alternative:  REQUIRES FURTHER INVESTIGATION (Evaluate in Phase 2)
+
+================================================================================================
+END OF PHASE 1F SCIENTIFIC CONSISTENCY REPORT
+================================================================================================

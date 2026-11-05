@@ -1,0 +1,16 @@
+metric_category,metric_name,value,units,description
+IR-MW Synchronization,total_evaluated_population,2262,overpasses,Valid IRWIN overpasses with timestamps
+IR-MW Synchronization,signed_mean_offset,0.19,minutes,Signed mean offset (t_IR - t_MW)
+IR-MW Synchronization,mean_absolute_offset,12.84,minutes,Mean absolute offset |t_IR - t_MW|
+IR-MW Synchronization,median_absolute_offset,4.5,minutes,Median absolute offset
+IR-MW Synchronization,p90_absolute_offset,29.03,minutes,90th percentile of absolute offset
+IR-MW Synchronization,p95_absolute_offset,66.23,minutes,95th percentile of absolute offset
+IR-MW Synchronization,max_absolute_offset,213.12,minutes,Maximum observed absolute offset
+IR-MW Synchronization,within_5min_pct,54.16,%,Percentage of scans within +/- 5 minutes
+IR-MW Synchronization,within_15min_pct,85.06,%,Percentage of scans within +/- 15 minutes
+IR-MW Synchronization,within_30min_pct,90.27,%,Percentage of scans within +/- 30 minutes
+IR-MW Synchronization,within_60min_pct,94.43,%,Percentage of scans within +/- 60 minutes
+Environmental Offsets,past_env_slices_count,1359,overpasses,Overpasses where nearest synoptic slice is in the PAST
+Environmental Offsets,future_env_slices_count,1240,overpasses,Overpasses where nearest synoptic slice is in the FUTURE (LEAKAGE RISK)
+Environmental Offsets,mean_abs_env_offset_hours,1.49,hours,Mean absolute difference to nearest synoptic slice
+Environmental Offsets,max_abs_env_offset_hours,3.0,hours,Maximum difference to nearest synoptic slice

@@ -1,0 +1,1313 @@
+{
+  "metadata": {
+    "title": "NOAA TC PRIMED Pilot Dataset Comprehensive EDA Summary",
+    "timestamp_utc": "2026-11-05 11:49:18 UTC",
+    "dataset_version": "v01r01-final"
+  },
+  "integrity_overview": {
+    "total_manifest_entries": 2679,
+    "overpass_files_manifest": 2599,
+    "environmental_files_manifest": 80,
+    "successfully_downloaded_files": 2679,
+    "missing_local_files": 0,
+    "incorrect_size_files": 0,
+    "total_downloaded_bytes": 19999443986,
+    "total_downloaded_gb_decimal": 19.9994,
+    "total_downloaded_gib": 18.6259,
+    "unique_cyclones_count": 80,
+    "unique_seasons_count": 32,
+    "seasons_list": [
+      1987,
+      1988,
+      1989,
+      1990,
+      1991,
+      1992,
+      1993,
+      1994,
+      1995,
+      1996,
+      1997,
+      1998,
+      2000,
+      2001,
+      2002,
+      2003,
+      2004,
+      2005,
+      2006,
+      2009,
+      2010,
+      2013,
+      2015,
+      2016,
+      2017,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "basin_distribution": {
+      "CP": 452,
+      "EP": 372,
+      "AL": 401,
+      "IO": 726,
+      "SH": 355,
+      "WP": 373
+    },
+    "era_distribution": {
+      "1987-1999": 451,
+      "2000-2009": 694,
+      "2010-2019": 683,
+      "2020+": 851
+    },
+    "incomplete_storms_count": 0,
+    "incomplete_storms_details": {}
+  },
+  "target_statistics": {
+    "intensity": {
+      "variable": "intensity",
+      "display_name": "Tropical Cyclone Intensity (Maximum Sustained Winds)",
+      "units": "kt",
+      "total_records": 2599,
+      "valid_count": 2599,
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "mean": 38.13,
+      "std": 19.56,
+      "min": 10.0,
+      "p25": 25.0,
+      "median": 31.0,
+      "p75": 45.0,
+      "p90": 63.0,
+      "p99": 115.0,
+      "max": 140.0
+    },
+    "central_min_pressure": {
+      "variable": "central_min_pressure",
+      "display_name": "Minimum Central Sea Level Pressure",
+      "units": "hPa",
+      "total_records": 2599,
+      "valid_count": 2073,
+      "missing_count": 526,
+      "missing_percent": 20.24,
+      "mean": 997.48,
+      "std": 11.91,
+      "min": 944.0,
+      "p25": 992.0,
+      "median": 1002.0,
+      "p75": 1006.0,
+      "p90": 1009.0,
+      "p99": 1011.0,
+      "max": 1013.0
+    },
+    "intensity_change_6h": {
+      "variable": "intensity_change_6h",
+      "display_name": "6-Hour Future Intensity Change (+6h)",
+      "units": "kt",
+      "total_records": 2599,
+      "valid_count": 2259,
+      "missing_count": 340,
+      "missing_percent": 13.08,
+      "mean": 0.14,
+      "std": 5.2,
+      "min": -30.0,
+      "p25": -2.0,
+      "median": 0.0,
+      "p75": 3.0,
+      "p90": 5.0,
+      "p99": 12.42,
+      "max": 36.0
+    },
+    "intensity_change_12h": {
+      "variable": "intensity_change_12h",
+      "display_name": "12-Hour Future Intensity Change (+12h)",
+      "units": "kt",
+      "total_records": 2599,
+      "valid_count": 2089,
+      "missing_count": 510,
+      "missing_percent": 19.62,
+      "mean": 0.38,
+      "std": 9.47,
+      "min": -55.0,
+      "p25": -5.0,
+      "median": 0.0,
+      "p75": 5.0,
+      "p90": 10.0,
+      "p99": 25.0,
+      "max": 63.0
+    },
+    "intensity_change_18h": {
+      "variable": "intensity_change_18h",
+      "display_name": "18-Hour Future Intensity Change (+18h)",
+      "units": "kt",
+      "total_records": 2599,
+      "valid_count": 1929,
+      "missing_count": 670,
+      "missing_percent": 25.78,
+      "mean": 0.9,
+      "std": 12.76,
+      "min": -70.0,
+      "p25": -5.0,
+      "median": 0.0,
+      "p75": 8.0,
+      "p90": 15.0,
+      "p99": 35.0,
+      "max": 69.0
+    },
+    "intensity_change_24h": {
+      "variable": "intensity_change_24h",
+      "display_name": "24-Hour Future Intensity Change (+24h)",
+      "units": "kt",
+      "total_records": 2599,
+      "valid_count": 1784,
+      "missing_count": 815,
+      "missing_percent": 31.36,
+      "mean": 1.41,
+      "std": 15.89,
+      "min": -84.0,
+      "p25": -7.0,
+      "median": 0.0,
+      "p75": 10.0,
+      "p90": 20.0,
+      "p99": 48.0,
+      "max": 65.0
+    },
+    "intensity_change_past_6h": {
+      "variable": "intensity_change_past_6h",
+      "display_name": "6-Hour Past Intensity Change (-6h)",
+      "units": "kt",
+      "total_records": 2599,
+      "valid_count": 2251,
+      "missing_count": 348,
+      "missing_percent": 13.39,
+      "mean": 0.1,
+      "std": 5.16,
+      "min": -36.0,
+      "p25": -2.0,
+      "median": 0.0,
+      "p75": 3.0,
+      "p90": 5.0,
+      "p99": 13.5,
+      "max": 40.0
+    },
+    "intensity_change_past_12h": {
+      "variable": "intensity_change_past_12h",
+      "display_name": "12-Hour Past Intensity Change (-12h)",
+      "units": "kt",
+      "total_records": 2599,
+      "valid_count": 2090,
+      "missing_count": 509,
+      "missing_percent": 19.58,
+      "mean": 0.38,
+      "std": 9.46,
+      "min": -54.0,
+      "p25": -5.0,
+      "median": 0.0,
+      "p75": 5.0,
+      "p90": 10.0,
+      "p99": 25.0,
+      "max": 65.0
+    },
+    "intensity_change_past_24h": {
+      "variable": "intensity_change_past_24h",
+      "display_name": "24-Hour Past Intensity Change (-24h)",
+      "units": "kt",
+      "total_records": 2599,
+      "valid_count": 1783,
+      "missing_count": 816,
+      "missing_percent": 31.4,
+      "mean": 1.25,
+      "std": 16.67,
+      "min": -82.0,
+      "p25": -7.0,
+      "median": 0.0,
+      "p75": 10.0,
+      "p90": 20.0,
+      "p99": 49.0,
+      "max": 65.0
+    },
+    "storm_speed": {
+      "variable": "storm_speed",
+      "display_name": "Storm Forward Translational Speed",
+      "units": "m/s",
+      "total_records": 2599,
+      "valid_count": 2599,
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "mean": 5.29,
+      "std": 3.28,
+      "min": 0.4,
+      "p25": 3.0,
+      "median": 4.6,
+      "p75": 6.8,
+      "p90": 9.6,
+      "p99": 16.61,
+      "max": 20.8
+    },
+    "storm_heading": {
+      "variable": "storm_heading",
+      "display_name": "Storm Direction of Motion",
+      "units": "degrees",
+      "total_records": 2599,
+      "valid_count": 2599,
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "mean": 220.53,
+      "std": 105.72,
+      "min": 0.0,
+      "p25": 131.6,
+      "median": 270.0,
+      "p75": 295.75,
+      "p90": 326.1,
+      "p99": 355.9,
+      "max": 359.8
+    },
+    "distance_to_land": {
+      "variable": "distance_to_land",
+      "display_name": "Distance to Nearest Major Landmass",
+      "units": "km",
+      "total_records": 2599,
+      "valid_count": 2599,
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "mean": 739.02,
+      "std": 664.73,
+      "min": -633.12,
+      "p25": 232.28,
+      "median": 538.52,
+      "p75": 1143.53,
+      "p90": 1784.75,
+      "p99": 2475.02,
+      "max": 3033.12
+    }
+  },
+  "stage_breakdown": {
+    "TS": {
+      "count": 811,
+      "percent": 31.2
+    },
+    "TD": {
+      "count": 761,
+      "percent": 29.28
+    },
+    "UN": {
+      "count": 240,
+      "percent": 9.23
+    },
+    "DB": {
+      "count": 234,
+      "percent": 9.0
+    },
+    "LO": {
+      "count": 172,
+      "percent": 6.62
+    },
+    "HU": {
+      "count": 128,
+      "percent": 4.92
+    },
+    "EX": {
+      "count": 86,
+      "percent": 3.31
+    },
+    "TY": {
+      "count": 82,
+      "percent": 3.16
+    },
+    "MD": {
+      "count": 34,
+      "percent": 1.31
+    },
+    "SS": {
+      "count": 31,
+      "percent": 1.19
+    },
+    "SD": {
+      "count": 12,
+      "percent": 0.46
+    },
+    "WV": {
+      "count": 8,
+      "percent": 0.31
+    }
+  },
+  "temporal_summary": {
+    "total_gaps_evaluated": 2519,
+    "mean_gap_hours": 3.36,
+    "std_gap_hours": 5.84,
+    "median_gap_hours": 1.85,
+    "p25_gap_hours": 0.76,
+    "p75_gap_hours": 3.41,
+    "p90_gap_hours": 7.99,
+    "min_gap_hours": 0.0,
+    "max_gap_hours": 108.13,
+    "gaps_le_6h": 2206,
+    "gaps_le_6h_pct": 87.57,
+    "gaps_le_12h": 2379,
+    "gaps_le_12h_pct": 94.44,
+    "gaps_le_24h": 2489,
+    "gaps_le_24h_pct": 98.81,
+    "ir_mw_sync": {
+      "count": 2262,
+      "mean_delta_minutes": 0.19,
+      "median_delta_minutes": 0.03,
+      "std_delta_minutes": 28.31,
+      "min_delta_minutes": -177.97,
+      "max_delta_minutes": 213.12,
+      "sync_within_15min_pct": 85.06
+    },
+    "storm_gap_details": {
+      "CP011987": {
+        "total_overpasses": 3,
+        "start_time_utc": "1987-08-28 16:44:49",
+        "end_time_utc": "1987-08-29 16:32:28",
+        "duration_hours": 23.8,
+        "mean_gap_hours": 11.89,
+        "median_gap_hours": 11.89,
+        "min_gap_hours": 11.17,
+        "max_gap_hours": 12.62
+      },
+      "EP141987": {
+        "total_overpasses": 5,
+        "start_time_utc": "1987-09-14 13:15:31",
+        "end_time_utc": "1987-09-20 13:45:49",
+        "duration_hours": 144.5,
+        "mean_gap_hours": 36.12,
+        "median_gap_hours": 12.58,
+        "min_gap_hours": 11.21,
+        "max_gap_hours": 108.13
+      },
+      "AL011988": {
+        "total_overpasses": 3,
+        "start_time_utc": "1988-08-06 10:26:20",
+        "end_time_utc": "1988-08-08 10:05:23",
+        "duration_hours": 47.7,
+        "mean_gap_hours": 23.82,
+        "median_gap_hours": 23.82,
+        "min_gap_hours": 23.82,
+        "max_gap_hours": 23.83
+      },
+      "AL031988": {
+        "total_overpasses": 12,
+        "start_time_utc": "1988-08-21 21:32:03",
+        "end_time_utc": "1988-08-30 10:36:34",
+        "duration_hours": 205.1,
+        "mean_gap_hours": 18.64,
+        "median_gap_hours": 12.5,
+        "min_gap_hours": 11.21,
+        "max_gap_hours": 49.26
+      },
+      "IO011988": {
+        "total_overpasses": 5,
+        "start_time_utc": "1988-06-10 01:45:17",
+        "end_time_utc": "1988-06-12 13:55:34",
+        "duration_hours": 60.2,
+        "mean_gap_hours": 15.04,
+        "median_gap_hours": 12.59,
+        "min_gap_hours": 11.2,
+        "max_gap_hours": 23.79
+      },
+      "SH081988": {
+        "total_overpasses": 6,
+        "start_time_utc": "1988-01-14 03:16:10",
+        "end_time_utc": "1988-01-18 15:22:24",
+        "duration_hours": 108.1,
+        "mean_gap_hours": 21.62,
+        "median_gap_hours": 12.58,
+        "min_gap_hours": 11.19,
+        "max_gap_hours": 60.53
+      },
+      "AL071989": {
+        "total_overpasses": 8,
+        "start_time_utc": "1989-08-18 07:13:33",
+        "end_time_utc": "1989-08-26 21:18:55",
+        "duration_hours": 206.1,
+        "mean_gap_hours": 29.44,
+        "median_gap_hours": 23.75,
+        "min_gap_hours": 11.25,
+        "max_gap_hours": 61.74
+      },
+      "SH111989": {
+        "total_overpasses": 18,
+        "start_time_utc": "1989-02-15 11:43:40",
+        "end_time_utc": "1989-02-28 12:28:28",
+        "duration_hours": 312.7,
+        "mean_gap_hours": 18.4,
+        "median_gap_hours": 12.62,
+        "min_gap_hours": 11.17,
+        "max_gap_hours": 36.69
+      },
+      "EP201990": {
+        "total_overpasses": 5,
+        "start_time_utc": "1990-09-28 15:27:10",
+        "end_time_utc": "1990-10-01 03:36:11",
+        "duration_hours": 60.2,
+        "mean_gap_hours": 15.04,
+        "median_gap_hours": 12.59,
+        "min_gap_hours": 11.19,
+        "max_gap_hours": 23.79
+      },
+      "IO011990": {
+        "total_overpasses": 2,
+        "start_time_utc": "1990-04-17 12:26:53",
+        "end_time_utc": "1990-04-18 12:11:34",
+        "duration_hours": 23.7,
+        "mean_gap_hours": 23.74,
+        "median_gap_hours": 23.74,
+        "min_gap_hours": 23.74,
+        "max_gap_hours": 23.74
+      },
+      "IO031991": {
+        "total_overpasses": 8,
+        "start_time_utc": "1991-05-30 00:03:22",
+        "end_time_utc": "1991-06-02 23:10:53",
+        "duration_hours": 95.1,
+        "mean_gap_hours": 13.59,
+        "median_gap_hours": 12.46,
+        "min_gap_hours": 9.81,
+        "max_gap_hours": 23.74
+      },
+      "WP041991": {
+        "total_overpasses": 16,
+        "start_time_utc": "1991-05-03 21:50:56",
+        "end_time_utc": "1991-05-16 00:04:47",
+        "duration_hours": 290.2,
+        "mean_gap_hours": 19.35,
+        "median_gap_hours": 12.63,
+        "min_gap_hours": 1.45,
+        "max_gap_hours": 60.34
+      },
+      "CP021992": {
+        "total_overpasses": 6,
+        "start_time_utc": "1992-03-28 04:11:06",
+        "end_time_utc": "1992-03-30 16:26:26",
+        "duration_hours": 60.3,
+        "mean_gap_hours": 12.05,
+        "median_gap_hours": 8.84,
+        "min_gap_hours": 3.37,
+        "max_gap_hours": 23.78
+      },
+      "IO101992": {
+        "total_overpasses": 23,
+        "start_time_utc": "1992-11-06 10:29:19",
+        "end_time_utc": "1992-11-17 03:53:38",
+        "duration_hours": 257.4,
+        "mean_gap_hours": 11.7,
+        "median_gap_hours": 8.68,
+        "min_gap_hours": 2.96,
+        "max_gap_hours": 36.6
+      },
+      "IO021993": {
+        "total_overpasses": 16,
+        "start_time_utc": "1993-11-26 22:15:19",
+        "end_time_utc": "1993-12-05 16:08:28",
+        "duration_hours": 209.9,
+        "mean_gap_hours": 13.99,
+        "median_gap_hours": 12.49,
+        "min_gap_hours": 3.41,
+        "max_gap_hours": 36.13
+      },
+      "WP091993": {
+        "total_overpasses": 11,
+        "start_time_utc": "1993-07-11 11:32:36",
+        "end_time_utc": "1993-07-16 01:14:24",
+        "duration_hours": 109.7,
+        "mean_gap_hours": 10.97,
+        "median_gap_hours": 9.96,
+        "min_gap_hours": 3.79,
+        "max_gap_hours": 20.51
+      },
+      "WP371993": {
+        "total_overpasses": 20,
+        "start_time_utc": "1993-12-18 19:07:36",
+        "end_time_utc": "1993-12-30 01:58:43",
+        "duration_hours": 270.9,
+        "mean_gap_hours": 14.25,
+        "median_gap_hours": 12.54,
+        "min_gap_hours": 3.83,
+        "max_gap_hours": 36.57
+      },
+      "EP031994": {
+        "total_overpasses": 12,
+        "start_time_utc": "1994-06-30 01:01:47",
+        "end_time_utc": "1994-07-05 06:12:00",
+        "duration_hours": 125.2,
+        "mean_gap_hours": 11.38,
+        "median_gap_hours": 9.03,
+        "min_gap_hours": 3.56,
+        "max_gap_hours": 37.54
+      },
+      "EP131994": {
+        "total_overpasses": 10,
+        "start_time_utc": "1994-08-28 18:29:50",
+        "end_time_utc": "1994-09-03 07:52:35",
+        "duration_hours": 133.4,
+        "mean_gap_hours": 14.82,
+        "median_gap_hours": 12.43,
+        "min_gap_hours": 3.7,
+        "max_gap_hours": 36.18
+      },
+      "IO021994": {
+        "total_overpasses": 11,
+        "start_time_utc": "1994-04-27 03:15:03",
+        "end_time_utc": "1994-05-03 03:21:10",
+        "duration_hours": 144.1,
+        "mean_gap_hours": 14.41,
+        "median_gap_hours": 9.96,
+        "min_gap_hours": 3.67,
+        "max_gap_hours": 52.17
+      },
+      "IO041995": {
+        "total_overpasses": 13,
+        "start_time_utc": "1995-11-18 23:41:39",
+        "end_time_utc": "1995-11-25 11:21:50",
+        "duration_hours": 155.7,
+        "mean_gap_hours": 12.97,
+        "median_gap_hours": 11.87,
+        "min_gap_hours": 4.17,
+        "max_gap_hours": 31.95
+      },
+      "AL011996": {
+        "total_overpasses": 12,
+        "start_time_utc": "1996-06-17 22:28:27",
+        "end_time_utc": "1996-06-22 20:14:01",
+        "duration_hours": 117.8,
+        "mean_gap_hours": 10.7,
+        "median_gap_hours": 7.33,
+        "min_gap_hours": 3.24,
+        "max_gap_hours": 24.19
+      },
+      "EP071996": {
+        "total_overpasses": 21,
+        "start_time_utc": "1996-07-30 00:03:56",
+        "end_time_utc": "1996-08-05 18:48:49",
+        "duration_hours": 162.7,
+        "mean_gap_hours": 8.14,
+        "median_gap_hours": 6.6,
+        "min_gap_hours": 1.23,
+        "max_gap_hours": 28.05
+      },
+      "SH211996": {
+        "total_overpasses": 33,
+        "start_time_utc": "1996-03-04 07:54:35",
+        "end_time_utc": "1996-03-13 22:39:15",
+        "duration_hours": 230.7,
+        "mean_gap_hours": 7.21,
+        "median_gap_hours": 7.03,
+        "min_gap_hours": 0.84,
+        "max_gap_hours": 28.46
+      },
+      "WP151996": {
+        "total_overpasses": 11,
+        "start_time_utc": "1996-08-10 06:24:14",
+        "end_time_utc": "1996-08-16 10:42:08",
+        "duration_hours": 148.3,
+        "mean_gap_hours": 14.83,
+        "median_gap_hours": 11.2,
+        "min_gap_hours": 1.08,
+        "max_gap_hours": 57.58
+      },
+      "CP021997": {
+        "total_overpasses": 80,
+        "start_time_utc": "1997-08-28 04:45:51",
+        "end_time_utc": "1997-09-17 07:36:21",
+        "duration_hours": 482.8,
+        "mean_gap_hours": 6.11,
+        "median_gap_hours": 3.49,
+        "min_gap_hours": 0.47,
+        "max_gap_hours": 23.79
+      },
+      "AL031998": {
+        "total_overpasses": 18,
+        "start_time_utc": "1998-08-21 11:57:54",
+        "end_time_utc": "1998-08-24 02:36:48",
+        "duration_hours": 62.6,
+        "mean_gap_hours": 3.69,
+        "median_gap_hours": 2.21,
+        "min_gap_hours": 0.21,
+        "max_gap_hours": 10.91
+      },
+      "IO031998": {
+        "total_overpasses": 35,
+        "start_time_utc": "1998-06-01 03:49:36",
+        "end_time_utc": "1998-06-09 12:45:43",
+        "duration_hours": 200.9,
+        "mean_gap_hours": 5.91,
+        "median_gap_hours": 5.37,
+        "min_gap_hours": 0.13,
+        "max_gap_hours": 12.87
+      },
+      "AL012000": {
+        "total_overpasses": 3,
+        "start_time_utc": "2000-06-07 23:45:52",
+        "end_time_utc": "2000-06-08 12:18:23",
+        "duration_hours": 12.5,
+        "mean_gap_hours": 6.27,
+        "median_gap_hours": 6.27,
+        "min_gap_hours": 3.19,
+        "max_gap_hours": 9.35
+      },
+      "CP022000": {
+        "total_overpasses": 9,
+        "start_time_utc": "2000-08-16 04:42:28",
+        "end_time_utc": "2000-08-17 08:08:19",
+        "duration_hours": 27.4,
+        "mean_gap_hours": 3.43,
+        "median_gap_hours": 1.46,
+        "min_gap_hours": 0.04,
+        "max_gap_hours": 11.42
+      },
+      "EP042000": {
+        "total_overpasses": 4,
+        "start_time_utc": "2000-07-07 01:59:57",
+        "end_time_utc": "2000-07-07 14:36:50",
+        "duration_hours": 12.6,
+        "mean_gap_hours": 4.2,
+        "median_gap_hours": 3.09,
+        "min_gap_hours": 0.67,
+        "max_gap_hours": 8.85
+      },
+      "EP052000": {
+        "total_overpasses": 5,
+        "start_time_utc": "2000-07-22 11:01:15",
+        "end_time_utc": "2000-07-23 14:31:47",
+        "duration_hours": 27.5,
+        "mean_gap_hours": 6.88,
+        "median_gap_hours": 4.7,
+        "min_gap_hours": 3.13,
+        "max_gap_hours": 14.97
+      },
+      "WP022000": {
+        "total_overpasses": 15,
+        "start_time_utc": "2000-05-17 22:07:44",
+        "end_time_utc": "2000-05-20 08:57:43",
+        "duration_hours": 58.8,
+        "mean_gap_hours": 4.2,
+        "median_gap_hours": 3.29,
+        "min_gap_hours": 0.14,
+        "max_gap_hours": 9.29
+      },
+      "WP032000": {
+        "total_overpasses": 5,
+        "start_time_utc": "2000-05-21 00:44:07",
+        "end_time_utc": "2000-05-22 00:30:16",
+        "duration_hours": 23.8,
+        "mean_gap_hours": 5.94,
+        "median_gap_hours": 5.15,
+        "min_gap_hours": 0.93,
+        "max_gap_hours": 12.54
+      },
+      "AL022001": {
+        "total_overpasses": 8,
+        "start_time_utc": "2001-07-11 16:27:51",
+        "end_time_utc": "2001-07-12 16:18:02",
+        "duration_hours": 23.8,
+        "mean_gap_hours": 3.4,
+        "median_gap_hours": 3.27,
+        "min_gap_hours": 0.12,
+        "max_gap_hours": 6.92
+      },
+      "CP012001": {
+        "total_overpasses": 11,
+        "start_time_utc": "2001-09-09 22:50:55",
+        "end_time_utc": "2001-09-11 13:00:18",
+        "duration_hours": 38.2,
+        "mean_gap_hours": 3.81,
+        "median_gap_hours": 4.62,
+        "min_gap_hours": 0.08,
+        "max_gap_hours": 7.33
+      },
+      "AL082002": {
+        "total_overpasses": 75,
+        "start_time_utc": "2002-09-08 11:00:25",
+        "end_time_utc": "2002-09-15 00:20:22",
+        "duration_hours": 157.3,
+        "mean_gap_hours": 2.13,
+        "median_gap_hours": 1.64,
+        "min_gap_hours": 0.13,
+        "max_gap_hours": 7.11
+      },
+      "EP152002": {
+        "total_overpasses": 74,
+        "start_time_utc": "2002-10-22 18:55:55",
+        "end_time_utc": "2002-10-30 23:30:14",
+        "duration_hours": 196.6,
+        "mean_gap_hours": 2.69,
+        "median_gap_hours": 1.75,
+        "min_gap_hours": 0.02,
+        "max_gap_hours": 12.53
+      },
+      "IO012002": {
+        "total_overpasses": 31,
+        "start_time_utc": "2002-05-05 21:12:52",
+        "end_time_utc": "2002-05-10 17:50:44",
+        "duration_hours": 116.6,
+        "mean_gap_hours": 3.89,
+        "median_gap_hours": 3.34,
+        "min_gap_hours": 0.35,
+        "max_gap_hours": 12.85
+      },
+      "IO022002": {
+        "total_overpasses": 22,
+        "start_time_utc": "2002-05-09 03:33:02",
+        "end_time_utc": "2002-05-12 07:17:40",
+        "duration_hours": 75.7,
+        "mean_gap_hours": 3.61,
+        "median_gap_hours": 3.26,
+        "min_gap_hours": 0.12,
+        "max_gap_hours": 10.26
+      },
+      "SH072002": {
+        "total_overpasses": 28,
+        "start_time_utc": "2001-12-28 19:16:48",
+        "end_time_utc": "2002-01-02 01:59:30",
+        "duration_hours": 102.7,
+        "mean_gap_hours": 3.8,
+        "median_gap_hours": 4.04,
+        "min_gap_hours": 0.16,
+        "max_gap_hours": 7.29
+      },
+      "SH142002": {
+        "total_overpasses": 22,
+        "start_time_utc": "2002-02-10 21:25:47",
+        "end_time_utc": "2002-02-13 20:46:44",
+        "duration_hours": 71.3,
+        "mean_gap_hours": 3.4,
+        "median_gap_hours": 3.07,
+        "min_gap_hours": 0.73,
+        "max_gap_hours": 6.69
+      },
+      "SH242002": {
+        "total_overpasses": 38,
+        "start_time_utc": "2002-05-09 06:23:54",
+        "end_time_utc": "2002-05-14 14:06:17",
+        "duration_hours": 127.7,
+        "mean_gap_hours": 3.45,
+        "median_gap_hours": 2.67,
+        "min_gap_hours": 0.17,
+        "max_gap_hours": 11.12
+      },
+      "AL062003": {
+        "total_overpasses": 19,
+        "start_time_utc": "2003-07-19 16:16:59",
+        "end_time_utc": "2003-07-21 13:13:07",
+        "duration_hours": 44.9,
+        "mean_gap_hours": 2.5,
+        "median_gap_hours": 2.46,
+        "min_gap_hours": 0.09,
+        "max_gap_hours": 6.26
+      },
+      "WP222003": {
+        "total_overpasses": 28,
+        "start_time_utc": "2003-10-20 22:45:19",
+        "end_time_utc": "2003-10-24 02:38:38",
+        "duration_hours": 75.9,
+        "mean_gap_hours": 2.81,
+        "median_gap_hours": 2.82,
+        "min_gap_hours": 0.3,
+        "max_gap_hours": 5.35
+      },
+      "CP012004": {
+        "total_overpasses": 20,
+        "start_time_utc": "2004-07-04 01:21:06",
+        "end_time_utc": "2004-07-06 00:58:26",
+        "duration_hours": 47.6,
+        "mean_gap_hours": 2.51,
+        "median_gap_hours": 1.4,
+        "min_gap_hours": 0.0,
+        "max_gap_hours": 8.5
+      },
+      "IO042005": {
+        "total_overpasses": 48,
+        "start_time_utc": "2005-10-24 21:39:30",
+        "end_time_utc": "2005-10-29 01:22:00",
+        "duration_hours": 99.7,
+        "mean_gap_hours": 2.12,
+        "median_gap_hours": 2.09,
+        "min_gap_hours": 0.01,
+        "max_gap_hours": 6.17
+      },
+      "CP042006": {
+        "total_overpasses": 98,
+        "start_time_utc": "2006-10-07 16:57:04",
+        "end_time_utc": "2006-10-16 17:12:18",
+        "duration_hours": 216.3,
+        "mean_gap_hours": 2.23,
+        "median_gap_hours": 2.17,
+        "min_gap_hours": 0.05,
+        "max_gap_hours": 6.33
+      },
+      "EP202006": {
+        "total_overpasses": 10,
+        "start_time_utc": "2006-11-10 22:24:33",
+        "end_time_utc": "2006-11-11 14:21:45",
+        "duration_hours": 16.0,
+        "mean_gap_hours": 1.77,
+        "median_gap_hours": 1.86,
+        "min_gap_hours": 0.39,
+        "max_gap_hours": 2.99
+      },
+      "WP192006": {
+        "total_overpasses": 48,
+        "start_time_utc": "2006-10-03 04:24:40",
+        "end_time_utc": "2006-10-06 08:47:29",
+        "duration_hours": 76.4,
+        "mean_gap_hours": 1.63,
+        "median_gap_hours": 1.04,
+        "min_gap_hours": 0.05,
+        "max_gap_hours": 4.84
+      },
+      "IO022009": {
+        "total_overpasses": 50,
+        "start_time_utc": "2009-05-22 15:12:06",
+        "end_time_utc": "2009-05-26 07:59:29",
+        "duration_hours": 88.8,
+        "mean_gap_hours": 1.81,
+        "median_gap_hours": 1.16,
+        "min_gap_hours": 0.0,
+        "max_gap_hours": 7.64
+      },
+      "EP022010": {
+        "total_overpasses": 10,
+        "start_time_utc": "2010-06-16 03:51:27",
+        "end_time_utc": "2010-06-17 02:49:48",
+        "duration_hours": 23.0,
+        "mean_gap_hours": 2.55,
+        "median_gap_hours": 3.24,
+        "min_gap_hours": 0.29,
+        "max_gap_hours": 3.97
+      },
+      "WP012010": {
+        "total_overpasses": 19,
+        "start_time_utc": "2010-01-17 22:04:00",
+        "end_time_utc": "2010-01-20 08:43:57",
+        "duration_hours": 58.7,
+        "mean_gap_hours": 3.26,
+        "median_gap_hours": 3.26,
+        "min_gap_hours": 0.24,
+        "max_gap_hours": 6.77
+      },
+      "AL082013": {
+        "total_overpasses": 15,
+        "start_time_utc": "2013-09-06 10:51:31",
+        "end_time_utc": "2013-09-07 08:49:35",
+        "duration_hours": 22.0,
+        "mean_gap_hours": 1.57,
+        "median_gap_hours": 1.52,
+        "min_gap_hours": 0.29,
+        "max_gap_hours": 3.59
+      },
+      "IO052013": {
+        "total_overpasses": 143,
+        "start_time_utc": "2013-11-19 18:40:22",
+        "end_time_utc": "2013-11-29 01:54:36",
+        "duration_hours": 223.2,
+        "mean_gap_hours": 1.57,
+        "median_gap_hours": 1.1,
+        "min_gap_hours": 0.01,
+        "max_gap_hours": 7.25
+      },
+      "AL122015": {
+        "total_overpasses": 96,
+        "start_time_utc": "2015-11-08 17:14:54",
+        "end_time_utc": "2015-11-13 13:09:09",
+        "duration_hours": 115.9,
+        "mean_gap_hours": 1.22,
+        "median_gap_hours": 0.92,
+        "min_gap_hours": 0.03,
+        "max_gap_hours": 4.85
+      },
+      "CP082015": {
+        "total_overpasses": 80,
+        "start_time_utc": "2015-10-01 21:33:58",
+        "end_time_utc": "2015-10-06 14:16:52",
+        "duration_hours": 112.7,
+        "mean_gap_hours": 1.43,
+        "median_gap_hours": 1.03,
+        "min_gap_hours": 0.01,
+        "max_gap_hours": 4.92
+      },
+      "IO022016": {
+        "total_overpasses": 33,
+        "start_time_utc": "2016-06-26 05:13:44",
+        "end_time_utc": "2016-06-28 08:54:34",
+        "duration_hours": 51.7,
+        "mean_gap_hours": 1.61,
+        "median_gap_hours": 1.06,
+        "min_gap_hours": 0.06,
+        "max_gap_hours": 5.05
+      },
+      "SH012017": {
+        "total_overpasses": 93,
+        "start_time_utc": "2016-07-14 09:08:11",
+        "end_time_utc": "2016-07-20 13:04:20",
+        "duration_hours": 147.9,
+        "mean_gap_hours": 1.61,
+        "median_gap_hours": 1.44,
+        "min_gap_hours": 0.03,
+        "max_gap_hours": 4.27
+      },
+      "WP112017": {
+        "total_overpasses": 83,
+        "start_time_utc": "2017-07-25 09:35:18",
+        "end_time_utc": "2017-07-30 13:47:37",
+        "duration_hours": 124.2,
+        "mean_gap_hours": 1.51,
+        "median_gap_hours": 1.33,
+        "min_gap_hours": 0.05,
+        "max_gap_hours": 4.6
+      },
+      "EP102019": {
+        "total_overpasses": 101,
+        "start_time_utc": "2019-08-21 03:03:44",
+        "end_time_utc": "2019-08-27 01:34:46",
+        "duration_hours": 142.5,
+        "mean_gap_hours": 1.43,
+        "median_gap_hours": 0.84,
+        "min_gap_hours": 0.04,
+        "max_gap_hours": 4.06
+      },
+      "EP022020": {
+        "total_overpasses": 14,
+        "start_time_utc": "2020-05-30 15:00:15",
+        "end_time_utc": "2020-05-31 12:50:01",
+        "duration_hours": 21.8,
+        "mean_gap_hours": 1.68,
+        "median_gap_hours": 1.28,
+        "min_gap_hours": 0.11,
+        "max_gap_hours": 4.64
+      },
+      "EP072020": {
+        "total_overpasses": 35,
+        "start_time_utc": "2020-07-19 09:18:13",
+        "end_time_utc": "2020-07-21 18:53:03",
+        "duration_hours": 57.6,
+        "mean_gap_hours": 1.69,
+        "median_gap_hours": 1.33,
+        "min_gap_hours": 0.05,
+        "max_gap_hours": 3.94
+      },
+      "IO032020": {
+        "total_overpasses": 67,
+        "start_time_utc": "2020-11-20 09:00:02",
+        "end_time_utc": "2020-11-24 14:52:00",
+        "duration_hours": 101.9,
+        "mean_gap_hours": 1.54,
+        "median_gap_hours": 1.55,
+        "min_gap_hours": 0.0,
+        "max_gap_hours": 3.9
+      },
+      "SH232020": {
+        "total_overpasses": 55,
+        "start_time_utc": "2020-03-13 11:07:42",
+        "end_time_utc": "2020-03-16 20:52:41",
+        "duration_hours": 81.7,
+        "mean_gap_hours": 1.51,
+        "median_gap_hours": 1.71,
+        "min_gap_hours": 0.01,
+        "max_gap_hours": 3.91
+      },
+      "AL022021": {
+        "total_overpasses": 43,
+        "start_time_utc": "2021-06-13 15:14:05",
+        "end_time_utc": "2021-06-16 00:58:40",
+        "duration_hours": 57.7,
+        "mean_gap_hours": 1.38,
+        "median_gap_hours": 0.89,
+        "min_gap_hours": 0.07,
+        "max_gap_hours": 3.53
+      },
+      "AL042021": {
+        "total_overpasses": 25,
+        "start_time_utc": "2021-06-27 15:24:51",
+        "end_time_utc": "2021-06-29 02:21:07",
+        "duration_hours": 34.9,
+        "mean_gap_hours": 1.46,
+        "median_gap_hours": 1.02,
+        "min_gap_hours": 0.18,
+        "max_gap_hours": 4.01
+      },
+      "SH282021": {
+        "total_overpasses": 53,
+        "start_time_utc": "2021-04-09 03:22:02",
+        "end_time_utc": "2021-04-12 07:29:12",
+        "duration_hours": 76.1,
+        "mean_gap_hours": 1.46,
+        "median_gap_hours": 1.42,
+        "min_gap_hours": 0.05,
+        "max_gap_hours": 3.21
+      },
+      "WP072021": {
+        "total_overpasses": 24,
+        "start_time_utc": "2021-07-04 09:55:04",
+        "end_time_utc": "2021-07-05 20:54:38",
+        "duration_hours": 35.0,
+        "mean_gap_hours": 1.52,
+        "median_gap_hours": 0.89,
+        "min_gap_hours": 0.06,
+        "max_gap_hours": 3.56
+      },
+      "WP172021": {
+        "total_overpasses": 59,
+        "start_time_utc": "2021-08-31 21:07:23",
+        "end_time_utc": "2021-09-04 02:21:41",
+        "duration_hours": 77.2,
+        "mean_gap_hours": 1.33,
+        "median_gap_hours": 0.87,
+        "min_gap_hours": 0.02,
+        "max_gap_hours": 3.72
+      },
+      "AL122022": {
+        "total_overpasses": 36,
+        "start_time_utc": "2022-10-04 11:12:56",
+        "end_time_utc": "2022-10-06 20:58:18",
+        "duration_hours": 57.8,
+        "mean_gap_hours": 1.65,
+        "median_gap_hours": 0.87,
+        "min_gap_hours": 0.1,
+        "max_gap_hours": 3.41
+      },
+      "IO012022": {
+        "total_overpasses": 57,
+        "start_time_utc": "2022-03-02 22:55:12",
+        "end_time_utc": "2022-03-06 20:37:28",
+        "duration_hours": 93.7,
+        "mean_gap_hours": 1.67,
+        "median_gap_hours": 1.69,
+        "min_gap_hours": 0.03,
+        "max_gap_hours": 4.0
+      },
+      "IO032022": {
+        "total_overpasses": 36,
+        "start_time_utc": "2022-08-11 16:47:29",
+        "end_time_utc": "2022-08-14 00:19:22",
+        "duration_hours": 55.5,
+        "mean_gap_hours": 1.59,
+        "median_gap_hours": 0.86,
+        "min_gap_hours": 0.0,
+        "max_gap_hours": 4.69
+      },
+      "WP082022": {
+        "total_overpasses": 21,
+        "start_time_utc": "2022-08-03 05:46:18",
+        "end_time_utc": "2022-08-04 14:10:18",
+        "duration_hours": 32.4,
+        "mean_gap_hours": 1.62,
+        "median_gap_hours": 1.01,
+        "min_gap_hours": 0.07,
+        "max_gap_hours": 4.62
+      },
+      "IO032023": {
+        "total_overpasses": 28,
+        "start_time_utc": "2023-06-08 10:33:15",
+        "end_time_utc": "2023-06-10 07:48:32",
+        "duration_hours": 45.3,
+        "mean_gap_hours": 1.68,
+        "median_gap_hours": 0.64,
+        "min_gap_hours": 0.09,
+        "max_gap_hours": 6.99
+      },
+      "AL032024": {
+        "total_overpasses": 13,
+        "start_time_utc": "2024-06-30 15:28:19",
+        "end_time_utc": "2024-07-01 08:44:37",
+        "duration_hours": 17.3,
+        "mean_gap_hours": 1.44,
+        "median_gap_hours": 0.89,
+        "min_gap_hours": 0.1,
+        "max_gap_hours": 3.82
+      },
+      "EP112024": {
+        "total_overpasses": 52,
+        "start_time_utc": "2024-09-30 15:34:00",
+        "end_time_utc": "2024-10-03 12:17:50",
+        "duration_hours": 68.7,
+        "mean_gap_hours": 1.35,
+        "median_gap_hours": 0.46,
+        "min_gap_hours": 0.02,
+        "max_gap_hours": 4.68
+      },
+      "IO012024": {
+        "total_overpasses": 79,
+        "start_time_utc": "2024-05-23 10:20:14",
+        "end_time_utc": "2024-05-28 00:00:57",
+        "duration_hours": 109.7,
+        "mean_gap_hours": 1.41,
+        "median_gap_hours": 0.81,
+        "min_gap_hours": 0.01,
+        "max_gap_hours": 3.98
+      },
+      "CP012025": {
+        "total_overpasses": 96,
+        "start_time_utc": "2025-07-25 22:09:01",
+        "end_time_utc": "2025-08-01 13:53:03",
+        "duration_hours": 159.7,
+        "mean_gap_hours": 1.68,
+        "median_gap_hours": 0.86,
+        "min_gap_hours": 0.09,
+        "max_gap_hours": 8.27
+      },
+      "CP022025": {
+        "total_overpasses": 39,
+        "start_time_utc": "2025-07-27 18:54:18",
+        "end_time_utc": "2025-07-30 14:26:40",
+        "duration_hours": 67.5,
+        "mean_gap_hours": 1.78,
+        "median_gap_hours": 0.86,
+        "min_gap_hours": 0.09,
+        "max_gap_hours": 9.69
+      }
+    }
+  },
+  "split_summary": {
+    "TEST": {
+      "storms_count": 22,
+      "overpasses_count": 650,
+      "environmental_count": 22,
+      "total_files": 672,
+      "basins": {
+        "CP": 3,
+        "AL": 4,
+        "WP": 4,
+        "IO": 4,
+        "EP": 4,
+        "SH": 3
+      },
+      "eras": {
+        "1987-1999": 6,
+        "2000-2009": 6,
+        "2010-2019": 4,
+        "2020+": 6
+      }
+    },
+    "TRAIN": {
+      "storms_count": 42,
+      "overpasses_count": 1475,
+      "environmental_count": 42,
+      "total_files": 1517,
+      "basins": {
+        "EP": 7,
+        "AL": 8,
+        "IO": 12,
+        "SH": 4,
+        "WP": 6,
+        "CP": 5
+      },
+      "eras": {
+        "1987-1999": 16,
+        "2000-2009": 11,
+        "2010-2019": 6,
+        "2020+": 9
+      }
+    },
+    "VAL": {
+      "storms_count": 16,
+      "overpasses_count": 474,
+      "environmental_count": 16,
+      "total_files": 490,
+      "basins": {
+        "SH": 2,
+        "EP": 3,
+        "IO": 3,
+        "WP": 3,
+        "CP": 2,
+        "AL": 3
+      },
+      "eras": {
+        "1987-1999": 6,
+        "2000-2009": 6,
+        "2020+": 4
+      }
+    }
+  },
+  "numpy_extraction_benchmarks": [
+    {
+      "sensor": "SSMI",
+      "filename": "TCPRIMED_v01r01-final_CP011987_SSMI_F08_000982_19870828164449.nc",
+      "season": 1987,
+      "storm_id": "CP011987",
+      "tests_passed": 4,
+      "tests_total": 4,
+      "details": [
+        "Labels extracted: intensity=46 kt, pmin=-- hPa",
+        "PMW TB_19.35V shape=(79, 64), dtype=float32, valid_range=[197.2, 269.7] K",
+        "IRWIN 2D shape=(480, 640), valid_mean=271.1 K, missing_count=0",
+        "Coordinates preserved: Lat range=[2.4, 23.7], Lon range=[190.7, 207.7]"
+      ]
+    },
+    {
+      "sensor": "TMI",
+      "filename": "TCPRIMED_v01r01-final_AL031998_TMI_TRMM_004206_19980821142248.nc",
+      "season": 1998,
+      "storm_id": "AL031998",
+      "tests_passed": 4,
+      "tests_total": 4,
+      "details": [
+        "Labels extracted: intensity=34 kt, pmin=1008 hPa",
+        "PMW TB_10.65V shape=(152, 104), dtype=float32, valid_range=[175.3, 295.5] K",
+        "IRWIN 2D shape=(480, 640), valid_mean=277.9 K, missing_count=0",
+        "Coordinates preserved: Lat range=[22.9, 35.7], Lon range=[254.6, 277.2]"
+      ]
+    },
+    {
+      "sensor": "MHS",
+      "filename": "TCPRIMED_v01r01-final_IO042005_MHS_NOAA18_002225_20051025080956.nc",
+      "season": 2005,
+      "storm_id": "IO042005",
+      "tests_passed": 4,
+      "tests_total": 4,
+      "details": [
+        "Labels extracted: intensity=20 kt, pmin=1004 hPa",
+        "PMW TB_89.0V shape=(97, 90), dtype=float32, valid_range=[154.7, 293.6] K",
+        "IRWIN 2D shape=(480, 640), valid_mean=261.8 K, missing_count=0",
+        "Coordinates preserved: Lat range=[2.8, 20.8], Lon range=[71.6, 95.7]"
+      ]
+    },
+    {
+      "sensor": "SSMIS",
+      "filename": "TCPRIMED_v01r01-final_CP042006_SSMIS_F16_015335_20061008070852.nc",
+      "season": 2006,
+      "storm_id": "CP042006",
+      "tests_passed": 4,
+      "tests_total": 4,
+      "details": [
+        "Labels extracted: intensity=25 kt, pmin=1009 hPa",
+        "PMW TB_19.35V shape=(165, 90), dtype=float32, valid_range=[202.8, 255.1] K",
+        "IRWIN group absent / unavailable (handled gracefully)",
+        "Coordinates preserved: Lat range=[-2.2, 22.8], Lon range=[184.1, 204.4]"
+      ]
+    },
+    {
+      "sensor": "ATMS",
+      "filename": "TCPRIMED_v01r01-final_AL082013_ATMS_NPP_009639_20130906200346.nc",
+      "season": 2013,
+      "storm_id": "AL082013",
+      "tests_passed": 4,
+      "tests_total": 4,
+      "details": [
+        "Labels extracted: intensity=28 kt, pmin=1008 hPa",
+        "PMW TB_23.8QV shape=(95, 96), dtype=float32, valid_range=[205.9, 301.5] K",
+        "IRWIN 2D shape=(480, 640), valid_mean=265.2 K, missing_count=1090",
+        "Coordinates preserved: Lat range=[11.9, 30.1], Lon range=[242.7, 270.4]"
+      ]
+    },
+    {
+      "sensor": "GMI",
+      "filename": "TCPRIMED_v01r01-final_AL122015_GMI_GPM_009633_20151108201259.nc",
+      "season": 2015,
+      "storm_id": "AL122015",
+      "tests_passed": 4,
+      "tests_total": 4,
+      "details": [
+        "Labels extracted: intensity=30 kt, pmin=1010 hPa",
+        "PMW TB_10.65V shape=(172, 221), dtype=float32, valid_range=[167.9, 333.9] K",
+        "IRWIN 2D shape=(480, 640), valid_mean=281.6 K, missing_count=0",
+        "Coordinates preserved: Lat range=[10.8, 34.7], Lon range=[283.1, 300.3]"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+================================================================================================
+NOAA TC PRIMED PILOT DATASET: COMPREHENSIVE MODALITY AUDIT REPORT
+Audit Completed: 2026-11-05 10:58:46 UTC
+================================================================================================
+
+1. LOCAL DATASET INTEGRITY & DOWNLOAD STATUS
+------------------------------------------------------------------------------------------------
+  Total Manifest Entries:         2,679
+    - Overpass NetCDF Files:      2,599
+    - Environmental NetCDF Files: 80
+  Local Downloaded Files:         2,679 (100.00% of manifest)
+  Pending / Missing Files:        0
+  Incorrect Size Files:           0
+  Failed NetCDF Open Errors:      0
+  Total Local Volume:             19.9994 GB (18.6259 GiB / 19,999,443,986 bytes)
+  Expected Manifest Volume:       19.9994 GB (18.6259 GiB)
+
+2. OVERPASS MODALITY AUDIT: EXECUTIVE SUMMARY
+------------------------------------------------------------------------------------------------
+  Total Inspected Overpasses:     2,599
+  IR Group Present in NetCDF:     2,599 (100.00%)
+  IR Flag Active (Flag 1 or 2):   2,262 (87.03%)
+    * Flag = 0 (Not Available):   337
+    * Flag = 1 (McIDAS Source):   2,099
+    * Flag = 2 (HURSAT Source):   163
+  IRWIN Variable Present:         2,262 (87.03%)
+  IRWIN with Valid Pixels:        2,262 (87.03%)
+  Mean Missing Pixels in IRWIN:   0.81%
+  Median Missing Pixels in IRWIN: 0.00%
+  R5 Variable Present:            2,429 (Flag 1: 2,429, Valid Data: 2,429)
+  IR-to-MW Time Offset (Minutes): Mean +0.19 min (Range: [-178.0, +213.1] min)
+
+3. MODALITY 5-STATE TAXONOMY AUDIT
+------------------------------------------------------------------------------------------------
+  Modality             Absent         Flag False     Some Valid     All Missing    Valid Data    
+  ----------------------------------------------------------------------------------------------
+  Passive Microwave    0              0              58             4              2537          
+  Infrared (IRWIN)     0              337            262            0              2000          
+  GPROF Precipitation  0              0              1375           4              1220          
+  Radar-Radiometer     2392           0              1              0              206           
+
+4. INFRARED PROVENANCE & GEOSYNCHRONOUS ATTRIBUTION
+------------------------------------------------------------------------------------------------
+  Geostationary Platforms Providing IR Data:
+    * Himawari-8               :  305 overpasses ( 11.7%)
+    * Meteosat-7               :  276 overpasses ( 10.6%)
+    * GMS-5                    :  135 overpasses (  5.2%)
+    * Meteosat-5               :  132 overpasses (  5.1%)
+    * GOES-18 imager           :  131 overpasses (  5.0%)
+    * Meteosat-8 (MSG-1)       :  122 overpasses (  4.7%)
+    * GOES-8                   :  118 overpasses (  4.5%)
+    * GOES-10                  :  118 overpasses (  4.5%)
+    * GOES-16                  :  112 overpasses (  4.3%)
+    * GOES-17                  :  111 overpasses (  4.3%)
+    * GOES-13                  :  109 overpasses (  4.2%)
+    * GMS-4                    :  104 overpasses (  4.0%)
+    * GOES-9                   :   88 overpasses (  3.4%)
+    * Himawari 9               :   83 overpasses (  3.2%)
+    * GOES-16 imager           :   65 overpasses (  2.5%)
+    * MTSAT-1R                 :   64 overpasses (  2.5%)
+    * GOES-7                   :   56 overpasses (  2.2%)
+    * MTSAT-2                  :   29 overpasses (  1.1%)
+    * Himawari-9               :   28 overpasses (  1.1%)
+    * Meteosat-9 (MSG-2)       :   22 overpasses (  0.8%)
+    * GOES-12                  :   19 overpasses (  0.7%)
+    * GOES-11                  :   10 overpasses (  0.4%)
+    * GOES-6                   :    8 overpasses (  0.3%)
+    * Meteosat-11 (MSG-4)      :    8 overpasses (  0.3%)
+    * GMS                      :    5 overpasses (  0.2%)
+    * Meteosat-2               :    3 overpasses (  0.1%)
+    * GMS-3                    :    1 overpasses (  0.0%)
+
+  Geostationary Instruments Providing IR Data:
+    * GOES Imager              :  462 overpasses ( 17.8%)
+    * MVIRI                    :  408 overpasses ( 15.7%)
+    * AHI                      :  333 overpasses ( 12.8%)
+    * Missing                  :  282 overpasses ( 10.9%)
+    * VISSR                    :  245 overpasses (  9.4%)
+    * ABI                      :  223 overpasses (  8.6%)
+    * SEVIRI                   :  152 overpasses (  5.8%)
+    * VAS                      :   64 overpasses (  2.5%)
+    * JAMI                     :   64 overpasses (  2.5%)
+    * MTSAT-2 Imager           :   29 overpasses (  1.1%)
+
+5. MODALITY COVERAGE BY HISTORICAL ERA
+------------------------------------------------------------------------------------------------
+  Historical Era  Overpasses   IR Available   IR Valid %   GPROF Valid    Radar Valid 
+  ----------------------------------------------------------------------------------------------
+  1987-1999       423          358              84.6%      419   (99.1%)  15   ( 3.5%)
+  2000-2009       671          552              82.3%      671   (100.0%)  100  (14.9%)
+  2010-2019       673          576              85.6%      673   (100.0%)  46   ( 6.8%)
+  2020+           832          776              93.3%      832   (100.0%)  46   ( 5.5%)
+
+6. MODALITY COVERAGE BY TROPICAL CYCLONE BASIN
+------------------------------------------------------------------------------------------------
+  Basin  Basin Name                   Overpasses   IR Valid     IR %      GPROF %   Radar %  
+  ----------------------------------------------------------------------------------------------
+  AL     North Atlantic               386          363           94.0%    99.0%     7.8%
+  CP     Central North Pacific        442          283           64.0%   100.0%     7.7%
+  EP     Eastern North Pacific        358          334           93.3%   100.0%     7.0%
+  IO     North Indian Ocean           707          634           89.7%   100.0%     8.6%
+  SH     Southern Hemisphere          346          298           86.1%   100.0%    10.4%
+  WP     Western North Pacific        360          350           97.2%   100.0%     5.8%
+
+7. MODALITY COVERAGE BY MICROWAVE SENSOR
+------------------------------------------------------------------------------------------------
+  Instrument     Overpasses   IR Valid     IR %      GPROF %   Radar %  
+  ----------------------------------------------------------------------------------------------
+  SSMI           659          563           85.4%    99.4%     0.0%
+  MHS            597          525           87.9%   100.0%     0.0%
+  SSMIS          415          366           88.2%   100.0%     0.0%
+  ATMS           348          315           90.5%   100.0%     0.0%
+  AMSUB          194          156           80.4%   100.0%     0.0%
+  TMI            131          113           86.3%   100.0%   100.0%
+  AMSR2          125          111           88.8%   100.0%     0.0%
+  GMI            76           72            94.7%   100.0%   100.0%
+  AMSRE          54           41            75.9%   100.0%     0.0%
+
+8. ENVIRONMENTAL DATASET (ERA5 REANALYSIS) AUDIT
+------------------------------------------------------------------------------------------------
+  Total Expected Environmental Files: 80
+  Total Inspected Environmental Files:80
+  Mean Storm Duration Evaluated:      111.3 hours
+  Group Presence Across All Environmental Files:
+    * cylindrical                   : 80 / 80 files (100.0%)
+    * diagnostics                   : 80 / 80 files (100.0%)
+    * overpass_metadata             : 80 / 80 files (100.0%)
+    * overpass_storm_metadata       : 80 / 80 files (100.0%)
+    * rectilinear                   : 80 / 80 files (100.0%)
+    * storm_metadata                : 80 / 80 files (100.0%)
+  Core Environmental Physical Variables Present in Both Cylindrical & Rectilinear Grids:
+    [Surface]:   pressure_msl, sst, temperature_2m, dewpoint_2m, u_wind_10m, v_wind_10m, precipitable_water
+    [Profile]:   temperature, relative_humidity, specific_humidity, u_wind, v_wind, geopotential_height,
+                 vorticity, divergence, vertical_velocity across 23 isobaric levels (1000 to 100 hPa)
+
+9. SCIENTIFIC DATA QUALITY FINDINGS & CAVEATS
+------------------------------------------------------------------------------------------------
+  1. IR File Organization:
+     TC PRIMED stores infrared observations directly inside each overpass NetCDF file under /infrared.
+     No separate IR files exist or should be expected on disk.
+  2. Disconnection Between R5 and 2D IRWIN:
+     When infrared_availability_flag == 0 (no 2D IR image available), R5 tangential wind radius data
+     is frequently still present (R5_availability_flag == 1). These auxiliary radial wind series
+     must not be treated as spatial 2D imagery.
+  3. Non-Uniform Geostationary Sensor Origins:
+     IRWIN observations originate from diverse historical geostationary satellites (GOES-6, GOES-7,
+     GOES-8, Meteosat-7, GMS, MTSAT, Himawari, etc.) with slight sensor band variances around 11.2 um.
+  4. Modality Asymmetry:
+     - Passive microwave is present in 100% of overpass files.
+     - GPROF precipitation retrieval is available across all microwave sensors.
+     - Radar-radiometer active profiles are only available on TRMM (KuTMI) and GPM (KuGMI/KuKaGMI).
+     - Environmental ERA5 files are 1 file per storm (time-series storm tracks), not per overpass.
+
+10. RECOMMENDED PIPELINE & PREPROCESSING IMPLICATIONS
+------------------------------------------------------------------------------------------------
+  * Multimodal Fusion Design:
+    Model architecture must support flexible modality conditioning (dropout/mask tokens) rather
+    than requiring hard multi-sensor co-presence, since radar is only ~10% available and IRWIN is ~90% available.
+  * Spatial Alignment:
+    IRWIN is remapped to a 4-km Mercator projection (480x640), whereas PMW channels reside in raw swath
+    conical geometries (S1, S2). A standardized storm-centered equidistant or polar coordinate grid
+    is recommended during Phase 2 feature extraction.
+  * Environmental Reanalysis Integration:
+    ERA5 rectilinear and cylindrical grids provide rich thermodynamic context (shear, SST, moisture)
+    that should be fused as low-dimensional tabular or 1D/2D background maps.
+
+================================================================================================
+END OF TC PRIMED PILOT MODALITY AUDIT REPORT
+================================================================================================

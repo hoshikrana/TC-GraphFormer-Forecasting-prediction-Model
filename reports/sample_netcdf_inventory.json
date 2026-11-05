@@ -1,0 +1,5247 @@
+{
+  "inspection_metadata": {
+    "tool_name": "TC PRIMED NetCDF Inspector",
+    "inspection_time_utc": "2026-11-02 10:53:51 UTC",
+    "target_file": "C:\\Users\\hoshi\\Desktop\\Capstone_project\\data\\raw\\sample_gmi.nc",
+    "file_name": "sample_gmi.nc",
+    "file_size_bytes": 15594398,
+    "file_size_mb": 14.872
+  },
+  "global_attributes": {
+    "title": "Tropical Cyclone Precipitation, Infrared, Microwave, and Environmental Dataset (TC PRIMED)",
+    "summary": "The Tropical Cyclone Precipitation, Infrared, Microwave, and Environmental Dataset (TC PRIMED) is a dataset of satellite passive microwave observations of global tropical cyclones from the NASA GPM Constellation. The TC PRIMED overpass file contains storm metadata interpolated to overpass time, inter-calibrated passive microwave brightness temperatures, NASA GPROF precipitation retrievals, nearly-coincident infrared brightness temperatures from a geostationary satellite (when available), and precipitation variables from the combined radar-radiometer product for the TRMM or GPM satellites (when available). The TC PRIMED environmental file contains storm metadata, environmental diagnostics derived from the ECMWF reanalysis, and gridded rectilinear and re-gridded cylindrical fields from the ECMWF reanalysis at each synoptic time throughout the storm's life. Also included in the environmental file is a list of all overpasses associated with a particular storm.",
+    "comment": "TC PRIMED uses hierarchical groups within its netCDF datasets, which may not be initially visible from some software.",
+    "Conventions": "CF-1.11, ACDD-1.3",
+    "id": "TCPRIMED_v01r01-final_IO032014_GMI_GPM_003440_20141006184128.nc",
+    "references": "Razin, Muhammad Naufal; Slocum, Christopher J.; Knaff, John A.; Brown, Paula J. 2023. Tropical Cyclone PRecipitation, Infrared, Microwave, and Environmental Dataset (TC PRIMED). v01r01. NOAA National Centers for Environmental Information. https://doi.org/10.25921/dmy1-0595.\n Razin, M. N., C. J. Slocum, J. A. Knaff, P. J. Brown, and M. M. Bell, 2023: Tropical Cyclone Precipitation, Infrared, Microwave, and Environmental Dataset (TC PRIMED). Bull. Amer. Meteor. Soc., 104, E1980\u2013E1998, https://doi.org/10.1175/BAMS-D-21-0052.1.\n Slocum, C. J., M. N. Razin, J. A. Knaff, and J. P. Stow, 2022: Does ERA5 mark a new era for resolving the tropical cyclone environment? J. Climate, 35, 3547-3564. https://doi.org/10.1175/JCLI-D-22-0127.1",
+    "naming_authority": "edu.colostate.cira",
+    "license": "No constraints on data access or use unless otherwise stated",
+    "date_issued": "2024-07-01T18:00:00.000Z",
+    "date_metadata_modified": "2024-11-18T23:56:26.000Z",
+    "product_version": "v01r01-final",
+    "metadata_link": "https://doi.org/10.25921/dmy1-0595",
+    "infoURL": "https://rammb-data.cira.colostate.edu/tcprimed/",
+    "date_created": "2024-08-22T16:01:23.648Z",
+    "creator_name": "COLOSTATE/CIRA/TC PRIMED TEAM > TC PRIMED TEAM, Cooperative Institute for Research in the Atmosphere, Colorado State University",
+    "creator_institution": "COLOSTATE/CIRA > Cooperative Institute for Research in the Atmosphere, Colorado State University",
+    "creator_email": "CIRA_tcprimed@colostate.edu",
+    "creator_url": "https://www.cira.colostate.edu/",
+    "creator_type": "group",
+    "creator_country": "USA",
+    "creator_sector": "academic",
+    "institution": "COLOSTATE/CIRA > Cooperative Institute for Research in the Atmosphere, Colorado State University",
+    "project": "TC PRIMED > Tropical Cyclone Precipitation, Infrared, Microwave, and Environmental Dataset",
+    "publisher_name": "DOC/NOAA/NESDIS/NCEI > National Centers for Environmental Information, NESDIS, NOAA, U.S. Department of Commerce",
+    "publisher_institution": "DOC/NOAA/NESDIS/NCEI > National Centers for Environmental Information, NESDIS, NOAA, U.S. Department of Commerce",
+    "publisher_email": "ncei.info@noaa.gov",
+    "publisher_url": "https://www.ncei.noaa.gov",
+    "publisher_type": "institution",
+    "publisher_country": "USA",
+    "publisher_sector": "gov_federal",
+    "contributor_name": "COLOSTATE/ATMOS > Department of Atmospheric Science, Colorado State University\n DOC/NOAA/NESDIS/STAR > Center for Satellite Applications and Research, NESDIS, NOAA, U.S. Department of Commerce",
+    "keywords": "EARTH SCIENCE SERVICES > DATA MANAGEMENT/DATA HANDLING > SUBSETTING/SUPERSETTING, EARTH SCIENCE > ATMOSPHERE > WEATHER EVENTS > TROPICAL CYCLONES, PLATFORMS > SPACE-BASED PLATFORMS > EARTH OBSERVATION SATELLITES",
+    "keywords_vocabulary": "GCMD:Global Change Master Directory Keywords v18.7",
+    "standard_name_vocabulary": "CF Standard Name Table v85",
+    "automated_tropical_cyclone_forecasting_system_storm_identifier": "io032014",
+    "uuid": "b9125cf6-a608-11ef-b814-3cecefd0da00",
+    "data_groups": "overpass_metadata overpass_storm_metadata passive_microwave radar_radiometer infrared",
+    "history": "Created 2024-08-22T16:01:23.648Z\nModified 2024-11-18T23:56:26.000Z to correct overpass_storm_metadata/storm_heading",
+    "date_modified": "2024-11-18T23:56:26.000Z"
+  },
+  "root_dimensions": {},
+  "top_level_groups": [
+    "overpass_metadata",
+    "overpass_storm_metadata",
+    "passive_microwave",
+    "GPROF",
+    "radar_radiometer",
+    "infrared"
+  ],
+  "all_group_paths": [
+    "/",
+    "//",
+    "///overpass_metadata",
+    "///overpass_storm_metadata",
+    "///passive_microwave",
+    "///passive_microwave/S1",
+    "///passive_microwave/S2",
+    "///GPROF",
+    "///GPROF/S1",
+    "///radar_radiometer",
+    "///radar_radiometer/KuGMI",
+    "///radar_radiometer/KuKaGMI",
+    "///infrared"
+  ],
+  "group_tree": {
+    "//": {
+      "name": "/",
+      "dimensions": {},
+      "variable_count": 0,
+      "subgroups": [
+        "overpass_metadata",
+        "overpass_storm_metadata",
+        "passive_microwave",
+        "GPROF",
+        "radar_radiometer",
+        "infrared"
+      ]
+    },
+    "///overpass_metadata": {
+      "name": "overpass_metadata",
+      "dimensions": {
+        "time": 1
+      },
+      "variable_count": 9,
+      "subgroups": []
+    },
+    "///overpass_storm_metadata": {
+      "name": "overpass_storm_metadata",
+      "dimensions": {
+        "time": 1,
+        "intensity_change_periods": 9
+      },
+      "variable_count": 14,
+      "subgroups": []
+    },
+    "///passive_microwave": {
+      "name": "passive_microwave",
+      "dimensions": {
+        "time": 1
+      },
+      "variable_count": 1,
+      "subgroups": [
+        "S1",
+        "S2"
+      ]
+    },
+    "///passive_microwave/S1": {
+      "name": "S1",
+      "dimensions": {
+        "scan": 168,
+        "pixel": 221
+      },
+      "variable_count": 16,
+      "subgroups": []
+    },
+    "///passive_microwave/S2": {
+      "name": "S2",
+      "dimensions": {
+        "scan": 157,
+        "pixel": 175
+      },
+      "variable_count": 11,
+      "subgroups": []
+    },
+    "///GPROF": {
+      "name": "GPROF",
+      "dimensions": {
+        "time": 1
+      },
+      "variable_count": 2,
+      "subgroups": [
+        "S1"
+      ]
+    },
+    "///GPROF/S1": {
+      "name": "S1",
+      "dimensions": {
+        "scan": 168,
+        "pixel": 221,
+        "hgtTopLayer": 28
+      },
+      "variable_count": 18,
+      "subgroups": []
+    },
+    "///radar_radiometer": {
+      "name": "radar_radiometer",
+      "dimensions": {
+        "time": 1
+      },
+      "variable_count": 2,
+      "subgroups": [
+        "KuGMI",
+        "KuKaGMI"
+      ]
+    },
+    "///radar_radiometer/KuGMI": {
+      "name": "KuGMI",
+      "dimensions": {
+        "scan": 352,
+        "beam": 49,
+        "range": 88
+      },
+      "variable_count": 20,
+      "subgroups": []
+    },
+    "///radar_radiometer/KuKaGMI": {
+      "name": "KuKaGMI",
+      "dimensions": {
+        "scan": 339,
+        "beam": 25,
+        "range": 88
+      },
+      "variable_count": 21,
+      "subgroups": []
+    },
+    "///infrared": {
+      "name": "infrared",
+      "dimensions": {
+        "time": 1,
+        "R5_time": 59,
+        "nx": 640,
+        "ny": 480,
+        "radius": 30,
+        "brightness_temperature_thresholds": 6,
+        "region": 1,
+        "regions": 2
+      },
+      "variable_count": 24,
+      "subgroups": []
+    }
+  },
+  "modalities_summary": {
+    "standard_modalities_checked": [
+      "passive_microwave",
+      "infrared",
+      "GPROF",
+      "radar_radiometer"
+    ],
+    "available_observation_groups": [
+      "passive_microwave",
+      "infrared",
+      "GPROF",
+      "radar_radiometer"
+    ],
+    "missing_observation_groups": [],
+    "modality_details": {
+      "passive_microwave": {
+        "present_in_file": true,
+        "description": "Passive Microwave Imagery",
+        "subgroups": [
+          "S1",
+          "S2"
+        ],
+        "variable_count": 1,
+        "availability_flag": null,
+        "swaths": {
+          "S1": {
+            "channels": [
+              "TB_10.65V",
+              "TB_10.65H",
+              "TB_18.7V",
+              "TB_18.7H",
+              "TB_23.8V",
+              "TB_36.64V",
+              "TB_36.64H",
+              "TB_89.0V",
+              "TB_89.0H"
+            ],
+            "num_channels": 9,
+            "spatial_shape": [
+              168,
+              221
+            ]
+          },
+          "S2": {
+            "channels": [
+              "TB_166.0V",
+              "TB_166.0H",
+              "TB_183.31_3.0V",
+              "TB_183.31_7.0V"
+            ],
+            "num_channels": 4,
+            "spatial_shape": [
+              157,
+              175
+            ]
+          }
+        },
+        "is_usable": true
+      },
+      "infrared": {
+        "present_in_file": true,
+        "description": "Geostationary Infrared (IR)",
+        "subgroups": [],
+        "variable_count": 24,
+        "availability_flag": 1,
+        "is_usable": true
+      },
+      "GPROF": {
+        "present_in_file": true,
+        "description": "NASA GPROF Precipitation Retrievals",
+        "subgroups": [
+          "S1"
+        ],
+        "variable_count": 2,
+        "availability_flag": 1,
+        "is_usable": true
+      },
+      "radar_radiometer": {
+        "present_in_file": true,
+        "description": "TRMM/GPM Radar-Radiometer Observation",
+        "subgroups": [
+          "KuGMI",
+          "KuKaGMI"
+        ],
+        "variable_count": 2,
+        "availability_flag": 1,
+        "is_usable": true
+      }
+    }
+  },
+  "storm_summary": {
+    "basin": "IO",
+    "season": 2014,
+    "cyclone_number": 3,
+    "instrument_name": "GMI",
+    "platform_name": "GPM",
+    "coverage_fraction": 68.76,
+    "storm_latitude": 10.819999694824219,
+    "storm_longitude": 95.55999755859375,
+    "intensity": 25,
+    "central_min_pressure": 1004,
+    "development_level": "TD",
+    "distance_to_land": 321.2300109863281
+  },
+  "total_variables_count": 138,
+  "variables": [
+    {
+      "name": "time",
+      "group_path": "///overpass_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of the passive microwave observation of the storm",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Time of the passive microwave observation of the storm",
+        "standard_name": "time",
+        "axis": "T",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "basin",
+      "group_path": "///overpass_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "<class 'str'>",
+      "units": null,
+      "long_name": "Tropical cyclone basin",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Tropical cyclone basin",
+        "comment": "AL - North Atlantic basin, north of the Equator; SL - South Atlantic basin, south of the Equator; EP - North East Pacific basin, eastward of 140 degrees west longitude; CP - North Central Pacific basin, between the dateline and 140 degrees west longitude; WP - North West Pacific basin, westward of the dateline; IO - North Indian Ocean basin, north of the Equator between 40 and 100 degrees east longitude; SH - South Pacific Ocean basin and South Indian Ocean basin.",
+        "coverage_content_type": "thematicClassification"
+      }
+    },
+    {
+      "name": "cyclone_number",
+      "group_path": "///overpass_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int8",
+      "units": "1",
+      "long_name": "Tropical cyclone annual cyclone number",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        1,
+        49
+      ],
+      "attributes": {
+        "long_name": "Tropical cyclone annual cyclone number",
+        "comment": "Assigned once a system develops into a tropical or subtropical cyclone",
+        "units": "1",
+        "valid_range": [
+          1,
+          49
+        ],
+        "coverage_content_type": "thematicClassification"
+      }
+    },
+    {
+      "name": "season",
+      "group_path": "///overpass_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int16",
+      "units": null,
+      "long_name": "Tropical cyclone basin season",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Tropical cyclone basin season",
+        "comment": "The calendar year for the Northern Hemisphere. For the Southern Hemisphere, the year begins July 1, with calendar year plus one.",
+        "coverage_content_type": "thematicClassification"
+      }
+    },
+    {
+      "name": "instrument_name",
+      "group_path": "///overpass_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "<class 'str'>",
+      "units": null,
+      "long_name": "Satellite instrument name",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Satellite instrument name",
+        "coverage_content_type": "auxiliaryInformation"
+      }
+    },
+    {
+      "name": "platform_name",
+      "group_path": "///overpass_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "<class 'str'>",
+      "units": null,
+      "long_name": "Satellite platform name",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Satellite platform name",
+        "standard_name": "platform_id",
+        "coverage_content_type": "auxiliaryInformation"
+      }
+    },
+    {
+      "name": "granule_number",
+      "group_path": "///overpass_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "<class 'str'>",
+      "units": null,
+      "long_name": "Satellite granule number for the tropical cyclone overpass",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Satellite granule number for the tropical cyclone overpass",
+        "comment": "A satellite granule begins and ends at the southernmost point of the satellite ground track during its orbit.",
+        "coverage_content_type": "auxiliaryInformation"
+      }
+    },
+    {
+      "name": "coverage_fraction",
+      "group_path": "///overpass_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int16",
+      "units": "%",
+      "long_name": "Amount of satellite passive microwave coverage from the S1 swath within 750 km radius centered on the storm center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": 0.01,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        10000
+      ],
+      "attributes": {
+        "long_name": "Amount of satellite passive microwave coverage from the S1 swath within 750 km radius centered on the storm center",
+        "standard_name": "area_fraction",
+        "units": "%",
+        "scale_factor": 0.01,
+        "valid_range": [
+          0,
+          10000
+        ],
+        "actual_range": [
+          0.0,
+          100.0
+        ],
+        "coverage_content_type": "qualityInformation"
+      }
+    },
+    {
+      "name": "env_time",
+      "group_path": "///overpass_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Closest standard synoptic time (0000, 0600, 1200, 1800 UTC) to the passive microwave observation time for TC PRIMED environmental file",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Closest standard synoptic time (0000, 0600, 1200, 1800 UTC) to the passive microwave observation time for TC PRIMED environmental file",
+        "standard_name": "time",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "coverage_content_type": "referenceInformation"
+      }
+    },
+    {
+      "name": "time",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of the passive microwave observation of the storm",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Time of the passive microwave observation of the storm",
+        "standard_name": "time",
+        "axis": "T",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "storm_latitude",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "float32",
+      "units": "degrees_north",
+      "long_name": "Tropical cyclone center latitude interpolated from the best-track to the passive microwave observation time",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "attributes": {
+        "long_name": "Tropical cyclone center latitude interpolated from the best-track to the passive microwave observation time",
+        "standard_name": "latitude",
+        "units": "degrees_north",
+        "valid_range": [
+          -90.0,
+          90.0
+        ],
+        "interpolation_description": "cubic b-spline",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "storm_longitude",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "float32",
+      "units": "degrees_east",
+      "long_name": "Tropical cyclone center longitude interpolated from the best-track to the passive microwave observation time",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "attributes": {
+        "long_name": "Tropical cyclone center longitude interpolated from the best-track to the passive microwave observation time",
+        "standard_name": "longitude",
+        "units": "degrees_east",
+        "valid_range": [
+          0.0,
+          360.0
+        ],
+        "interpolation_description": "cubic b-spline",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "intensity",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int16",
+      "units": "kt",
+      "long_name": "Tropical cyclone intensity linearly interpolated from the best-track to the passive microwave observation time; maximum 1-min average sustained wind speed at 10 m",
+      "fill_value": -999,
+      "missing_value": -999,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        300
+      ],
+      "attributes": {
+        "long_name": "Tropical cyclone intensity linearly interpolated from the best-track to the passive microwave observation time; maximum 1-min average sustained wind speed at 10 m",
+        "standard_name": "tropical_cyclone_maximum_sustained_wind_speed",
+        "units": "kt",
+        "valid_range": [
+          0,
+          300
+        ],
+        "_FillValue": -999,
+        "missing_value": -999,
+        "interpolation_description": "linear",
+        "coverage_content_type": "physicalMeasurement"
+      }
+    },
+    {
+      "name": "intensity_change_periods",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        9
+      ],
+      "dimensions": [
+        "intensity_change_periods"
+      ],
+      "dtype": "int8",
+      "units": "hours",
+      "long_name": "Periods of intensity change relative to the passive microwave observation time",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -24,
+        24
+      ],
+      "attributes": {
+        "long_name": "Periods of intensity change relative to the passive microwave observation time",
+        "units": "hours",
+        "valid_range": [
+          -24,
+          24
+        ],
+        "comment": "Negative values indicate past intensity change period, positive values indicate future intensity change period",
+        "coverage_content_type": "referenceInformation"
+      }
+    },
+    {
+      "name": "intensity_change_times",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        9
+      ],
+      "dimensions": [
+        "intensity_change_periods"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Times corresponding to the intensity change periods",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Times corresponding to the intensity change periods",
+        "standard_name": "time",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "ancillary_variables": "intensity_change_periods",
+        "coverage_content_type": "referenceInformation"
+      }
+    },
+    {
+      "name": "intensity_change",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        9
+      ],
+      "dimensions": [
+        "intensity_change_periods"
+      ],
+      "dtype": "int16",
+      "units": "kt",
+      "long_name": "Forward-differenced intensity change over 0, 6, 12, 18, and 24 hours before and after passive microwave observation time",
+      "fill_value": -999,
+      "missing_value": -999,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -300,
+        300
+      ],
+      "attributes": {
+        "long_name": "Forward-differenced intensity change over 0, 6, 12, 18, and 24 hours before and after passive microwave observation time",
+        "units": "kt",
+        "valid_range": [
+          -300,
+          300
+        ],
+        "_FillValue": -999,
+        "missing_value": -999,
+        "interpolation_description": "linear",
+        "ancillary_variables": "intensity intensity_change_times intensity_change_periods",
+        "coverage_content_type": "physicalMeasurement"
+      }
+    },
+    {
+      "name": "central_min_pressure",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int16",
+      "units": "hPa",
+      "long_name": "Tropical cyclone minimum sea level pressure linearly interpolated from the best-track to the passive microwave observation time",
+      "fill_value": -999,
+      "missing_value": -999,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        850,
+        1050
+      ],
+      "attributes": {
+        "long_name": "Tropical cyclone minimum sea level pressure linearly interpolated from the best-track to the passive microwave observation time",
+        "standard_name": "pressure",
+        "units": "hPa",
+        "valid_range": [
+          850,
+          1050
+        ],
+        "_FillValue": -999,
+        "missing_value": -999,
+        "interpolation_description": "linear",
+        "coverage_content_type": "physicalMeasurement"
+      }
+    },
+    {
+      "name": "development_level",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "<class 'str'>",
+      "units": null,
+      "long_name": "Tropical cyclone best-track development level closest to the passive microwave observation time",
+      "fill_value": "UN",
+      "missing_value": "UN",
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Tropical cyclone best-track development level closest to the passive microwave observation time",
+        "comment": "DB - disturbance, TD - tropical depression, TS - tropical storm, TY - typhoon, ST - super typhoon, TC - tropical cyclone, HU - hurricane, SD - subtropical depression, SS - subtropical storm, EX - extratropical systems, PT - post tropical, IN - inland, DS - dissipating, LO - low, WV - tropical wave, ET - extrapolated, MD - monsoon depression, XX - unknown. Note that if the best-track file does not include a development level, the level is set to undefined 'UN', the _FillValue/missing_value.",
+        "_FillValue": "UN",
+        "missing_value": "UN",
+        "interpolation_description": "nearest_neighbor",
+        "coverage_content_type": "thematicClassification"
+      }
+    },
+    {
+      "name": "distance_to_land",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "float32",
+      "units": "km",
+      "long_name": "Distance to nearest major land mass at the passive microwave observation time; Negative values overland",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Distance to nearest major land mass at the passive microwave observation time; Negative values overland",
+        "units": "km",
+        "coverage_content_type": "physicalMeasurement"
+      }
+    },
+    {
+      "name": "storm_speed",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int16",
+      "units": "m s-1",
+      "long_name": "Tropical cyclone translational speed of motion linearly interpolated from the best-track to the passive microwave observation time",
+      "fill_value": -9990,
+      "missing_value": -9990,
+      "scale_factor": 0.1,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Tropical cyclone translational speed of motion linearly interpolated from the best-track to the passive microwave observation time",
+        "units": "m s-1",
+        "scale_factor": 0.1,
+        "_FillValue": -9990,
+        "missing_value": -9990,
+        "interpolation_description": "linear",
+        "coverage_content_type": "physicalMeasurement"
+      }
+    },
+    {
+      "name": "storm_heading",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int16",
+      "units": "degree",
+      "long_name": "Tropical cyclone direction of motion linear interpolated from the best-track to the passive microwave observation time",
+      "fill_value": -9990,
+      "missing_value": -9990,
+      "scale_factor": 0.1,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        3600
+      ],
+      "attributes": {
+        "long_name": "Tropical cyclone direction of motion linear interpolated from the best-track to the passive microwave observation time",
+        "comment": "Direction is a meteorological bearing measured positive clockwise from due north",
+        "units": "degree",
+        "scale_factor": 0.1,
+        "valid_range": [
+          0,
+          3600
+        ],
+        "_FillValue": -9990,
+        "missing_value": -9990,
+        "interpolation_description": "linear",
+        "coverage_content_type": "physicalMeasurement"
+      }
+    },
+    {
+      "name": "storm_speed_meridional_component",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int16",
+      "units": "m s-1",
+      "long_name": "Tropical cyclone meridional/northward component of the storm motion interpolated from the best-track to the passive microwave observation time",
+      "fill_value": -9990,
+      "missing_value": -9990,
+      "scale_factor": 0.1,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Tropical cyclone meridional/northward component of the storm motion interpolated from the best-track to the passive microwave observation time",
+        "units": "m s-1",
+        "scale_factor": 0.1,
+        "_FillValue": -9990,
+        "missing_value": -9990,
+        "interpolation_description": "linear",
+        "coverage_content_type": "physicalMeasurement"
+      }
+    },
+    {
+      "name": "storm_speed_zonal_component",
+      "group_path": "///overpass_storm_metadata",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int16",
+      "units": "m s-1",
+      "long_name": "Tropical cyclone zonal/eastward component of the storm motion interpolated from the best-track to passive the microwave observation time",
+      "fill_value": -9990,
+      "missing_value": -9990,
+      "scale_factor": 0.1,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Tropical cyclone zonal/eastward component of the storm motion interpolated from the best-track to passive the microwave observation time",
+        "units": "m s-1",
+        "scale_factor": 0.1,
+        "_FillValue": -9990,
+        "missing_value": -9990,
+        "interpolation_description": "linear",
+        "coverage_content_type": "physicalMeasurement"
+      }
+    },
+    {
+      "name": "time",
+      "group_path": "///passive_microwave",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of the passive microwave observation of the storm",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Time of the passive microwave observation of the storm",
+        "standard_name": "time",
+        "axis": "T",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "latitude",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "degrees_north",
+      "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "attributes": {
+        "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+        "standard_name": "latitude",
+        "units": "degrees_north",
+        "scan_type": "conical",
+        "valid_range": [
+          -90.0,
+          90.0
+        ],
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "longitude",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "degrees_east",
+      "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "attributes": {
+        "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+        "standard_name": "longitude",
+        "units": "degrees_east",
+        "scan_type": "conical",
+        "valid_range": [
+          0.0,
+          360.0
+        ],
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "x",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float64",
+      "units": "km",
+      "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "attributes": {
+        "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+        "units": "km",
+        "scan_type": "conical",
+        "valid_range": [
+          -5000.0,
+          5000.0
+        ],
+        "comment": "Calculated using the Universal Transverse Mercator (UTM) projection from C++ GeographicLib",
+        "central_meridian": 95.55999755859375,
+        "references": "C. F. F. Karney, GeographicLib, Version 2.3 (2023-07-25), https://sourceforge.net/projects/geographiclib/",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "y",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float64",
+      "units": "km",
+      "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "attributes": {
+        "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+        "units": "km",
+        "scan_type": "conical",
+        "valid_range": [
+          -5000.0,
+          5000.0
+        ],
+        "comment": "Calculated using the Universal Transverse Mercator (UTM) projection from C++ GeographicLib",
+        "central_meridian": 95.55999755859375,
+        "references": "C. F. F. Karney, GeographicLib, Version 2.3 (2023-07-25), https://sourceforge.net/projects/geographiclib/",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "angle_bins",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        221
+      ],
+      "dimensions": [
+        "pixel"
+      ],
+      "dtype": "int16",
+      "units": "1",
+      "long_name": "The angle bins used in each scan for the S1 swath",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        1,
+        221
+      ],
+      "attributes": {
+        "long_name": "The angle bins used in each scan for the S1 swath",
+        "units": "1",
+        "scan_type": "conical",
+        "valid_range": [
+          1,
+          221
+        ],
+        "coverage_content_type": "referenceInformation"
+      }
+    },
+    {
+      "name": "ScanTime",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168
+      ],
+      "dimensions": [
+        "scan"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "The time of each satellite scan",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "The time of each satellite scan",
+        "standard_name": "time",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "scan_type": "conical",
+        "coverage_content_type": "auxiliaryInformation"
+      }
+    },
+    {
+      "name": "surface_type",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "int16",
+      "units": "1",
+      "long_name": "Surface type for the the center of the IFOV at the altitude of the Earth ellipsoid",
+      "fill_value": -99,
+      "missing_value": -99,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        1
+      ],
+      "attributes": {
+        "long_name": "Surface type for the the center of the IFOV at the altitude of the Earth ellipsoid",
+        "standard_name": "area_type",
+        "units": "1",
+        "scan_type": "conical",
+        "valid_range": [
+          0,
+          1
+        ],
+        "type_index": "0 1",
+        "index_meanings": "ocean_or_lake land",
+        "_FillValue": -99,
+        "missing_value": -99,
+        "coverage_content_type": "auxiliaryInformation",
+        "comment": "Obtained from the Julia GeoDatasets package version 0.1.8, at full resolution and grid of 5 arc minutes",
+        "references": "https://github.com/JuliaGeo/GeoDatasets.jl",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_10.65V",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 10.65 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 10.65 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "10.65 GHz",
+        "polarization": "vertical",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "32.1 km",
+        "nadir_across_track_IFOV": "19.4 km",
+        "edge_along_track_IFOV": "32.1 km",
+        "edge_across_track_IFOV": "19.4 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_10.65H",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 10.65 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 10.65 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "10.65 GHz",
+        "polarization": "horizontal",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "32.1 km",
+        "nadir_across_track_IFOV": "19.4 km",
+        "edge_along_track_IFOV": "32.1 km",
+        "edge_across_track_IFOV": "19.4 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_18.7V",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 18.7 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 18.7 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "18.7 GHz",
+        "polarization": "vertical",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_18.7H",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 18.7 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 18.7 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "18.7 GHz",
+        "polarization": "horizontal",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_23.8V",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 23.8 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 23.8 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "23.8 GHz",
+        "polarization": "vertical",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "16.0 km",
+        "nadir_across_track_IFOV": "9.7 km",
+        "edge_along_track_IFOV": "16.0 km",
+        "edge_across_track_IFOV": "9.7 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_36.64V",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 36.64 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 36.64 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "36.64 GHz",
+        "polarization": "vertical",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "15.6 km",
+        "nadir_across_track_IFOV": "9.4 km",
+        "edge_along_track_IFOV": "15.6 km",
+        "edge_across_track_IFOV": "9.4 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_36.64H",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 36.64 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 36.64 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "36.64 GHz",
+        "polarization": "horizontal",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "15.6 km",
+        "nadir_across_track_IFOV": "9.4 km",
+        "edge_along_track_IFOV": "15.6 km",
+        "edge_across_track_IFOV": "9.4 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_89.0V",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 89.0 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 89.0 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "89.0 GHz",
+        "polarization": "vertical",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "7.2 km",
+        "nadir_across_track_IFOV": "4.4 km",
+        "edge_along_track_IFOV": "7.2 km",
+        "edge_across_track_IFOV": "4.4 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_89.0H",
+      "group_path": "///passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 89.0 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 89.0 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "89.0 GHz",
+        "polarization": "horizontal",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "7.2 km",
+        "nadir_across_track_IFOV": "4.4 km",
+        "edge_along_track_IFOV": "7.2 km",
+        "edge_across_track_IFOV": "4.4 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "latitude",
+      "group_path": "///passive_microwave/S2",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "degrees_north",
+      "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "attributes": {
+        "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+        "standard_name": "latitude",
+        "units": "degrees_north",
+        "scan_type": "conical",
+        "valid_range": [
+          -90.0,
+          90.0
+        ],
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "longitude",
+      "group_path": "///passive_microwave/S2",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "degrees_east",
+      "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "attributes": {
+        "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+        "standard_name": "longitude",
+        "units": "degrees_east",
+        "scan_type": "conical",
+        "valid_range": [
+          0.0,
+          360.0
+        ],
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "x",
+      "group_path": "///passive_microwave/S2",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float64",
+      "units": "km",
+      "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "attributes": {
+        "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+        "units": "km",
+        "scan_type": "conical",
+        "valid_range": [
+          -5000.0,
+          5000.0
+        ],
+        "comment": "Calculated using the Universal Transverse Mercator (UTM) projection from C++ GeographicLib",
+        "central_meridian": 95.55999755859375,
+        "references": "C. F. F. Karney, GeographicLib, Version 2.3 (2023-07-25), https://sourceforge.net/projects/geographiclib/",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "y",
+      "group_path": "///passive_microwave/S2",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float64",
+      "units": "km",
+      "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "attributes": {
+        "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+        "units": "km",
+        "scan_type": "conical",
+        "valid_range": [
+          -5000.0,
+          5000.0
+        ],
+        "comment": "Calculated using the Universal Transverse Mercator (UTM) projection from C++ GeographicLib",
+        "central_meridian": 95.55999755859375,
+        "references": "C. F. F. Karney, GeographicLib, Version 2.3 (2023-07-25), https://sourceforge.net/projects/geographiclib/",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "angle_bins",
+      "group_path": "///passive_microwave/S2",
+      "shape": [
+        175
+      ],
+      "dimensions": [
+        "pixel"
+      ],
+      "dtype": "int16",
+      "units": "1",
+      "long_name": "The angle bins used in each scan for the S2 swath",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        26,
+        200
+      ],
+      "attributes": {
+        "long_name": "The angle bins used in each scan for the S2 swath",
+        "units": "1",
+        "scan_type": "conical",
+        "valid_range": [
+          26,
+          200
+        ],
+        "coverage_content_type": "referenceInformation"
+      }
+    },
+    {
+      "name": "ScanTime",
+      "group_path": "///passive_microwave/S2",
+      "shape": [
+        157
+      ],
+      "dimensions": [
+        "scan"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "The time of each satellite scan",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "The time of each satellite scan",
+        "standard_name": "time",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "scan_type": "conical",
+        "coverage_content_type": "auxiliaryInformation"
+      }
+    },
+    {
+      "name": "surface_type",
+      "group_path": "///passive_microwave/S2",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "int16",
+      "units": "1",
+      "long_name": "Surface type for the the center of the IFOV at the altitude of the Earth ellipsoid",
+      "fill_value": -99,
+      "missing_value": -99,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        1
+      ],
+      "attributes": {
+        "long_name": "Surface type for the the center of the IFOV at the altitude of the Earth ellipsoid",
+        "standard_name": "area_type",
+        "units": "1",
+        "scan_type": "conical",
+        "valid_range": [
+          0,
+          1
+        ],
+        "type_index": "0 1",
+        "index_meanings": "ocean_or_lake land",
+        "_FillValue": -99,
+        "missing_value": -99,
+        "coverage_content_type": "auxiliaryInformation",
+        "comment": "Obtained from the Julia GeoDatasets package version 0.1.8, at full resolution and grid of 5 arc minutes",
+        "references": "https://github.com/JuliaGeo/GeoDatasets.jl",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_166.0V",
+      "group_path": "///passive_microwave/S2",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 166.0 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 166.0 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "166.0 GHz",
+        "polarization": "vertical",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "6.3 km",
+        "nadir_across_track_IFOV": "4.1 km",
+        "edge_along_track_IFOV": "6.3 km",
+        "edge_across_track_IFOV": "4.1 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_166.0H",
+      "group_path": "///passive_microwave/S2",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 166.0 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 166.0 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "166.0 GHz",
+        "polarization": "horizontal",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "6.3 km",
+        "nadir_across_track_IFOV": "4.1 km",
+        "edge_along_track_IFOV": "6.3 km",
+        "edge_across_track_IFOV": "4.1 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_183.31_3.0V",
+      "group_path": "///passive_microwave/S2",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 183.31+/-3.0 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 183.31+/-3.0 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "183.31+/-3.0 GHz",
+        "polarization": "vertical",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "5.8 km",
+        "nadir_across_track_IFOV": "3.8 km",
+        "edge_along_track_IFOV": "5.8 km",
+        "edge_across_track_IFOV": "3.8 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "TB_183.31_7.0V",
+      "group_path": "///passive_microwave/S2",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 183.31+/-7.0 GHz",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Earth view brightness temperature at 183.31+/-7.0 GHz",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "frequency": "183.31+/-7.0 GHz",
+        "polarization": "vertical",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "5.8 km",
+        "nadir_across_track_IFOV": "3.8 km",
+        "edge_along_track_IFOV": "5.8 km",
+        "edge_across_track_IFOV": "3.8 km",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "time",
+      "group_path": "///GPROF",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of the passive microwave observation of the storm",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Time of the passive microwave observation of the storm",
+        "standard_name": "time",
+        "axis": "T",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "availability_flag",
+      "group_path": "///GPROF",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int64",
+      "units": null,
+      "long_name": "Availability flag for the GPROF variables",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        1
+      ],
+      "attributes": {
+        "long_name": "Availability flag for the GPROF variables",
+        "standard_name": "status_flag",
+        "valid_range": [
+          0,
+          1
+        ],
+        "flag_values": [
+          0,
+          1
+        ],
+        "flag_meanings": "variables_not_available variables_available",
+        "coverage_content_type": "qualityInformation"
+      }
+    },
+    {
+      "name": "latitude",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "degrees_north",
+      "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "attributes": {
+        "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+        "standard_name": "latitude",
+        "units": "degrees_north",
+        "valid_range": [
+          -90.0,
+          90.0
+        ],
+        "scan_type": "conical",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "longitude",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "degrees_east",
+      "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "attributes": {
+        "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+        "standard_name": "longitude",
+        "units": "degrees_east",
+        "valid_range": [
+          0.0,
+          360.0
+        ],
+        "scan_type": "conical",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "x",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float64",
+      "units": "km",
+      "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "attributes": {
+        "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+        "units": "km",
+        "valid_range": [
+          -5000.0,
+          5000.0
+        ],
+        "scan_type": "conical",
+        "comment": "Calculated using the Universal Transverse Mercator (UTM) projection from C++ GeographicLib",
+        "central_meridian": 95.55999755859375,
+        "references": "C. F. F. Karney, GeographicLib, Version 2.3 (2023-07-25), https://sourceforge.net/projects/geographiclib/",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "y",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float64",
+      "units": "km",
+      "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth, relative to the interpolated tropical cyclone center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "attributes": {
+        "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth, relative to the interpolated tropical cyclone center",
+        "units": "km",
+        "valid_range": [
+          -5000.0,
+          5000.0
+        ],
+        "scan_type": "conical",
+        "comment": "Calculated using the Universal Transverse Mercator (UTM) projection from C++ GeographicLib",
+        "central_meridian": 95.55999755859375,
+        "references": "C. F. F. Karney, GeographicLib, Version 2.3 (2023-07-25), https://sourceforge.net/projects/geographiclib/",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "hgtTopLayer",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        28
+      ],
+      "dimensions": [
+        "hgtTopLayer"
+      ],
+      "dtype": "float32",
+      "units": "km",
+      "long_name": "Height of the top of each of 28 atmospheric layers in the vertical profiles",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.5,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Height of the top of each of 28 atmospheric layers in the vertical profiles",
+        "comment": "The tops are every 0.5 km up to 10.0 km, then every km after that up to 18.0 km.",
+        "standard_name": "height",
+        "units": "km",
+        "positive": "up",
+        "valid_range": [
+          0.5,
+          18.0
+        ],
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "angle_bins",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        221
+      ],
+      "dimensions": [
+        "pixel"
+      ],
+      "dtype": "int16",
+      "units": "1",
+      "long_name": "The angle bins used in each scan of the swath",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        1,
+        221
+      ],
+      "attributes": {
+        "long_name": "The angle bins used in each scan of the swath",
+        "units": "1",
+        "valid_range": [
+          1,
+          221
+        ],
+        "scan_type": "conical",
+        "coverage_content_type": "referenceInformation"
+      }
+    },
+    {
+      "name": "ScanTime",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168
+      ],
+      "dimensions": [
+        "scan"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "The time of each satellite scan",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "The time of each satellite scan",
+        "standard_name": "time",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "scan_type": "conical",
+        "coverage_content_type": "auxiliaryInformation"
+      }
+    },
+    {
+      "name": "surfacePrecipitation",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "mm hr-1",
+      "long_name": "The instantaneous precipitation rate at the surface",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "attributes": {
+        "long_name": "The instantaneous precipitation rate at the surface",
+        "standard_name": "lwe_precipitation_rate",
+        "units": "mm hr-1",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          0.0,
+          300.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "latitude longitude",
+        "ancillary_variables": "qualityFlag"
+      }
+    },
+    {
+      "name": "convectivePrecipitation",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "mm hr-1",
+      "long_name": "The instantaneous convective precipitation rate at the surface",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "attributes": {
+        "long_name": "The instantaneous convective precipitation rate at the surface",
+        "standard_name": "lwe_convective_precipitation_rate",
+        "units": "mm hr-1",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          0.0,
+          300.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "latitude longitude",
+        "ancillary_variables": "qualityFlag"
+      }
+    },
+    {
+      "name": "rainWaterPath",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "kg m-2",
+      "long_name": "Total integrated rain water in the vertical atmospheric column",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        3000.0
+      ],
+      "attributes": {
+        "long_name": "Total integrated rain water in the vertical atmospheric column",
+        "standard_name": "atmosphere_mass_content_of_liquid_precipitation",
+        "units": "kg m-2",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          0.0,
+          3000.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "latitude longitude",
+        "ancillary_variables": "qualityFlag"
+      }
+    },
+    {
+      "name": "cloudWaterPath",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "kg m-2",
+      "long_name": "Total integrated cloud liquid water in the vertical atmospheric column",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        3000.0
+      ],
+      "attributes": {
+        "long_name": "Total integrated cloud liquid water in the vertical atmospheric column",
+        "standard_name": "atmosphere_mass_content_of_cloud_liquid_water",
+        "units": "kg m-2",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          0.0,
+          3000.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "latitude longitude",
+        "ancillary_variables": "qualityFlag"
+      }
+    },
+    {
+      "name": "iceWaterPath",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "kg m-2",
+      "long_name": "Total integrated ice water in the vertical atmospheric column",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        3000.0
+      ],
+      "attributes": {
+        "long_name": "Total integrated ice water in the vertical atmospheric column",
+        "units": "kg m-2",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          0.0,
+          3000.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "latitude longitude",
+        "ancillary_variables": "qualityFlag"
+      }
+    },
+    {
+      "name": "rainWaterContent",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        28,
+        168,
+        221
+      ],
+      "dimensions": [
+        "hgtTopLayer",
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Vertical profile of rain water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of rain water content",
+        "standard_name": "mass_concentration_of_rain_in_air",
+        "units": "g m-3",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "hgtTopLayer latitude longitude",
+        "ancillary_variables": "qualityFlag"
+      }
+    },
+    {
+      "name": "cloudWaterContent",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        28,
+        168,
+        221
+      ],
+      "dimensions": [
+        "hgtTopLayer",
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Vertical profile of cloud water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of cloud water content",
+        "standard_name": "mass_concentration_of_cloud_liquid_water_in_air",
+        "units": "g m-3",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "hgtTopLayer latitude longitude",
+        "ancillary_variables": "qualityFlag"
+      }
+    },
+    {
+      "name": "snowWaterContent",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        28,
+        168,
+        221
+      ],
+      "dimensions": [
+        "hgtTopLayer",
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Vertical profile of snow water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of snow water content",
+        "units": "g m-3",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "hgtTopLayer latitude longitude",
+        "ancillary_variables": "qualityFlag"
+      }
+    },
+    {
+      "name": "probabilityOfPrecip",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float64",
+      "units": "%",
+      "long_name": "Fraction of raining vs non-raining Database profiles that make up the final retrieval solution",
+      "fill_value": -99.0,
+      "missing_value": -99.0,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        100
+      ],
+      "attributes": {
+        "long_name": "Fraction of raining vs non-raining Database profiles that make up the final retrieval solution",
+        "units": "%",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          0,
+          100
+        ],
+        "_FillValue": -99.0,
+        "missing_value": -99.0,
+        "coverage_content_type": "modelResult",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "qualityFlag",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float64",
+      "units": "1",
+      "long_name": "Generalized quality of the retrieved pixel",
+      "fill_value": -99.0,
+      "missing_value": -99.0,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        3
+      ],
+      "attributes": {
+        "long_name": "Generalized quality of the retrieved pixel",
+        "standard_name": "quality_flag",
+        "units": "1",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          0,
+          3
+        ],
+        "flag_values": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "flag_meanings": "good use_with_caution use_pixel_with_extreme_care_over_snow_covered_surface use_with_extreme_caution",
+        "_FillValue": -99.0,
+        "missing_value": -99.0,
+        "coverage_content_type": "qualityInformation",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "surfaceTypeIndex",
+      "group_path": "///GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "dtype": "float64",
+      "units": "1",
+      "long_name": "Type of surface in GPROF field-of-view",
+      "fill_value": -99.0,
+      "missing_value": -99.0,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        1,
+        99
+      ],
+      "attributes": {
+        "long_name": "Type of surface in GPROF field-of-view",
+        "standard_name": "area_type",
+        "units": "1",
+        "scan_type": "conical",
+        "nadir_along_track_IFOV": "18.1 km",
+        "nadir_across_track_IFOV": "10.9 km",
+        "edge_along_track_IFOV": "18.1 km",
+        "edge_across_track_IFOV": "10.9 km",
+        "valid_range": [
+          1,
+          99
+        ],
+        "type_index": "1 2 3_to_7 8_to_11 12 13 14 15 16 17 18",
+        "index_meanings": "ocean sea-ice decreasing_vegetation decreasing_snow_cover standing_water ocean_or_water_coast mixed_land/ocean_or_water_coast land_coast sea-ice_edge mountain_rain mountain_snow",
+        "_FillValue": -99.0,
+        "missing_value": -99.0,
+        "coverage_content_type": "auxiliaryInformation",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "availability_flag",
+      "group_path": "///radar_radiometer",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int8",
+      "units": null,
+      "long_name": "Availability flag for the combined radar-radiometer variables",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        1
+      ],
+      "attributes": {
+        "long_name": "Availability flag for the combined radar-radiometer variables",
+        "standard_name": "status_flag",
+        "valid_range": [
+          0,
+          1
+        ],
+        "flag_values": [
+          0,
+          1
+        ],
+        "flag_meanings": "variables_not_available variables_available",
+        "coverage_content_type": "qualityInformation"
+      }
+    },
+    {
+      "name": "time",
+      "group_path": "///radar_radiometer",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of the passive microwave observation of the storm",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Time of the passive microwave observation of the storm",
+        "standard_name": "time",
+        "axis": "T",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "latitude",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "degrees_north",
+      "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "attributes": {
+        "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+        "standard_name": "latitude",
+        "units": "degrees_north",
+        "scan_type": "cross-track",
+        "valid_range": [
+          -90.0,
+          90.0
+        ],
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "longitude",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "degrees_east",
+      "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "attributes": {
+        "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+        "standard_name": "longitude",
+        "units": "degrees_east",
+        "scan_type": "cross-track",
+        "valid_range": [
+          0.0,
+          360.0
+        ],
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "x",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "float64",
+      "units": "km",
+      "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "attributes": {
+        "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+        "units": "km",
+        "scan_type": "cross-track",
+        "valid_range": [
+          -5000.0,
+          5000.0
+        ],
+        "comment": "Calculated using the Universal Transverse Mercator (UTM) projection from C++ GeographicLib",
+        "central_meridian": 95.55999755859375,
+        "references": "C. F. F. Karney, GeographicLib, Version 2.3 (2023-07-25), https://sourceforge.net/projects/geographiclib/",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "y",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "float64",
+      "units": "km",
+      "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "attributes": {
+        "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+        "units": "km",
+        "scan_type": "cross-track",
+        "valid_range": [
+          -5000.0,
+          5000.0
+        ],
+        "comment": "Calculated using the Universal Transverse Mercator (UTM) projection from C++ GeographicLib",
+        "central_meridian": 95.55999755859375,
+        "references": "C. F. F. Karney, GeographicLib, Version 2.3 (2023-07-25), https://sourceforge.net/projects/geographiclib/",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "binHeight",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "km",
+      "long_name": "Height of each radar bin above the Earth ellipsoid",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -0.5,
+        30.0
+      ],
+      "attributes": {
+        "long_name": "Height of each radar bin above the Earth ellipsoid",
+        "standard_name": "height",
+        "units": "km",
+        "positive": "up",
+        "scan_type": "cross-track",
+        "valid_range": [
+          -0.5,
+          30.0
+        ],
+        "coverage_content_type": "coordinate",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "angle_bins",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        49
+      ],
+      "dimensions": [
+        "beam"
+      ],
+      "dtype": "int16",
+      "units": "1",
+      "long_name": "The angle bins used in each scan",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        1,
+        49
+      ],
+      "attributes": {
+        "long_name": "The angle bins used in each scan",
+        "units": "1",
+        "scan_type": "cross-track",
+        "valid_range": [
+          1,
+          49
+        ],
+        "coverage_content_type": "referenceInformation"
+      }
+    },
+    {
+      "name": "ScanTime",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        352
+      ],
+      "dimensions": [
+        "scan"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "The time of each radar scan",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "The time of each radar scan",
+        "standard_name": "time",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "scan_type": "cross-track",
+        "coverage_content_type": "auxiliaryInformation"
+      }
+    },
+    {
+      "name": "correctedReflectFactor_Ku",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "dBZ",
+      "long_name": "Vertical profile of the Ku-band reflectivity factor with attenuation correction",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -20.0,
+        100.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of the Ku-band reflectivity factor with attenuation correction",
+        "standard_name": "equivalent_reflectivity_factor",
+        "units": "dBZ",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          -20.0,
+          100.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "nearSurfPrecipTotRate",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "mm hr-1",
+      "long_name": "Near-surface total precipitation rate (from the lowest clutter-free bin)",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "attributes": {
+        "long_name": "Near-surface total precipitation rate (from the lowest clutter-free bin)",
+        "standard_name": "lwe_precipitation_rate",
+        "units": "mm hr-1",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          300.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "latitude longitude",
+        "ancillary_variables": "nearSurfPrecipTotRateSigma"
+      }
+    },
+    {
+      "name": "nearSurfPrecipTotRateSigma",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "mm hr-1",
+      "long_name": "Uncertainty in the near-surface total precipitation rate (from the lowest clutter-free bin)",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "attributes": {
+        "long_name": "Uncertainty in the near-surface total precipitation rate (from the lowest clutter-free bin)",
+        "units": "mm hr-1",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          300.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "cloudLiqWaterCont",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Vertical profile of cloud liquid water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of cloud liquid water content",
+        "standard_name": "mass_concentration_of_cloud_liquid_water_in_air",
+        "units": "g m-3",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "cloudIceWaterCont",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Vertical profile of cloud ice water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of cloud ice water content",
+        "units": "g m-3",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "precipTotWaterCont",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Vertical profile of total precipitation liquid water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of total precipitation liquid water content",
+        "units": "g m-3",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude",
+        "ancillary_variables": "precipTotWaterContSigma"
+      }
+    },
+    {
+      "name": "precipTotWaterContSigma",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Uncertainty in the vertical profile of total precipitation liquid water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Uncertainty in the vertical profile of total precipitation liquid water content",
+        "units": "g m-3",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "precipLiqWaterCont",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Vertical profile of liquid precipitation water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of liquid precipitation water content",
+        "units": "g m-3",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "precipTotRate",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "mm hr-1",
+      "long_name": "Vertical profile of total precipitation rate",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of total precipitation rate",
+        "units": "mm hr-1",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          300.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude",
+        "ancillary_variables": "precipTotRateSigma"
+      }
+    },
+    {
+      "name": "precipTotRateSigma",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "mm hr-1",
+      "long_name": "Uncertainty in the vertical profile of total precipitation rate",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "attributes": {
+        "long_name": "Uncertainty in the vertical profile of total precipitation rate",
+        "units": "mm hr-1",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          300.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "precipLiqRate",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "mm hr-1",
+      "long_name": "Vertical profiles of liquid precipitation rate",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profiles of liquid precipitation rate",
+        "units": "mm hr-1",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          300.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "mainprecipitationType",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "int16",
+      "units": "1",
+      "long_name": "Main precipitation type",
+      "fill_value": -99,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        4
+      ],
+      "attributes": {
+        "long_name": "Main precipitation type",
+        "standard_name": "predominant_precipitation_type_at_surface",
+        "units": "1",
+        "valid_range": [
+          0,
+          4
+        ],
+        "flag_values": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "flag_meanings": "no_rain stratiform convective other shallow_rain",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "_FillValue": -99,
+        "references": "Awaka, J., M. Le, V. Chandrasekar, N. Yoshida, T. Higashiuwatoko, T. Kubota, and T. Iguchi, 2016: Rain Type Classification Algorithm Module for GPM Dual-Frequency Precipitation Radar. J. Atmos. Oceanic Technol., 33, 1887-1898. doi:10.1175/JTECH-D-16-0016.1",
+        "coverage_content_type": "thematicClassification",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "surfaceType",
+      "group_path": "///radar_radiometer/KuGMI",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "int32",
+      "units": "1",
+      "long_name": "Type of surface in precipitation radar field-of-view",
+      "fill_value": -9999,
+      "missing_value": -9999,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        399
+      ],
+      "attributes": {
+        "long_name": "Type of surface in precipitation radar field-of-view",
+        "standard_name": "area_type",
+        "units": "1",
+        "valid_range": [
+          0,
+          399
+        ],
+        "type_index": "0_to_99 100_to_199 200_to_299 300_to_399",
+        "index_meanings": "ocean land coast inland_water",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "_FillValue": -9999,
+        "missing_value": -9999,
+        "coverage_content_type": "auxiliaryInformation",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "latitude",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "degrees_north",
+      "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "attributes": {
+        "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+        "standard_name": "latitude",
+        "units": "degrees_north",
+        "scan_type": "cross-track",
+        "valid_range": [
+          -90.0,
+          90.0
+        ],
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "longitude",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "degrees_east",
+      "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "attributes": {
+        "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+        "standard_name": "longitude",
+        "units": "degrees_east",
+        "scan_type": "cross-track",
+        "valid_range": [
+          0.0,
+          360.0
+        ],
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "x",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "float64",
+      "units": "km",
+      "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "attributes": {
+        "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+        "units": "km",
+        "scan_type": "cross-track",
+        "valid_range": [
+          -5000.0,
+          5000.0
+        ],
+        "comment": "Calculated using the Universal Transverse Mercator (UTM) projection from C++ GeographicLib",
+        "central_meridian": 95.55999755859375,
+        "references": "C. F. F. Karney, GeographicLib, Version 2.3 (2023-07-25), https://sourceforge.net/projects/geographiclib/",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "y",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "float64",
+      "units": "km",
+      "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "attributes": {
+        "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+        "units": "km",
+        "scan_type": "cross-track",
+        "valid_range": [
+          -5000.0,
+          5000.0
+        ],
+        "comment": "Calculated using the Universal Transverse Mercator (UTM) projection from C++ GeographicLib",
+        "central_meridian": 95.55999755859375,
+        "references": "C. F. F. Karney, GeographicLib, Version 2.3 (2023-07-25), https://sourceforge.net/projects/geographiclib/",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "binHeight",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "km",
+      "long_name": "Height of each radar bin above the Earth ellipsoid",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -0.5,
+        30.0
+      ],
+      "attributes": {
+        "long_name": "Height of each radar bin above the Earth ellipsoid",
+        "standard_name": "height",
+        "units": "km",
+        "positive": "up",
+        "scan_type": "cross-track",
+        "valid_range": [
+          -0.5,
+          30.0
+        ],
+        "coverage_content_type": "coordinate",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "angle_bins",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        25
+      ],
+      "dimensions": [
+        "beam"
+      ],
+      "dtype": "int16",
+      "units": "1",
+      "long_name": "The angle bins used in each scan",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        13,
+        37
+      ],
+      "attributes": {
+        "long_name": "The angle bins used in each scan",
+        "units": "1",
+        "scan_type": "cross-track",
+        "valid_range": [
+          13,
+          37
+        ],
+        "coverage_content_type": "referenceInformation"
+      }
+    },
+    {
+      "name": "ScanTime",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        339
+      ],
+      "dimensions": [
+        "scan"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "The time of each radar scan",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "The time of each radar scan",
+        "standard_name": "time",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "scan_type": "cross-track",
+        "coverage_content_type": "auxiliaryInformation"
+      }
+    },
+    {
+      "name": "correctedReflectFactor_Ka",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "dBZ",
+      "long_name": "Vertical profile of the Ka-band reflectivity factor with attenuation correction",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -20.0,
+        100.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of the Ka-band reflectivity factor with attenuation correction",
+        "standard_name": "equivalent_reflectivity_factor",
+        "units": "dBZ",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          -20.0,
+          100.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "correctedReflectFactor_Ku",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "dBZ",
+      "long_name": "Vertical profile of the Ku-band reflectivity factor with attenuation correction, matched to Ka-band rays",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -20.0,
+        100.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of the Ku-band reflectivity factor with attenuation correction, matched to Ka-band rays",
+        "standard_name": "equivalent_reflectivity_factor",
+        "units": "dBZ",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          -20.0,
+          100.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "nearSurfPrecipTotRate",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "mm hr-1",
+      "long_name": "Near-surface total precipitation rate (from the lowest clutter-free bin)",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "attributes": {
+        "long_name": "Near-surface total precipitation rate (from the lowest clutter-free bin)",
+        "standard_name": "lwe_precipitation_rate",
+        "units": "mm hr-1",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          300.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "latitude longitude",
+        "ancillary_variables": "nearSurfPrecipTotRateSigma"
+      }
+    },
+    {
+      "name": "nearSurfPrecipTotRateSigma",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "mm hr-1",
+      "long_name": "Uncertainty in the near-surface total precipitation rate (from the lowest clutter-free bin)",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "attributes": {
+        "long_name": "Uncertainty in the near-surface total precipitation rate (from the lowest clutter-free bin)",
+        "units": "mm hr-1",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          300.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "cloudLiqWaterCont",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Vertical profile of cloud liquid water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of cloud liquid water content",
+        "standard_name": "mass_concentration_of_cloud_liquid_water_in_air",
+        "units": "g m-3",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "cloudIceWaterCont",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Vertical profile of cloud ice water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of cloud ice water content",
+        "units": "g m-3",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "precipTotWaterCont",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Vertical profile of total precipitation liquid water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of total precipitation liquid water content",
+        "units": "g m-3",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude",
+        "ancillary_variables": "precipTotWaterContSigma"
+      }
+    },
+    {
+      "name": "precipTotWaterContSigma",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Uncertainty in the vertical profile of total precipitation liquid water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Uncertainty in the vertical profile of total precipitation liquid water content",
+        "units": "g m-3",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "precipLiqWaterCont",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "g m-3",
+      "long_name": "Vertical profile of liquid precipitation water content",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of liquid precipitation water content",
+        "units": "g m-3",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          18.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "precipTotRate",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "mm hr-1",
+      "long_name": "Vertical profile of total precipitation rate",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profile of total precipitation rate",
+        "units": "mm hr-1",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          300.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude",
+        "ancillary_variables": "precipTotRateSigma"
+      }
+    },
+    {
+      "name": "precipTotRateSigma",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "mm hr-1",
+      "long_name": "Uncertainty in the vertical profile of total precipitation rate",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "attributes": {
+        "long_name": "Uncertainty in the vertical profile of total precipitation rate",
+        "units": "mm hr-1",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          300.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "precipLiqRate",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "dtype": "float32",
+      "units": "mm hr-1",
+      "long_name": "Vertical profiles of liquid precipitation rate",
+      "fill_value": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "attributes": {
+        "long_name": "Vertical profiles of liquid precipitation rate",
+        "units": "mm hr-1",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "valid_range": [
+          0.0,
+          300.0
+        ],
+        "_FillValue": -9999.900390625,
+        "missing_value": -9999.900390625,
+        "coverage_content_type": "modelResult",
+        "coordinates": "binHeight latitude longitude"
+      }
+    },
+    {
+      "name": "mainprecipitationType",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "int16",
+      "units": "1",
+      "long_name": "Main precipitation type",
+      "fill_value": -99,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        4
+      ],
+      "attributes": {
+        "long_name": "Main precipitation type",
+        "standard_name": "predominant_precipitation_type_at_surface",
+        "units": "1",
+        "valid_range": [
+          0,
+          4
+        ],
+        "flag_values": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "flag_meanings": "no_rain stratiform convective other shallow_rain",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "_FillValue": -99,
+        "references": "Awaka, J., M. Le, V. Chandrasekar, N. Yoshida, T. Higashiuwatoko, T. Kubota, and T. Iguchi, 2016: Rain Type Classification Algorithm Module for GPM Dual-Frequency Precipitation Radar. J. Atmos. Oceanic Technol., 33, 1887-1898. doi:10.1175/JTECH-D-16-0016.1",
+        "coverage_content_type": "thematicClassification",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "surfaceType",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "dtype": "int32",
+      "units": "1",
+      "long_name": "Type of surface in precipitation radar field-of-view",
+      "fill_value": -9999,
+      "missing_value": -9999,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        399
+      ],
+      "attributes": {
+        "long_name": "Type of surface in precipitation radar field-of-view",
+        "standard_name": "area_type",
+        "units": "1",
+        "valid_range": [
+          0,
+          399
+        ],
+        "type_index": "0_to_99 100_to_199 200_to_299 300_to_399",
+        "index_meanings": "ocean land coast inland_water",
+        "scan_type": "cross-track",
+        "nadir_along_track_IFOV": "5.04 km",
+        "nadir_across_track_IFOV": "5.04 km",
+        "edge_along_track_IFOV": "5.04 km",
+        "edge_across_track_IFOV": "5.57 km",
+        "_FillValue": -9999,
+        "missing_value": -9999,
+        "coverage_content_type": "auxiliaryInformation",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "R5_availability_flag",
+      "group_path": "///infrared",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int64",
+      "units": null,
+      "long_name": "Availability flag for the R5 data",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        1
+      ],
+      "attributes": {
+        "long_name": "Availability flag for the R5 data",
+        "standard_name": "status_flag",
+        "valid_range": [
+          0,
+          1
+        ],
+        "flag_values": [
+          0,
+          1
+        ],
+        "flag_meanings": "R5_data_not_available R5_data_available",
+        "coverage_content_type": "qualityInformation"
+      }
+    },
+    {
+      "name": "R5_time",
+      "group_path": "///infrared",
+      "shape": [
+        59
+      ],
+      "dimensions": [
+        "R5_time"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of R5 observations of the storm",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Time of R5 observations of the storm",
+        "standard_name": "time",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "coverage_content_type": "referenceInformation"
+      }
+    },
+    {
+      "name": "R5",
+      "group_path": "///infrared",
+      "shape": [
+        59
+      ],
+      "dimensions": [
+        "R5_time"
+      ],
+      "dtype": "float32",
+      "units": "degrees_latitude",
+      "long_name": "Radius of mean tangential winds of 5 knots at 850 hPa level",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.10000000149011612,
+        35.0
+      ],
+      "attributes": {
+        "long_name": "Radius of mean tangential winds of 5 knots at 850 hPa level",
+        "units": "degrees_latitude",
+        "valid_range": [
+          0.10000000149011612,
+          35.0
+        ],
+        "comment": "To obtain scaled radius, first calculate R5c, where R5c = 7.653 + (Vmax/11.651) - (Vmax/59.067)^2 and Vmax is in knots. Then, obtain scaling factor, fR5 = R5/R5c. Finally, obtain scaled radius, r* = r/fR5",
+        "references": "Knaff, J. A., S. P. Longmore, and D. A. Molenar, 2014: An objective satellite-based tropical cyclone size climatology. J. Climate, 27, 455\u2013476, https://doi.org/10.1175/JCLI-D-13-00096.1; Knaff, J. A., C. R. Sampson, and G. Chirokova, 2017: A global statistical-dynamical tropical cyclone wind radii forecast scheme. Wea. Forecasting, 32, 629\u2013644, https://doi.org/10.1175/WAF-D-16-0168.1",
+        "coverage_content_type": "modelResult"
+      }
+    },
+    {
+      "name": "infrared_availability_flag",
+      "group_path": "///infrared",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int8",
+      "units": null,
+      "long_name": "Availability flag for the infrared data",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        2
+      ],
+      "attributes": {
+        "long_name": "Availability flag for the infrared data",
+        "standard_name": "status_flag",
+        "valid_range": [
+          0,
+          2
+        ],
+        "flag_values": [
+          0,
+          1,
+          2
+        ],
+        "flag_meanings": "infrared_not_available Mcidas_source HURSAT_source",
+        "coverage_content_type": "qualityInformation"
+      }
+    },
+    {
+      "name": "time",
+      "group_path": "///infrared",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "int64",
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of infrared observation of the storm",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": null,
+      "attributes": {
+        "long_name": "Time of infrared observation of the storm",
+        "standard_name": "time",
+        "axis": "T",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "storm_latitude",
+      "group_path": "///infrared",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "float32",
+      "units": "degrees_north",
+      "long_name": "Tropical cyclone center latitude interpolated from the best-track to the infrared observation time",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "attributes": {
+        "long_name": "Tropical cyclone center latitude interpolated from the best-track to the infrared observation time",
+        "standard_name": "latitude",
+        "units": "degrees_north",
+        "valid_range": [
+          -90.0,
+          90.0
+        ],
+        "interpolation_description": "cubic b-spline",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "storm_longitude",
+      "group_path": "///infrared",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "dtype": "float32",
+      "units": "degrees_east",
+      "long_name": "Tropical cyclone center longitude interpolated from the best-track to the infrared observation time",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "attributes": {
+        "long_name": "Tropical cyclone center longitude interpolated from the best-track to the infrared observation time",
+        "standard_name": "longitude",
+        "units": "degrees_east",
+        "valid_range": [
+          0.0,
+          360.0
+        ],
+        "interpolation_description": "cubic b-spline",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "latitude",
+      "group_path": "///infrared",
+      "shape": [
+        480,
+        640
+      ],
+      "dimensions": [
+        "ny",
+        "nx"
+      ],
+      "dtype": "float32",
+      "units": "degrees_north",
+      "long_name": "The Earth latitude of the center of the infrared pixel",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "attributes": {
+        "long_name": "The Earth latitude of the center of the infrared pixel",
+        "standard_name": "latitude",
+        "units": "degrees_north",
+        "valid_range": [
+          -90.0,
+          90.0
+        ],
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "longitude",
+      "group_path": "///infrared",
+      "shape": [
+        480,
+        640
+      ],
+      "dimensions": [
+        "ny",
+        "nx"
+      ],
+      "dtype": "float32",
+      "units": "degrees_east",
+      "long_name": "The Earth longitude of the center of the infrared pixel",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "attributes": {
+        "long_name": "The Earth longitude of the center of the infrared pixel",
+        "standard_name": "longitude",
+        "units": "degrees_east",
+        "valid_range": [
+          0.0,
+          360.0
+        ],
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "x",
+      "group_path": "///infrared",
+      "shape": [
+        480,
+        640
+      ],
+      "dimensions": [
+        "ny",
+        "nx"
+      ],
+      "dtype": "float64",
+      "units": "km",
+      "long_name": "The zonal/east-west distance of the center of the infrared pixel relative to the interpolated tropical cyclone center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "attributes": {
+        "long_name": "The zonal/east-west distance of the center of the infrared pixel relative to the interpolated tropical cyclone center",
+        "units": "km",
+        "valid_range": [
+          -5000.0,
+          5000.0
+        ],
+        "comment": "Calculated using the Universal Transverse Mercator (UTM) projection from C++ GeographicLib",
+        "central_meridian": 95.56999969482422,
+        "references": "C. F. F. Karney, GeographicLib, Version 2.3 (2023-07-25), https://sourceforge.net/projects/geographiclib/",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "y",
+      "group_path": "///infrared",
+      "shape": [
+        480,
+        640
+      ],
+      "dimensions": [
+        "ny",
+        "nx"
+      ],
+      "dtype": "float64",
+      "units": "km",
+      "long_name": "The meridional distance of the center of the infrared pixel relative to the interpolated tropical cyclone center",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "attributes": {
+        "long_name": "The meridional distance of the center of the infrared pixel relative to the interpolated tropical cyclone center",
+        "units": "km",
+        "valid_range": [
+          -5000.0,
+          5000.0
+        ],
+        "comment": "Calculated using the Universal Transverse Mercator (UTM) projection from C++ GeographicLib",
+        "central_meridian": 95.56999969482422,
+        "references": "C. F. F. Karney, GeographicLib, Version 2.3 (2023-07-25), https://sourceforge.net/projects/geographiclib/",
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "radius",
+      "group_path": "///infrared",
+      "shape": [
+        30
+      ],
+      "dimensions": [
+        "radius"
+      ],
+      "dtype": "int16",
+      "units": "km",
+      "long_name": "Bin centers for radial profile of mean binned infrared brightness temperature",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        120
+      ],
+      "attributes": {
+        "long_name": "Bin centers for radial profile of mean binned infrared brightness temperature",
+        "units": "km",
+        "valid_range": [
+          0,
+          120
+        ],
+        "coverage_content_type": "coordinate"
+      }
+    },
+    {
+      "name": "brightness_temperature_thresholds",
+      "group_path": "///infrared",
+      "shape": [
+        6
+      ],
+      "dimensions": [
+        "brightness_temperature_thresholds"
+      ],
+      "dtype": "int16",
+      "units": "C",
+      "long_name": "Threshold of brightness temperature values for percent pixel calculation",
+      "fill_value": null,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -60,
+        -10
+      ],
+      "attributes": {
+        "long_name": "Threshold of brightness temperature values for percent pixel calculation",
+        "units": "C",
+        "valid_range": [
+          -60,
+          -10
+        ],
+        "coverage_content_type": "referenceInformation"
+      }
+    },
+    {
+      "name": "IRWIN",
+      "group_path": "///infrared",
+      "shape": [
+        480,
+        640
+      ],
+      "dimensions": [
+        "ny",
+        "nx"
+      ],
+      "dtype": "float32",
+      "units": "K",
+      "long_name": "Brightness temperature at 11.20 microns",
+      "fill_value": -999.989990234375,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "attributes": {
+        "long_name": "Brightness temperature at 11.20 microns",
+        "standard_name": "brightness_temperature",
+        "units": "K",
+        "valid_range": [
+          0.0,
+          350.0
+        ],
+        "_FillValue": -999.989990234375,
+        "coverage_content_type": "physicalMeasurement",
+        "coordinates": "latitude longitude"
+      }
+    },
+    {
+      "name": "percent_pixel_below_threshold",
+      "group_path": "///infrared",
+      "shape": [
+        6,
+        1
+      ],
+      "dimensions": [
+        "brightness_temperature_thresholds",
+        "region"
+      ],
+      "dtype": "float32",
+      "units": "%",
+      "long_name": "Percent of pixel counts below brightness temperature threshold within an annulus region around the storm center",
+      "fill_value": -999.989990234375,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        100.0
+      ],
+      "attributes": {
+        "long_name": "Percent of pixel counts below brightness temperature threshold within an annulus region around the storm center",
+        "units": "%",
+        "region": "50_to_200_km",
+        "valid_range": [
+          0.0,
+          100.0
+        ],
+        "_FillValue": -999.989990234375,
+        "coverage_content_type": "physicalMeasurement",
+        "SHIPS_related_variables": "IR00",
+        "ancillary_variables": "brightness_temperature_thresholds"
+      }
+    },
+    {
+      "name": "brightness_temperature_annulus_mean",
+      "group_path": "///infrared",
+      "shape": [
+        2
+      ],
+      "dimensions": [
+        "regions"
+      ],
+      "dtype": "float32",
+      "units": "C",
+      "long_name": "Mean brightness temperature within an annulus region around the storm center",
+      "fill_value": -999.989990234375,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -100.0,
+        100.0
+      ],
+      "attributes": {
+        "long_name": "Mean brightness temperature within an annulus region around the storm center",
+        "units": "C",
+        "regions": "0_to_200_km 100_to_300_km",
+        "valid_range": [
+          -100.0,
+          100.0
+        ],
+        "_FillValue": -999.989990234375,
+        "coverage_content_type": "pyhsicalMeasurement",
+        "SHIPS_related_variables": "IR00"
+      }
+    },
+    {
+      "name": "brightness_temperature_annulus_standard_deviation",
+      "group_path": "///infrared",
+      "shape": [
+        2
+      ],
+      "dimensions": [
+        "regions"
+      ],
+      "dtype": "float32",
+      "units": "C",
+      "long_name": "Standard deviation of brightness temperatures within an annulus region around the storm center",
+      "fill_value": -999.989990234375,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0.0,
+        200.0
+      ],
+      "attributes": {
+        "long_name": "Standard deviation of brightness temperatures within an annulus region around the storm center",
+        "units": "C",
+        "regions": "0_to_200_km 100_to_300_km",
+        "valid_range": [
+          0.0,
+          200.0
+        ],
+        "_FillValue": -999.989990234375,
+        "coverage_content_type": "physicalMeasurement",
+        "SHIPS_related_variables": "IR00"
+      }
+    },
+    {
+      "name": "brightness_temperature_eye_maximum",
+      "group_path": "///infrared",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "region"
+      ],
+      "dtype": "float32",
+      "units": "C",
+      "long_name": "Maximum brightness temperature in eye region",
+      "fill_value": -999.989990234375,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -100.0,
+        50.0
+      ],
+      "attributes": {
+        "long_name": "Maximum brightness temperature in eye region",
+        "units": "C",
+        "region": "0_to_30_km",
+        "valid_range": [
+          -100.0,
+          50.0
+        ],
+        "_FillValue": -999.989990234375,
+        "coverage_content_type": "physicalMeasurement",
+        "SHIPS_related_variables": "IR00"
+      }
+    },
+    {
+      "name": "brightness_temperature_eye_mean",
+      "group_path": "///infrared",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "region"
+      ],
+      "dtype": "float32",
+      "units": "C",
+      "long_name": "Mean brightness temperature in eye region",
+      "fill_value": -999.989990234375,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -100.0,
+        50.0
+      ],
+      "attributes": {
+        "long_name": "Mean brightness temperature in eye region",
+        "units": "C",
+        "region": "0_to_30_km",
+        "valid_range": [
+          -100.0,
+          50.0
+        ],
+        "_FillValue": -999.989990234375,
+        "coverage_content_type": "physicalMeasurement",
+        "SHIPS_related_variables": "IR00"
+      }
+    },
+    {
+      "name": "brightness_temperature_mean_radial_profile",
+      "group_path": "///infrared",
+      "shape": [
+        30
+      ],
+      "dimensions": [
+        "radius"
+      ],
+      "dtype": "float32",
+      "units": "C",
+      "long_name": "Radial profile of mean brightness temperatures calculated from binned brightness temperature values",
+      "fill_value": -999.989990234375,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -100.0,
+        50.0
+      ],
+      "attributes": {
+        "long_name": "Radial profile of mean brightness temperatures calculated from binned brightness temperature values",
+        "units": "C",
+        "valid_range": [
+          -100.0,
+          50.0
+        ],
+        "_FillValue": -999.989990234375,
+        "coverage_content_type": "physicalMeasurement",
+        "SHIPS_related_variables": "IR00"
+      }
+    },
+    {
+      "name": "brightness_temperature_radial_profile_eye_maximum_radius",
+      "group_path": "///infrared",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "region"
+      ],
+      "dtype": "int16",
+      "units": "C",
+      "long_name": "Radius of maximum brightness temperature in the eye region from radial profile of mean brightness temperatures",
+      "fill_value": -99,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        120
+      ],
+      "attributes": {
+        "long_name": "Radius of maximum brightness temperature in the eye region from radial profile of mean brightness temperatures",
+        "units": "C",
+        "region": "0_to_30_km",
+        "valid_range": [
+          0,
+          120
+        ],
+        "_FillValue": -99,
+        "ancillary_variables": "brightness_temperature_mean_radial_profile radius",
+        "coverage_content_type": "physicalMeasurement",
+        "SHIPS_related_variables": "IR00"
+      }
+    },
+    {
+      "name": "brightness_temperature_radial_profile_annulus_minimum",
+      "group_path": "///infrared",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "region"
+      ],
+      "dtype": "float32",
+      "units": "C",
+      "long_name": "Minimum brightness temperature in annulus region from radial profile of mean brightness temperatures",
+      "fill_value": -999.989990234375,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -100.0,
+        50.0
+      ],
+      "attributes": {
+        "long_name": "Minimum brightness temperature in annulus region from radial profile of mean brightness temperatures",
+        "units": "C",
+        "region": "20_to_120_km",
+        "valid_range": [
+          -100.0,
+          50.0
+        ],
+        "_FillValue": -999.989990234375,
+        "ancillary_variables": "brightness_temperature_mean_radial_profile",
+        "coverage_content_type": "physicalMeasurement",
+        "SHIPS_related_variables": "IR00"
+      }
+    },
+    {
+      "name": "brightness_temperature_radial_profile_annulus_mean",
+      "group_path": "///infrared",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "region"
+      ],
+      "dtype": "float32",
+      "units": "C",
+      "long_name": "Mean brightness temperature in annulus region from radial profile of mean brightness temperatures",
+      "fill_value": -999.989990234375,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        -100.0,
+        50.0
+      ],
+      "attributes": {
+        "long_name": "Mean brightness temperature in annulus region from radial profile of mean brightness temperatures",
+        "units": "C",
+        "region": "20_to_120_km",
+        "valid_range": [
+          -100.0,
+          50.0
+        ],
+        "_FillValue": -999.989990234375,
+        "ancillary_variables": "brightness_temperature_mean_radial_profile",
+        "coverage_content_type": "physicalMeasurement",
+        "SHIPS_related_variables": "IR00"
+      }
+    },
+    {
+      "name": "brightness_temperature_radial_profile_annulus_minimum_radius",
+      "group_path": "///infrared",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "region"
+      ],
+      "dtype": "int16",
+      "units": "C",
+      "long_name": "Radius of minimum brightness temperature in annulus region from radial profile of mean brightness temperatures",
+      "fill_value": -99,
+      "missing_value": null,
+      "scale_factor": null,
+      "add_offset": null,
+      "valid_range": [
+        0,
+        120
+      ],
+      "attributes": {
+        "long_name": "Radius of minimum brightness temperature in annulus region from radial profile of mean brightness temperatures",
+        "units": "C",
+        "region": "20_to_120_km",
+        "valid_range": [
+          0,
+          120
+        ],
+        "_FillValue": -99,
+        "ancillary_variables": "brightness_temperature_mean_radial_profile radius",
+        "coverage_content_type": "physicalMeasurement",
+        "SHIPS_related_variables": "IR00"
+      }
+    }
+  ]
+}

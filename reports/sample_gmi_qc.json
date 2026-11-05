@@ -1,0 +1,6833 @@
+{
+  "audit_metadata": {
+    "tool": "TC PRIMED Scientific Data-Quality Auditor",
+    "audit_timestamp_utc": "2026-11-02 11:15:39 UTC",
+    "file_path": "C:\\Users\\hoshi\\Desktop\\Capstone_project\\data\\raw\\sample_gmi.nc",
+    "file_name": "sample_gmi.nc",
+    "file_size_mb": 14.872
+  },
+  "storm_labels": {
+    "basin": "IO",
+    "season": 2014,
+    "cyclone_number": 3,
+    "instrument": "GMI",
+    "platform": "GPM",
+    "storm_latitude_deg_N": 10.819999694824219,
+    "storm_longitude_deg_E": 95.55999755859375,
+    "intensity_wind_kt": 25,
+    "intensity_units": "kt",
+    "intensity_long_name": "Tropical cyclone intensity linearly interpolated from the best-track to the passive microwave observation time; maximum 1-min average sustained wind speed at 10 m",
+    "intensity_valid_range": [
+      0,
+      300
+    ],
+    "documented_averaging_period": "1-minute average sustained wind speed at 10 m (documented in long_name)",
+    "central_min_pressure_hpa": 1004,
+    "pressure_units": "hPa",
+    "pressure_long_name": "Tropical cyclone minimum sea level pressure linearly interpolated from the best-track to the passive microwave observation time",
+    "development_stage": "TD",
+    "stage_long_name": "Tropical cyclone best-track development level closest to the passive microwave observation time",
+    "distance_to_land_km": 321.2300109863281,
+    "distance_long_name": "Distance to nearest major land mass at the passive microwave observation time; Negative values overland",
+    "intensity_change_labels": {
+      "-24h": {
+        "value_kt": null,
+        "is_missing": true,
+        "reason_if_missing": "Best-track not available prior to genesis"
+      },
+      "-18h": {
+        "value_kt": null,
+        "is_missing": true,
+        "reason_if_missing": "Best-track not available prior to genesis"
+      },
+      "-12h": {
+        "value_kt": 9,
+        "is_missing": false,
+        "reason_if_missing": null
+      },
+      "-6h": {
+        "value_kt": 4,
+        "is_missing": false,
+        "reason_if_missing": null
+      },
+      "+0h": {
+        "value_kt": 0,
+        "is_missing": false,
+        "reason_if_missing": null
+      },
+      "+6h": {
+        "value_kt": 0,
+        "is_missing": false,
+        "reason_if_missing": null
+      },
+      "+12h": {
+        "value_kt": 1,
+        "is_missing": false,
+        "reason_if_missing": null
+      },
+      "+18h": {
+        "value_kt": 5,
+        "is_missing": false,
+        "reason_if_missing": null
+      },
+      "+24h": {
+        "value_kt": 6,
+        "is_missing": false,
+        "reason_if_missing": null
+      }
+    }
+  },
+  "infrared_channel_verification": {
+    "variable_name": "IRWIN",
+    "long_name": "Brightness temperature at 11.20 microns",
+    "units": "K",
+    "standard_name": "brightness_temperature",
+    "documented_wavelength": "11.20 microns (explicitly stated in long_name: 'Brightness temperature at 11.20 microns')",
+    "platform_source": "Meteosat-7",
+    "instrument_source": "MVIRI",
+    "source_granule": "IO0314_20142791830M.C04",
+    "processing_comment": "CIRA/RAMMB Infrared Tropical Cyclone Image Archive infrared brightness temperature fields. McIDAS or Man computer Interactive Data Access System was used to remap raw infrared imagery to a 4-km, Mercator Projection and a reference latitude of 0. Data are stored in 256 integer counts that have 1 and 0.5 K resolution above and below 242.5 K, respectively. In some cases the precision of the data were reduced in this process.",
+    "calibration_resolution": "1 K resolution above 242.5 K; 0.5 K resolution below 242.5 K (per McIDAS CIRA/RAMMB archive comment)"
+  },
+  "temporal_audit": {
+    "time_variables": [
+      {
+        "variable": "time",
+        "group_path": "/overpass_metadata",
+        "shape": [
+          1
+        ],
+        "dimensions": [
+          "time"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 1,
+        "min_raw": 1412620888.0,
+        "max_raw": 1412620888.0,
+        "start_utc": "2014-10-06 18:41:28 UTC",
+        "end_utc": "2014-10-06 18:41:28 UTC"
+      },
+      {
+        "variable": "env_time",
+        "group_path": "/overpass_metadata",
+        "shape": [
+          1
+        ],
+        "dimensions": [
+          "time"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 1,
+        "min_raw": 1412618400.0,
+        "max_raw": 1412618400.0,
+        "start_utc": "2014-10-06 18:00:00 UTC",
+        "end_utc": "2014-10-06 18:00:00 UTC"
+      },
+      {
+        "variable": "time",
+        "group_path": "/overpass_storm_metadata",
+        "shape": [
+          1
+        ],
+        "dimensions": [
+          "time"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 1,
+        "min_raw": 1412620888.0,
+        "max_raw": 1412620888.0,
+        "start_utc": "2014-10-06 18:41:28 UTC",
+        "end_utc": "2014-10-06 18:41:28 UTC"
+      },
+      {
+        "variable": "intensity_change_times",
+        "group_path": "/overpass_storm_metadata",
+        "shape": [
+          9
+        ],
+        "dimensions": [
+          "intensity_change_periods"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 9,
+        "min_raw": 1412534488.0,
+        "max_raw": 1412707288.0,
+        "start_utc": "2014-10-05 18:41:28 UTC",
+        "end_utc": "2014-10-07 18:41:28 UTC",
+        "duration_seconds": 172800.0,
+        "duration_minutes": 2880.0,
+        "scan_interval_min_sec": 21600.0,
+        "scan_interval_max_sec": 21600.0,
+        "scan_interval_mean_sec": 21600.0
+      },
+      {
+        "variable": "time",
+        "group_path": "/passive_microwave",
+        "shape": [
+          1
+        ],
+        "dimensions": [
+          "time"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 1,
+        "min_raw": 1412620888.0,
+        "max_raw": 1412620888.0,
+        "start_utc": "2014-10-06 18:41:28 UTC",
+        "end_utc": "2014-10-06 18:41:28 UTC"
+      },
+      {
+        "variable": "ScanTime",
+        "group_path": "/passive_microwave/S1",
+        "shape": [
+          168
+        ],
+        "dimensions": [
+          "scan"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 168,
+        "min_raw": 1412620727.0,
+        "max_raw": 1412621040.0,
+        "start_utc": "2014-10-06 18:38:47 UTC",
+        "end_utc": "2014-10-06 18:44:00 UTC",
+        "duration_seconds": 313.0,
+        "duration_minutes": 5.22,
+        "scan_interval_min_sec": 1.0,
+        "scan_interval_max_sec": 2.0,
+        "scan_interval_mean_sec": 1.874
+      },
+      {
+        "variable": "ScanTime",
+        "group_path": "/passive_microwave/S2",
+        "shape": [
+          157
+        ],
+        "dimensions": [
+          "scan"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 157,
+        "min_raw": 1412620750.0,
+        "max_raw": 1412621042.0,
+        "start_utc": "2014-10-06 18:39:10 UTC",
+        "end_utc": "2014-10-06 18:44:02 UTC",
+        "duration_seconds": 292.0,
+        "duration_minutes": 4.87,
+        "scan_interval_min_sec": 1.0,
+        "scan_interval_max_sec": 2.0,
+        "scan_interval_mean_sec": 1.872
+      },
+      {
+        "variable": "time",
+        "group_path": "/GPROF",
+        "shape": [
+          1
+        ],
+        "dimensions": [
+          "time"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 1,
+        "min_raw": 1412620888.0,
+        "max_raw": 1412620888.0,
+        "start_utc": "2014-10-06 18:41:28 UTC",
+        "end_utc": "2014-10-06 18:41:28 UTC"
+      },
+      {
+        "variable": "ScanTime",
+        "group_path": "/GPROF/S1",
+        "shape": [
+          168
+        ],
+        "dimensions": [
+          "scan"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 168,
+        "min_raw": 1412620727.0,
+        "max_raw": 1412621040.0,
+        "start_utc": "2014-10-06 18:38:47 UTC",
+        "end_utc": "2014-10-06 18:44:00 UTC",
+        "duration_seconds": 313.0,
+        "duration_minutes": 5.22,
+        "scan_interval_min_sec": 1.0,
+        "scan_interval_max_sec": 2.0,
+        "scan_interval_mean_sec": 1.874
+      },
+      {
+        "variable": "time",
+        "group_path": "/radar_radiometer",
+        "shape": [
+          1
+        ],
+        "dimensions": [
+          "time"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 1,
+        "min_raw": 1412620888.0,
+        "max_raw": 1412620888.0,
+        "start_utc": "2014-10-06 18:41:28 UTC",
+        "end_utc": "2014-10-06 18:41:28 UTC"
+      },
+      {
+        "variable": "ScanTime",
+        "group_path": "/radar_radiometer/KuGMI",
+        "shape": [
+          352
+        ],
+        "dimensions": [
+          "scan"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 352,
+        "min_raw": 1412620732.0,
+        "max_raw": 1412620977.0,
+        "start_utc": "2014-10-06 18:38:52 UTC",
+        "end_utc": "2014-10-06 18:42:57 UTC",
+        "duration_seconds": 245.0,
+        "duration_minutes": 4.08,
+        "scan_interval_min_sec": 0.0,
+        "scan_interval_max_sec": 1.0,
+        "scan_interval_mean_sec": 0.698
+      },
+      {
+        "variable": "ScanTime",
+        "group_path": "/radar_radiometer/KuKaGMI",
+        "shape": [
+          339
+        ],
+        "dimensions": [
+          "scan"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 339,
+        "min_raw": 1412620737.0,
+        "max_raw": 1412620973.0,
+        "start_utc": "2014-10-06 18:38:57 UTC",
+        "end_utc": "2014-10-06 18:42:53 UTC",
+        "duration_seconds": 236.0,
+        "duration_minutes": 3.93,
+        "scan_interval_min_sec": 0.0,
+        "scan_interval_max_sec": 1.0,
+        "scan_interval_mean_sec": 0.698
+      },
+      {
+        "variable": "R5_time",
+        "group_path": "/infrared",
+        "shape": [
+          59
+        ],
+        "dimensions": [
+          "R5_time"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 59,
+        "min_raw": 1412575200.0,
+        "max_raw": 1413201600.0,
+        "start_utc": "2014-10-06 06:00:00 UTC",
+        "end_utc": "2014-10-13 12:00:00 UTC",
+        "duration_seconds": 626400.0,
+        "duration_minutes": 10440.0,
+        "scan_interval_min_sec": 10800.0,
+        "scan_interval_max_sec": 10800.0,
+        "scan_interval_mean_sec": 10800.0
+      },
+      {
+        "variable": "time",
+        "group_path": "/infrared",
+        "shape": [
+          1
+        ],
+        "dimensions": [
+          "time"
+        ],
+        "dtype": "int64",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "standard",
+        "count": 1,
+        "min_raw": 1412620200.0,
+        "max_raw": 1412620200.0,
+        "start_utc": "2014-10-06 18:30:00 UTC",
+        "end_utc": "2014-10-06 18:30:00 UTC"
+      }
+    ],
+    "nominal_overpass_time_utc": "2014-10-06 18:41:28 UTC",
+    "cross_modality_synchronization": [
+      {
+        "group": "/overpass_metadata",
+        "variable": "time",
+        "time_utc": "2014-10-06 18:41:28 UTC",
+        "offset_from_overpass_sec": 0.0,
+        "offset_from_overpass_min": 0.0
+      },
+      {
+        "group": "/overpass_storm_metadata",
+        "variable": "time",
+        "time_utc": "2014-10-06 18:41:28 UTC",
+        "offset_from_overpass_sec": 0.0,
+        "offset_from_overpass_min": 0.0
+      },
+      {
+        "group": "/passive_microwave",
+        "variable": "time",
+        "time_utc": "2014-10-06 18:41:28 UTC",
+        "offset_from_overpass_sec": 0.0,
+        "offset_from_overpass_min": 0.0
+      },
+      {
+        "group": "/passive_microwave/S1",
+        "variable": "ScanTime",
+        "time_utc": "2014-10-06 18:38:47 UTC",
+        "offset_from_overpass_sec": -161.0,
+        "offset_from_overpass_min": -2.68
+      },
+      {
+        "group": "/passive_microwave/S2",
+        "variable": "ScanTime",
+        "time_utc": "2014-10-06 18:39:10 UTC",
+        "offset_from_overpass_sec": -138.0,
+        "offset_from_overpass_min": -2.3
+      },
+      {
+        "group": "/GPROF",
+        "variable": "time",
+        "time_utc": "2014-10-06 18:41:28 UTC",
+        "offset_from_overpass_sec": 0.0,
+        "offset_from_overpass_min": 0.0
+      },
+      {
+        "group": "/GPROF/S1",
+        "variable": "ScanTime",
+        "time_utc": "2014-10-06 18:38:47 UTC",
+        "offset_from_overpass_sec": -161.0,
+        "offset_from_overpass_min": -2.68
+      },
+      {
+        "group": "/radar_radiometer",
+        "variable": "time",
+        "time_utc": "2014-10-06 18:41:28 UTC",
+        "offset_from_overpass_sec": 0.0,
+        "offset_from_overpass_min": 0.0
+      },
+      {
+        "group": "/radar_radiometer/KuGMI",
+        "variable": "ScanTime",
+        "time_utc": "2014-10-06 18:38:52 UTC",
+        "offset_from_overpass_sec": -156.0,
+        "offset_from_overpass_min": -2.6
+      },
+      {
+        "group": "/radar_radiometer/KuKaGMI",
+        "variable": "ScanTime",
+        "time_utc": "2014-10-06 18:38:57 UTC",
+        "offset_from_overpass_sec": -151.0,
+        "offset_from_overpass_min": -2.52
+      },
+      {
+        "group": "/infrared",
+        "variable": "time",
+        "time_utc": "2014-10-06 18:30:00 UTC",
+        "offset_from_overpass_sec": -688.0,
+        "offset_from_overpass_min": -11.47
+      }
+    ]
+  },
+  "geolocation_audit": [
+    {
+      "group_path": "/passive_microwave/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "total_points": 37128,
+      "valid_points": 37128,
+      "missing_points": 0,
+      "missing_percent": 0.0,
+      "latitude_range_deg_N": [
+        -0.9526,
+        22.5736
+      ],
+      "longitude_range_deg_E": [
+        90.359,
+        105.7798
+      ],
+      "aligned_observations_count": 10,
+      "aligned_observations": [
+        "surface_type",
+        "TB_10.65V",
+        "TB_10.65H",
+        "TB_18.7V",
+        "TB_18.7H",
+        "TB_23.8V",
+        "TB_36.64V",
+        "TB_36.64H",
+        "TB_89.0V",
+        "TB_89.0H"
+      ],
+      "misaligned_observations": []
+    },
+    {
+      "group_path": "/passive_microwave/S2",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "total_points": 27475,
+      "valid_points": 27475,
+      "missing_points": 0,
+      "missing_percent": 0.0,
+      "latitude_range_deg_N": [
+        0.3306,
+        21.3779
+      ],
+      "longitude_range_deg_E": [
+        90.9197,
+        104.9502
+      ],
+      "aligned_observations_count": 5,
+      "aligned_observations": [
+        "surface_type",
+        "TB_166.0V",
+        "TB_166.0H",
+        "TB_183.31_3.0V",
+        "TB_183.31_7.0V"
+      ],
+      "misaligned_observations": []
+    },
+    {
+      "group_path": "/GPROF/S1",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "total_points": 37128,
+      "valid_points": 37128,
+      "missing_points": 0,
+      "missing_percent": 0.0,
+      "latitude_range_deg_N": [
+        -0.9526,
+        22.5736
+      ],
+      "longitude_range_deg_E": [
+        90.359,
+        105.7798
+      ],
+      "aligned_observations_count": 11,
+      "aligned_observations": [
+        "surfacePrecipitation",
+        "convectivePrecipitation",
+        "rainWaterPath",
+        "cloudWaterPath",
+        "iceWaterPath",
+        "rainWaterContent (vertical profile 28 levels)",
+        "cloudWaterContent (vertical profile 28 levels)",
+        "snowWaterContent (vertical profile 28 levels)",
+        "probabilityOfPrecip",
+        "qualityFlag",
+        "surfaceTypeIndex"
+      ],
+      "misaligned_observations": []
+    },
+    {
+      "group_path": "/radar_radiometer/KuGMI",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "total_points": 17248,
+      "valid_points": 17248,
+      "missing_points": 0,
+      "missing_percent": 0.0,
+      "latitude_range_deg_N": [
+        3.063,
+        18.5239
+      ],
+      "longitude_range_deg_E": [
+        93.7222,
+        101.7258
+      ],
+      "aligned_observations_count": 14,
+      "aligned_observations": [
+        "binHeight (vertical profile 88 levels)",
+        "correctedReflectFactor_Ku (vertical profile 88 levels)",
+        "nearSurfPrecipTotRate",
+        "nearSurfPrecipTotRateSigma",
+        "cloudLiqWaterCont (vertical profile 88 levels)",
+        "cloudIceWaterCont (vertical profile 88 levels)",
+        "precipTotWaterCont (vertical profile 88 levels)",
+        "precipTotWaterContSigma (vertical profile 88 levels)",
+        "precipLiqWaterCont (vertical profile 88 levels)",
+        "precipTotRate (vertical profile 88 levels)",
+        "precipTotRateSigma (vertical profile 88 levels)",
+        "precipLiqRate (vertical profile 88 levels)",
+        "mainprecipitationType",
+        "surfaceType"
+      ],
+      "misaligned_observations": []
+    },
+    {
+      "group_path": "/radar_radiometer/KuKaGMI",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "total_points": 8475,
+      "valid_points": 8475,
+      "missing_points": 0,
+      "missing_percent": 0.0,
+      "latitude_range_deg_N": [
+        3.5953,
+        18.0112
+      ],
+      "longitude_range_deg_E": [
+        94.3412,
+        101.0852
+      ],
+      "aligned_observations_count": 15,
+      "aligned_observations": [
+        "binHeight (vertical profile 88 levels)",
+        "correctedReflectFactor_Ka (vertical profile 88 levels)",
+        "correctedReflectFactor_Ku (vertical profile 88 levels)",
+        "nearSurfPrecipTotRate",
+        "nearSurfPrecipTotRateSigma",
+        "cloudLiqWaterCont (vertical profile 88 levels)",
+        "cloudIceWaterCont (vertical profile 88 levels)",
+        "precipTotWaterCont (vertical profile 88 levels)",
+        "precipTotWaterContSigma (vertical profile 88 levels)",
+        "precipLiqWaterCont (vertical profile 88 levels)",
+        "precipTotRate (vertical profile 88 levels)",
+        "precipTotRateSigma (vertical profile 88 levels)",
+        "precipLiqRate (vertical profile 88 levels)",
+        "mainprecipitationType",
+        "surfaceType"
+      ],
+      "misaligned_observations": []
+    },
+    {
+      "group_path": "/infrared",
+      "shape": [
+        480,
+        640
+      ],
+      "dimensions": [
+        "ny",
+        "nx"
+      ],
+      "total_points": 307200,
+      "valid_points": 307200,
+      "missing_points": 0,
+      "missing_percent": 0.0,
+      "latitude_range_deg_N": [
+        3.16,
+        19.96
+      ],
+      "longitude_range_deg_E": [
+        83.16,
+        106.12
+      ],
+      "aligned_observations_count": 1,
+      "aligned_observations": [
+        "IRWIN"
+      ],
+      "misaligned_observations": [
+        "R5_availability_flag shape=(1,) vs coord=(480, 640)",
+        "R5_time shape=(59,) vs coord=(480, 640)",
+        "R5 shape=(59,) vs coord=(480, 640)",
+        "infrared_availability_flag shape=(1,) vs coord=(480, 640)",
+        "storm_latitude shape=(1,) vs coord=(480, 640)",
+        "storm_longitude shape=(1,) vs coord=(480, 640)",
+        "radius shape=(30,) vs coord=(480, 640)",
+        "brightness_temperature_thresholds shape=(6,) vs coord=(480, 640)",
+        "percent_pixel_below_threshold shape=(6, 1) vs coord=(480, 640)",
+        "brightness_temperature_annulus_mean shape=(2,) vs coord=(480, 640)",
+        "brightness_temperature_annulus_standard_deviation shape=(2,) vs coord=(480, 640)",
+        "brightness_temperature_eye_maximum shape=(1,) vs coord=(480, 640)",
+        "brightness_temperature_eye_mean shape=(1,) vs coord=(480, 640)",
+        "brightness_temperature_mean_radial_profile shape=(30,) vs coord=(480, 640)",
+        "brightness_temperature_radial_profile_eye_maximum_radius shape=(1,) vs coord=(480, 640)",
+        "brightness_temperature_radial_profile_annulus_minimum shape=(1,) vs coord=(480, 640)",
+        "brightness_temperature_radial_profile_annulus_mean shape=(1,) vs coord=(480, 640)",
+        "brightness_temperature_radial_profile_annulus_minimum_radius shape=(1,) vs coord=(480, 640)"
+      ]
+    }
+  ],
+  "quality_flags_audit": [
+    {
+      "name": "basin",
+      "group_path": "/overpass_metadata",
+      "dtype": "<class 'str'>",
+      "shape": [
+        1
+      ],
+      "long_name": "Tropical cyclone basin",
+      "standard_name": null,
+      "total_pixels": 1,
+      "valid_pixels": 1,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "IO": 1
+      },
+      "documented_meanings": {}
+    },
+    {
+      "name": "cyclone_number",
+      "group_path": "/overpass_metadata",
+      "dtype": "int8",
+      "shape": [
+        1
+      ],
+      "long_name": "Tropical cyclone annual cyclone number",
+      "standard_name": null,
+      "total_pixels": 1,
+      "valid_pixels": 1,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "3": 1
+      },
+      "documented_meanings": {}
+    },
+    {
+      "name": "season",
+      "group_path": "/overpass_metadata",
+      "dtype": "int16",
+      "shape": [
+        1
+      ],
+      "long_name": "Tropical cyclone basin season",
+      "standard_name": null,
+      "total_pixels": 1,
+      "valid_pixels": 1,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "2014": 1
+      },
+      "documented_meanings": {}
+    },
+    {
+      "name": "coverage_fraction",
+      "group_path": "/overpass_metadata",
+      "dtype": "int16",
+      "shape": [
+        1
+      ],
+      "long_name": "Amount of satellite passive microwave coverage from the S1 swath within 750 km radius centered on the storm center",
+      "standard_name": "area_fraction",
+      "total_pixels": 1,
+      "valid_pixels": 1,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "68.76": 1
+      },
+      "documented_meanings": {}
+    },
+    {
+      "name": "development_level",
+      "group_path": "/overpass_storm_metadata",
+      "dtype": "<class 'str'>",
+      "shape": [
+        1
+      ],
+      "long_name": "Tropical cyclone best-track development level closest to the passive microwave observation time",
+      "standard_name": null,
+      "total_pixels": 1,
+      "valid_pixels": 1,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "TD": 1
+      },
+      "documented_meanings": {}
+    },
+    {
+      "name": "surface_type",
+      "group_path": "/passive_microwave/S1",
+      "dtype": "int16",
+      "shape": [
+        168,
+        221
+      ],
+      "long_name": "Surface type for the the center of the IFOV at the altitude of the Earth ellipsoid",
+      "standard_name": "area_type",
+      "total_pixels": 37128,
+      "valid_pixels": 37128,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "0": 24643,
+        "1": 12485
+      },
+      "documented_meanings": {
+        "0": "ocean_or_lake",
+        "1": "land"
+      }
+    },
+    {
+      "name": "surface_type",
+      "group_path": "/passive_microwave/S2",
+      "dtype": "int16",
+      "shape": [
+        157,
+        175
+      ],
+      "long_name": "Surface type for the the center of the IFOV at the altitude of the Earth ellipsoid",
+      "standard_name": "area_type",
+      "total_pixels": 27475,
+      "valid_pixels": 27475,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "0": 18010,
+        "1": 9465
+      },
+      "documented_meanings": {
+        "0": "ocean_or_lake",
+        "1": "land"
+      }
+    },
+    {
+      "name": "availability_flag",
+      "group_path": "/GPROF",
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "long_name": "Availability flag for the GPROF variables",
+      "standard_name": "status_flag",
+      "total_pixels": 1,
+      "valid_pixels": 1,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "1": 1
+      },
+      "documented_meanings": {
+        "0": "variables_not_available",
+        "1": "variables_available"
+      }
+    },
+    {
+      "name": "qualityFlag",
+      "group_path": "/GPROF/S1",
+      "dtype": "float64",
+      "shape": [
+        168,
+        221
+      ],
+      "long_name": "Generalized quality of the retrieved pixel",
+      "standard_name": "quality_flag",
+      "total_pixels": 37128,
+      "valid_pixels": 37128,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "0.0": 37114,
+        "1.0": 14
+      },
+      "documented_meanings": {
+        "0": "good",
+        "1": "use_with_caution",
+        "2": "use_pixel_with_extreme_care_over_snow_covered_surface",
+        "3": "use_with_extreme_caution"
+      }
+    },
+    {
+      "name": "surfaceTypeIndex",
+      "group_path": "/GPROF/S1",
+      "dtype": "float64",
+      "shape": [
+        168,
+        221
+      ],
+      "long_name": "Type of surface in GPROF field-of-view",
+      "standard_name": "area_type",
+      "total_pixels": 37128,
+      "valid_pixels": 37128,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "1.0": 21156,
+        "3.0": 450,
+        "4.0": 15,
+        "12.0": 7246,
+        "13.0": 2363,
+        "14.0": 2148,
+        "15.0": 1138,
+        "17.0": 2612
+      },
+      "documented_meanings": {
+        "1": "ocean",
+        "2": "sea-ice",
+        "3_to_7": "decreasing_vegetation",
+        "8_to_11": "decreasing_snow_cover",
+        "12": "standing_water",
+        "13": "ocean_or_water_coast",
+        "14": "mixed_land/ocean_or_water_coast",
+        "15": "land_coast",
+        "16": "sea-ice_edge",
+        "17": "mountain_rain",
+        "18": "mountain_snow"
+      }
+    },
+    {
+      "name": "availability_flag",
+      "group_path": "/radar_radiometer",
+      "dtype": "int8",
+      "shape": [
+        1
+      ],
+      "long_name": "Availability flag for the combined radar-radiometer variables",
+      "standard_name": "status_flag",
+      "total_pixels": 1,
+      "valid_pixels": 1,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "1": 1
+      },
+      "documented_meanings": {
+        "0": "variables_not_available",
+        "1": "variables_available"
+      }
+    },
+    {
+      "name": "mainprecipitationType",
+      "group_path": "/radar_radiometer/KuGMI",
+      "dtype": "int16",
+      "shape": [
+        352,
+        49
+      ],
+      "long_name": "Main precipitation type",
+      "standard_name": "predominant_precipitation_type_at_surface",
+      "total_pixels": 17248,
+      "valid_pixels": 17248,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "0": 12818,
+        "1": 2547,
+        "2": 1196,
+        "3": 504,
+        "4": 183
+      },
+      "documented_meanings": {
+        "0": "no_rain",
+        "1": "stratiform",
+        "2": "convective",
+        "3": "other",
+        "4": "shallow_rain"
+      }
+    },
+    {
+      "name": "surfaceType",
+      "group_path": "/radar_radiometer/KuGMI",
+      "dtype": "int32",
+      "shape": [
+        352,
+        49
+      ],
+      "long_name": "Type of surface in precipitation radar field-of-view",
+      "standard_name": "area_type",
+      "total_pixels": 17248,
+      "valid_pixels": 17248,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "0": 9927,
+        "100": 1,
+        "101": 2,
+        "102": 227,
+        "103": 3131,
+        "106": 175,
+        "107": 1,
+        "108": 92,
+        "110": 204,
+        "111": 690,
+        "113": 1881,
+        "115": 54,
+        "200": 102,
+        "201": 3,
+        "202": 79,
+        "203": 349,
+        "206": 13,
+        "207": 3,
+        "208": 6,
+        "210": 7,
+        "211": 113,
+        "213": 185,
+        "215": 1,
+        "300": 2
+      },
+      "documented_meanings": {
+        "0_to_99": "ocean",
+        "100_to_199": "land",
+        "200_to_299": "coast",
+        "300_to_399": "inland_water"
+      }
+    },
+    {
+      "name": "mainprecipitationType",
+      "group_path": "/radar_radiometer/KuKaGMI",
+      "dtype": "int16",
+      "shape": [
+        339,
+        25
+      ],
+      "long_name": "Main precipitation type",
+      "standard_name": "predominant_precipitation_type_at_surface",
+      "total_pixels": 8475,
+      "valid_pixels": 8475,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "0": 5954,
+        "1": 1260,
+        "2": 756,
+        "3": 347,
+        "4": 158
+      },
+      "documented_meanings": {
+        "0": "no_rain",
+        "1": "stratiform",
+        "2": "convective",
+        "3": "other",
+        "4": "shallow_rain"
+      }
+    },
+    {
+      "name": "surfaceType",
+      "group_path": "/radar_radiometer/KuKaGMI",
+      "dtype": "int32",
+      "shape": [
+        339,
+        25
+      ],
+      "long_name": "Type of surface in precipitation radar field-of-view",
+      "standard_name": "area_type",
+      "total_pixels": 8475,
+      "valid_pixels": 8475,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "0": 4925,
+        "101": 1,
+        "102": 97,
+        "103": 1666,
+        "106": 112,
+        "108": 58,
+        "110": 47,
+        "111": 245,
+        "113": 798,
+        "115": 20,
+        "200": 75,
+        "201": 1,
+        "202": 44,
+        "203": 205,
+        "206": 7,
+        "207": 2,
+        "208": 3,
+        "211": 54,
+        "213": 113,
+        "300": 2
+      },
+      "documented_meanings": {
+        "0_to_99": "ocean",
+        "100_to_199": "land",
+        "200_to_299": "coast",
+        "300_to_399": "inland_water"
+      }
+    },
+    {
+      "name": "R5_availability_flag",
+      "group_path": "/infrared",
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "long_name": "Availability flag for the R5 data",
+      "standard_name": "status_flag",
+      "total_pixels": 1,
+      "valid_pixels": 1,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "1": 1
+      },
+      "documented_meanings": {
+        "0": "R5_data_not_available",
+        "1": "R5_data_available"
+      }
+    },
+    {
+      "name": "infrared_availability_flag",
+      "group_path": "/infrared",
+      "dtype": "int8",
+      "shape": [
+        1
+      ],
+      "long_name": "Availability flag for the infrared data",
+      "standard_name": "status_flag",
+      "total_pixels": 1,
+      "valid_pixels": 1,
+      "missing_pixels": 0,
+      "value_frequencies": {
+        "1": 1
+      },
+      "documented_meanings": {
+        "0": "infrared_not_available",
+        "1": "Mcidas_source",
+        "2": "HURSAT_source"
+      }
+    }
+  ],
+  "concerning_missing_variables_count": 15,
+  "concerning_missing_variables": [
+    {
+      "name": "intensity_change",
+      "group_path": "///overpass_storm_metadata",
+      "missing_percent": 22.2222,
+      "missing_count": 2,
+      "total_elements": 9,
+      "note": "Missing label"
+    },
+    {
+      "name": "surfacePrecipitation",
+      "group_path": "///GPROF/S1",
+      "missing_percent": 20.362,
+      "missing_count": 7560,
+      "total_elements": 37128,
+      "note": "Swath edge / land boundary"
+    },
+    {
+      "name": "convectivePrecipitation",
+      "group_path": "///GPROF/S1",
+      "missing_percent": 20.362,
+      "missing_count": 7560,
+      "total_elements": 37128,
+      "note": "Swath edge / land boundary"
+    },
+    {
+      "name": "rainWaterPath",
+      "group_path": "///GPROF/S1",
+      "missing_percent": 20.362,
+      "missing_count": 7560,
+      "total_elements": 37128,
+      "note": "Swath edge / land boundary"
+    },
+    {
+      "name": "cloudWaterPath",
+      "group_path": "///GPROF/S1",
+      "missing_percent": 20.362,
+      "missing_count": 7560,
+      "total_elements": 37128,
+      "note": "Swath edge / land boundary"
+    },
+    {
+      "name": "iceWaterPath",
+      "group_path": "///GPROF/S1",
+      "missing_percent": 20.362,
+      "missing_count": 7560,
+      "total_elements": 37128,
+      "note": "Swath edge / land boundary"
+    },
+    {
+      "name": "rainWaterContent",
+      "group_path": "///GPROF/S1",
+      "missing_percent": 21.4097,
+      "missing_count": 222572,
+      "total_elements": 1039584,
+      "note": "Swath edge / land boundary"
+    },
+    {
+      "name": "cloudWaterContent",
+      "group_path": "///GPROF/S1",
+      "missing_percent": 20.362,
+      "missing_count": 211680,
+      "total_elements": 1039584,
+      "note": "Swath edge / land boundary"
+    },
+    {
+      "name": "snowWaterContent",
+      "group_path": "///GPROF/S1",
+      "missing_percent": 100.0,
+      "missing_count": 1039584,
+      "total_elements": 1039584,
+      "note": "100% unpopulated"
+    },
+    {
+      "name": "probabilityOfPrecip",
+      "group_path": "///GPROF/S1",
+      "missing_percent": 20.362,
+      "missing_count": 7560,
+      "total_elements": 37128,
+      "note": "Swath edge / land boundary"
+    },
+    {
+      "name": "correctedReflectFactor_Ku",
+      "group_path": "///radar_radiometer/KuGMI",
+      "missing_percent": 95.2114,
+      "missing_count": 1445142,
+      "total_elements": 1517824,
+      "note": "Radar non-precipitating background"
+    },
+    {
+      "name": "cloudIceWaterCont",
+      "group_path": "///radar_radiometer/KuGMI",
+      "missing_percent": 100.0,
+      "missing_count": 1517824,
+      "total_elements": 1517824,
+      "note": "100% unpopulated"
+    },
+    {
+      "name": "correctedReflectFactor_Ka",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "missing_percent": 94.6995,
+      "missing_count": 706269,
+      "total_elements": 745800,
+      "note": "Radar non-precipitating background"
+    },
+    {
+      "name": "correctedReflectFactor_Ku",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "missing_percent": 94.6995,
+      "missing_count": 706269,
+      "total_elements": 745800,
+      "note": "Radar non-precipitating background"
+    },
+    {
+      "name": "cloudIceWaterCont",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "missing_percent": 100.0,
+      "missing_count": 745800,
+      "total_elements": 745800,
+      "note": "100% unpopulated"
+    }
+  ],
+  "total_numerical_variables_audited": 133,
+  "numerical_variables": [
+    {
+      "name": "time",
+      "group_path": "///overpass_metadata",
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of the passive microwave observation of the storm",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412620888.0,
+      "max": 1412620888.0,
+      "mean": 1412620888.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 1412620888.0,
+        "p5": 1412620888.0,
+        "p50_median": 1412620888.0,
+        "p95": 1412620888.0,
+        "p99": 1412620888.0
+      }
+    },
+    {
+      "name": "cyclone_number",
+      "group_path": "///overpass_metadata",
+      "dtype": "int8",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "1",
+      "long_name": "Tropical cyclone annual cyclone number",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        1,
+        49
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 3.0,
+      "max": 3.0,
+      "mean": 3.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 3.0,
+        "p5": 3.0,
+        "p50_median": 3.0,
+        "p95": 3.0,
+        "p99": 3.0
+      }
+    },
+    {
+      "name": "season",
+      "group_path": "///overpass_metadata",
+      "dtype": "int16",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": null,
+      "long_name": "Tropical cyclone basin season",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 2014.0,
+      "max": 2014.0,
+      "mean": 2014.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 2014.0,
+        "p5": 2014.0,
+        "p50_median": 2014.0,
+        "p95": 2014.0,
+        "p99": 2014.0
+      }
+    },
+    {
+      "name": "coverage_fraction",
+      "group_path": "///overpass_metadata",
+      "dtype": "int16",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "%",
+      "long_name": "Amount of satellite passive microwave coverage from the S1 swath within 750 km radius centered on the storm center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": 0.01,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0,
+        10000
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 68.76,
+      "max": 68.76,
+      "mean": 68.76,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 68.76,
+        "p5": 68.76,
+        "p50_median": 68.76,
+        "p95": 68.76,
+        "p99": 68.76
+      }
+    },
+    {
+      "name": "env_time",
+      "group_path": "///overpass_metadata",
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Closest standard synoptic time (0000, 0600, 1200, 1800 UTC) to the passive microwave observation time for TC PRIMED environmental file",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412618400.0,
+      "max": 1412618400.0,
+      "mean": 1412618400.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 1412618400.0,
+        "p5": 1412618400.0,
+        "p50_median": 1412618400.0,
+        "p95": 1412618400.0,
+        "p99": 1412618400.0
+      }
+    },
+    {
+      "name": "time",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of the passive microwave observation of the storm",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412620888.0,
+      "max": 1412620888.0,
+      "mean": 1412620888.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 1412620888.0,
+        "p5": 1412620888.0,
+        "p50_median": 1412620888.0,
+        "p95": 1412620888.0,
+        "p99": 1412620888.0
+      }
+    },
+    {
+      "name": "storm_latitude",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "float32",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "degrees_north",
+      "long_name": "Tropical cyclone center latitude interpolated from the best-track to the passive microwave observation time",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 10.82,
+      "max": 10.82,
+      "mean": 10.82,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 10.82,
+        "p5": 10.82,
+        "p50_median": 10.82,
+        "p95": 10.82,
+        "p99": 10.82
+      }
+    },
+    {
+      "name": "storm_longitude",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "float32",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "degrees_east",
+      "long_name": "Tropical cyclone center longitude interpolated from the best-track to the passive microwave observation time",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 95.56,
+      "max": 95.56,
+      "mean": 95.56,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 95.56,
+        "p5": 95.56,
+        "p50_median": 95.56,
+        "p95": 95.56,
+        "p99": 95.56
+      }
+    },
+    {
+      "name": "intensity",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "int16",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "kt",
+      "long_name": "Tropical cyclone intensity linearly interpolated from the best-track to the passive microwave observation time; maximum 1-min average sustained wind speed at 10 m",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -999,
+      "missing_value": -999,
+      "valid_range": [
+        0,
+        300
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 25.0,
+      "max": 25.0,
+      "mean": 25.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 25.0,
+        "p5": 25.0,
+        "p50_median": 25.0,
+        "p95": 25.0,
+        "p99": 25.0
+      }
+    },
+    {
+      "name": "intensity_change_periods",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "int8",
+      "shape": [
+        9
+      ],
+      "dimensions": [
+        "intensity_change_periods"
+      ],
+      "units": "hours",
+      "long_name": "Periods of intensity change relative to the passive microwave observation time",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -24,
+        24
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 9,
+      "valid_elements": 9,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -24.0,
+      "max": 24.0,
+      "mean": 0.0,
+      "std": 15.49193,
+      "percentiles": {
+        "p1": -23.52,
+        "p5": -21.6,
+        "p50_median": 0.0,
+        "p95": 21.6,
+        "p99": 23.52
+      }
+    },
+    {
+      "name": "intensity_change_times",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "int64",
+      "shape": [
+        9
+      ],
+      "dimensions": [
+        "intensity_change_periods"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Times corresponding to the intensity change periods",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 9,
+      "valid_elements": 9,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412534488.0,
+      "max": 1412707288.0,
+      "mean": 1412620888.0,
+      "std": 55770.96019,
+      "percentiles": {
+        "p1": 1412536216.0,
+        "p5": 1412543128.0,
+        "p50_median": 1412620888.0,
+        "p95": 1412698648.0,
+        "p99": 1412705560.0
+      }
+    },
+    {
+      "name": "intensity_change",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "int16",
+      "shape": [
+        9
+      ],
+      "dimensions": [
+        "intensity_change_periods"
+      ],
+      "units": "kt",
+      "long_name": "Forward-differenced intensity change over 0, 6, 12, 18, and 24 hours before and after passive microwave observation time",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -999,
+      "missing_value": -999,
+      "valid_range": [
+        -300,
+        300
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 9,
+      "valid_elements": 7,
+      "missing_elements": 2,
+      "missing_percent": 22.2222,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 9.0,
+      "mean": 3.57143,
+      "std": 3.15582,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 4.0,
+        "p95": 8.1,
+        "p99": 8.82
+      }
+    },
+    {
+      "name": "central_min_pressure",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "int16",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "hPa",
+      "long_name": "Tropical cyclone minimum sea level pressure linearly interpolated from the best-track to the passive microwave observation time",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -999,
+      "missing_value": -999,
+      "valid_range": [
+        850,
+        1050
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1004.0,
+      "max": 1004.0,
+      "mean": 1004.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 1004.0,
+        "p5": 1004.0,
+        "p50_median": 1004.0,
+        "p95": 1004.0,
+        "p99": 1004.0
+      }
+    },
+    {
+      "name": "distance_to_land",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "float32",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "km",
+      "long_name": "Distance to nearest major land mass at the passive microwave observation time; Negative values overland",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 321.23001,
+      "max": 321.23001,
+      "mean": 321.23001,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 321.23001,
+        "p5": 321.23001,
+        "p50_median": 321.23001,
+        "p95": 321.23001,
+        "p99": 321.23001
+      }
+    },
+    {
+      "name": "storm_speed",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "int16",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "m s-1",
+      "long_name": "Tropical cyclone translational speed of motion linearly interpolated from the best-track to the passive microwave observation time",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": 0.1,
+      "add_offset": null,
+      "_FillValue": -9990,
+      "missing_value": -9990,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 2.0,
+      "max": 2.0,
+      "mean": 2.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 2.0,
+        "p5": 2.0,
+        "p50_median": 2.0,
+        "p95": 2.0,
+        "p99": 2.0
+      }
+    },
+    {
+      "name": "storm_heading",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "int16",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "degree",
+      "long_name": "Tropical cyclone direction of motion linear interpolated from the best-track to the passive microwave observation time",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": 0.1,
+      "add_offset": null,
+      "_FillValue": -9990,
+      "missing_value": -9990,
+      "valid_range": [
+        0,
+        3600
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 293.7,
+      "max": 293.7,
+      "mean": 293.7,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 293.7,
+        "p5": 293.7,
+        "p50_median": 293.7,
+        "p95": 293.7,
+        "p99": 293.7
+      }
+    },
+    {
+      "name": "storm_speed_meridional_component",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "int16",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "m s-1",
+      "long_name": "Tropical cyclone meridional/northward component of the storm motion interpolated from the best-track to the passive microwave observation time",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": 0.1,
+      "add_offset": null,
+      "_FillValue": -9990,
+      "missing_value": -9990,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.8,
+      "max": 0.8,
+      "mean": 0.8,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 0.8,
+        "p5": 0.8,
+        "p50_median": 0.8,
+        "p95": 0.8,
+        "p99": 0.8
+      }
+    },
+    {
+      "name": "storm_speed_zonal_component",
+      "group_path": "///overpass_storm_metadata",
+      "dtype": "int16",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "m s-1",
+      "long_name": "Tropical cyclone zonal/eastward component of the storm motion interpolated from the best-track to passive the microwave observation time",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": 0.1,
+      "add_offset": null,
+      "_FillValue": -9990,
+      "missing_value": -9990,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -1.8,
+      "max": -1.8,
+      "mean": -1.8,
+      "std": 0.0,
+      "percentiles": {
+        "p1": -1.8,
+        "p5": -1.8,
+        "p50_median": -1.8,
+        "p95": -1.8,
+        "p99": -1.8
+      }
+    },
+    {
+      "name": "time",
+      "group_path": "///passive_microwave",
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of the passive microwave observation of the storm",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412620888.0,
+      "max": 1412620888.0,
+      "mean": 1412620888.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 1412620888.0,
+        "p5": 1412620888.0,
+        "p50_median": 1412620888.0,
+        "p95": 1412620888.0,
+        "p99": 1412620888.0
+      }
+    },
+    {
+      "name": "latitude",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "degrees_north",
+      "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -0.9526,
+      "max": 22.5736,
+      "mean": 9.70809,
+      "std": 5.54563,
+      "percentiles": {
+        "p1": -0.34876,
+        "p5": 0.91515,
+        "p50_median": 9.7138,
+        "p95": 18.25815,
+        "p99": 20.60907
+      }
+    },
+    {
+      "name": "longitude",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "degrees_east",
+      "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 90.359,
+      "max": 105.7798,
+      "mean": 97.00791,
+      "std": 3.36574,
+      "percentiles": {
+        "p1": 90.74751,
+        "p5": 91.66852,
+        "p50_median": 96.9171,
+        "p95": 102.9548,
+        "p99": 104.57837
+      }
+    },
+    {
+      "name": "x",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float64",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "km",
+      "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -578.601,
+      "max": 1080.949,
+      "mean": 155.46059,
+      "std": 366.54015,
+      "percentiles": {
+        "p1": -534.90113,
+        "p5": -431.6694,
+        "p50_median": 147.0935,
+        "p95": 797.45255,
+        "p99": 962.89878
+      }
+    },
+    {
+      "name": "y",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float64",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "km",
+      "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -1301.383,
+      "max": 1302.092,
+      "mean": -120.21795,
+      "std": 615.18031,
+      "percentiles": {
+        "p1": -1234.66517,
+        "p5": -1094.83325,
+        "p50_median": -120.3255,
+        "p95": 828.79375,
+        "p99": 1083.90631
+      }
+    },
+    {
+      "name": "angle_bins",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "int16",
+      "shape": [
+        221
+      ],
+      "dimensions": [
+        "pixel"
+      ],
+      "units": "1",
+      "long_name": "The angle bins used in each scan for the S1 swath",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        1,
+        221
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 221,
+      "valid_elements": 221,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1.0,
+      "max": 221.0,
+      "mean": 111.0,
+      "std": 63.79655,
+      "percentiles": {
+        "p1": 3.2,
+        "p5": 12.0,
+        "p50_median": 111.0,
+        "p95": 210.0,
+        "p99": 218.8
+      }
+    },
+    {
+      "name": "ScanTime",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "int64",
+      "shape": [
+        168
+      ],
+      "dimensions": [
+        "scan"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "The time of each satellite scan",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 168,
+      "valid_elements": 168,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412620727.0,
+      "max": 1412621040.0,
+      "mean": 1412620883.625,
+      "std": 90.92571,
+      "percentiles": {
+        "p1": 1412620730.34,
+        "p5": 1412620742.7,
+        "p50_median": 1412620884.0,
+        "p95": 1412621024.3,
+        "p99": 1412621036.66
+      }
+    },
+    {
+      "name": "surface_type",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "int16",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "1",
+      "long_name": "Surface type for the the center of the IFOV at the altitude of the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -99,
+      "missing_value": -99,
+      "valid_range": [
+        0,
+        1
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 1.0,
+      "mean": 0.33627,
+      "std": 0.47243,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 1.0,
+        "p99": 1.0
+      }
+    },
+    {
+      "name": "TB_10.65V",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 10.65 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 171.52,
+      "max": 283.89001,
+      "mean": 212.77162,
+      "std": 43.50824,
+      "percentiles": {
+        "p1": 172.75,
+        "p5": 173.53999,
+        "p50_median": 186.50999,
+        "p95": 279.26001,
+        "p99": 281.09
+      }
+    },
+    {
+      "name": "TB_10.65H",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 10.65 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 91.89,
+      "max": 281.75,
+      "mean": 162.33138,
+      "std": 73.33225,
+      "percentiles": {
+        "p1": 94.02,
+        "p5": 95.46,
+        "p50_median": 118.395,
+        "p95": 276.16,
+        "p99": 278.8473
+      }
+    },
+    {
+      "name": "TB_18.7V",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 18.7 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 202.74001,
+      "max": 287.62,
+      "mean": 238.11401,
+      "std": 30.38051,
+      "percentiles": {
+        "p1": 204.06,
+        "p5": 206.13,
+        "p50_median": 223.42999,
+        "p95": 281.73999,
+        "p99": 283.82001
+      }
+    },
+    {
+      "name": "TB_18.7H",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 18.7 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 140.09,
+      "max": 284.32001,
+      "mean": 203.46183,
+      "std": 53.12942,
+      "percentiles": {
+        "p1": 142.69,
+        "p5": 145.7635,
+        "p50_median": 178.545,
+        "p95": 279.20001,
+        "p99": 281.35001
+      }
+    },
+    {
+      "name": "TB_23.8V",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 23.8 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 239.63,
+      "max": 288.81,
+      "mean": 263.18787,
+      "std": 13.88429,
+      "percentiles": {
+        "p1": 243.14,
+        "p5": 245.89999,
+        "p50_median": 258.47501,
+        "p95": 283.48999,
+        "p99": 285.07001
+      }
+    },
+    {
+      "name": "TB_36.64V",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 36.64 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 222.67,
+      "max": 288.85999,
+      "mean": 251.3353,
+      "std": 21.6631,
+      "percentiles": {
+        "p1": 224.2527,
+        "p5": 225.74001,
+        "p50_median": 246.27,
+        "p95": 281.75,
+        "p99": 284.16
+      }
+    },
+    {
+      "name": "TB_36.64H",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 36.64 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 165.86,
+      "max": 286.20999,
+      "mean": 223.60808,
+      "std": 41.88427,
+      "percentiles": {
+        "p1": 168.61,
+        "p5": 172.17,
+        "p50_median": 215.03,
+        "p95": 279.32001,
+        "p99": 281.70999
+      }
+    },
+    {
+      "name": "TB_89.0V",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 89.0 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 130.05,
+      "max": 288.66,
+      "mean": 274.49481,
+      "std": 14.42156,
+      "percentiles": {
+        "p1": 211.0816,
+        "p5": 243.534,
+        "p50_median": 278.01999,
+        "p95": 285.0,
+        "p99": 286.53
+      }
+    },
+    {
+      "name": "TB_89.0H",
+      "group_path": "///passive_microwave/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 89.0 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 125.55,
+      "max": 288.29001,
+      "mean": 267.80662,
+      "std": 15.56528,
+      "percentiles": {
+        "p1": 205.3435,
+        "p5": 237.46001,
+        "p50_median": 268.62,
+        "p95": 283.84,
+        "p99": 285.20999
+      }
+    },
+    {
+      "name": "latitude",
+      "group_path": "///passive_microwave/S2",
+      "dtype": "float32",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "degrees_north",
+      "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 27475,
+      "valid_elements": 27475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.3306,
+      "max": 21.3779,
+      "mean": 10.03281,
+      "std": 5.11735,
+      "percentiles": {
+        "p1": 0.87187,
+        "p5": 1.96568,
+        "p50_median": 10.0402,
+        "p95": 17.85475,
+        "p99": 19.75318
+      }
+    },
+    {
+      "name": "longitude",
+      "group_path": "///passive_microwave/S2",
+      "dtype": "float32",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "degrees_east",
+      "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 27475,
+      "valid_elements": 27475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 90.9197,
+      "max": 104.9502,
+      "mean": 97.20527,
+      "std": 2.98791,
+      "percentiles": {
+        "p1": 91.44597,
+        "p5": 92.3891,
+        "p50_median": 97.1601,
+        "p95": 102.42038,
+        "p99": 103.87103
+      }
+    },
+    {
+      "name": "x",
+      "group_path": "///passive_microwave/S2",
+      "dtype": "float64",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "km",
+      "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 27475,
+      "valid_elements": 27475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -515.709,
+      "max": 995.915,
+      "mean": 177.0494,
+      "std": 324.78458,
+      "percentiles": {
+        "p1": -456.74442,
+        "p5": -351.723,
+        "p50_median": 173.87,
+        "p95": 739.9114,
+        "p99": 887.9446
+      }
+    },
+    {
+      "name": "y",
+      "group_path": "///passive_microwave/S2",
+      "dtype": "float64",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "km",
+      "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 27475,
+      "valid_elements": 27475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -1159.535,
+      "max": 1169.715,
+      "mean": -84.55957,
+      "std": 567.74384,
+      "percentiles": {
+        "p1": -1099.70666,
+        "p5": -978.7606,
+        "p50_median": -84.489,
+        "p95": 784.8349,
+        "p99": 989.36996
+      }
+    },
+    {
+      "name": "angle_bins",
+      "group_path": "///passive_microwave/S2",
+      "dtype": "int16",
+      "shape": [
+        175
+      ],
+      "dimensions": [
+        "pixel"
+      ],
+      "units": "1",
+      "long_name": "The angle bins used in each scan for the S2 swath",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        26,
+        200
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 175,
+      "valid_elements": 175,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 26.0,
+      "max": 200.0,
+      "mean": 113.0,
+      "std": 50.51732,
+      "percentiles": {
+        "p1": 27.74,
+        "p5": 34.7,
+        "p50_median": 113.0,
+        "p95": 191.3,
+        "p99": 198.26
+      }
+    },
+    {
+      "name": "ScanTime",
+      "group_path": "///passive_microwave/S2",
+      "dtype": "int64",
+      "shape": [
+        157
+      ],
+      "dimensions": [
+        "scan"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "The time of each satellite scan",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 157,
+      "valid_elements": 157,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412620750.0,
+      "max": 1412621042.0,
+      "mean": 1412620895.80892,
+      "std": 84.97607,
+      "percentiles": {
+        "p1": 1412620752.12,
+        "p5": 1412620764.6,
+        "p50_median": 1412620896.0,
+        "p95": 1412621027.4,
+        "p99": 1412621038.88
+      }
+    },
+    {
+      "name": "surface_type",
+      "group_path": "///passive_microwave/S2",
+      "dtype": "int16",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "1",
+      "long_name": "Surface type for the the center of the IFOV at the altitude of the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -99,
+      "missing_value": -99,
+      "valid_range": [
+        0,
+        1
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 27475,
+      "valid_elements": 27475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 1.0,
+      "mean": 0.34449,
+      "std": 0.4752,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 1.0,
+        "p99": 1.0
+      }
+    },
+    {
+      "name": "TB_166.0V",
+      "group_path": "///passive_microwave/S2",
+      "dtype": "float32",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 166.0 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 27475,
+      "valid_elements": 27475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 94.76,
+      "max": 281.28,
+      "mean": 264.13462,
+      "std": 24.85117,
+      "percentiles": {
+        "p1": 159.7596,
+        "p5": 203.817,
+        "p50_median": 274.07999,
+        "p95": 277.64999,
+        "p99": 278.76999
+      }
+    },
+    {
+      "name": "TB_166.0H",
+      "group_path": "///passive_microwave/S2",
+      "dtype": "float32",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 166.0 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 27475,
+      "valid_elements": 27475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 91.02,
+      "max": 281.51999,
+      "mean": 262.85396,
+      "std": 27.42342,
+      "percentiles": {
+        "p1": 151.9696,
+        "p5": 194.357,
+        "p50_median": 274.29999,
+        "p95": 277.903,
+        "p99": 279.07999
+      }
+    },
+    {
+      "name": "TB_183.31_3.0V",
+      "group_path": "///passive_microwave/S2",
+      "dtype": "float32",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 183.31+/-3.0 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 27475,
+      "valid_elements": 27475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 95.92,
+      "max": 258.82001,
+      "mean": 248.87476,
+      "std": 13.98286,
+      "percentiles": {
+        "p1": 180.6544,
+        "p5": 223.107,
+        "p50_median": 253.02,
+        "p95": 256.37,
+        "p99": 257.37
+      }
+    },
+    {
+      "name": "TB_183.31_7.0V",
+      "group_path": "///passive_microwave/S2",
+      "dtype": "float32",
+      "shape": [
+        157,
+        175
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "K",
+      "long_name": "Earth view brightness temperature at 183.31+/-7.0 GHz",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 27475,
+      "valid_elements": 27475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 94.16,
+      "max": 270.10999,
+      "mean": 256.29518,
+      "std": 20.54853,
+      "percentiles": {
+        "p1": 163.6522,
+        "p5": 210.218,
+        "p50_median": 263.92999,
+        "p95": 266.85999,
+        "p99": 268.01001
+      }
+    },
+    {
+      "name": "time",
+      "group_path": "///GPROF",
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of the passive microwave observation of the storm",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412620888.0,
+      "max": 1412620888.0,
+      "mean": 1412620888.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 1412620888.0,
+        "p5": 1412620888.0,
+        "p50_median": 1412620888.0,
+        "p95": 1412620888.0,
+        "p99": 1412620888.0
+      }
+    },
+    {
+      "name": "availability_flag",
+      "group_path": "///GPROF",
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": null,
+      "long_name": "Availability flag for the GPROF variables",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0,
+        1
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1.0,
+      "max": 1.0,
+      "mean": 1.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 1.0,
+        "p5": 1.0,
+        "p50_median": 1.0,
+        "p95": 1.0,
+        "p99": 1.0
+      }
+    },
+    {
+      "name": "latitude",
+      "group_path": "///GPROF/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "degrees_north",
+      "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -0.9526,
+      "max": 22.5736,
+      "mean": 9.70809,
+      "std": 5.54563,
+      "percentiles": {
+        "p1": -0.34876,
+        "p5": 0.91515,
+        "p50_median": 9.7138,
+        "p95": 18.25815,
+        "p99": 20.60907
+      }
+    },
+    {
+      "name": "longitude",
+      "group_path": "///GPROF/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "degrees_east",
+      "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 90.359,
+      "max": 105.7798,
+      "mean": 97.00791,
+      "std": 3.36574,
+      "percentiles": {
+        "p1": 90.74751,
+        "p5": 91.66852,
+        "p50_median": 96.9171,
+        "p95": 102.9548,
+        "p99": 104.57837
+      }
+    },
+    {
+      "name": "x",
+      "group_path": "///GPROF/S1",
+      "dtype": "float64",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "km",
+      "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -578.601,
+      "max": 1080.949,
+      "mean": 155.46059,
+      "std": 366.54015,
+      "percentiles": {
+        "p1": -534.90113,
+        "p5": -431.6694,
+        "p50_median": 147.0935,
+        "p95": 797.45255,
+        "p99": 962.89878
+      }
+    },
+    {
+      "name": "y",
+      "group_path": "///GPROF/S1",
+      "dtype": "float64",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "km",
+      "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth, relative to the interpolated tropical cyclone center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -1301.383,
+      "max": 1302.092,
+      "mean": -120.21795,
+      "std": 615.18031,
+      "percentiles": {
+        "p1": -1234.66517,
+        "p5": -1094.83325,
+        "p50_median": -120.3255,
+        "p95": 828.79375,
+        "p99": 1083.90631
+      }
+    },
+    {
+      "name": "hgtTopLayer",
+      "group_path": "///GPROF/S1",
+      "dtype": "float32",
+      "shape": [
+        28
+      ],
+      "dimensions": [
+        "hgtTopLayer"
+      ],
+      "units": "km",
+      "long_name": "Height of the top of each of 28 atmospheric layers in the vertical profiles",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0.5,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 28,
+      "valid_elements": 28,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.5,
+      "max": 18.0,
+      "mean": 7.89286,
+      "std": 4.98991,
+      "percentiles": {
+        "p1": 0.635,
+        "p5": 1.175,
+        "p50_median": 7.25,
+        "p95": 16.65,
+        "p99": 17.73
+      }
+    },
+    {
+      "name": "angle_bins",
+      "group_path": "///GPROF/S1",
+      "dtype": "int16",
+      "shape": [
+        221
+      ],
+      "dimensions": [
+        "pixel"
+      ],
+      "units": "1",
+      "long_name": "The angle bins used in each scan of the swath",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        1,
+        221
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 221,
+      "valid_elements": 221,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1.0,
+      "max": 221.0,
+      "mean": 111.0,
+      "std": 63.79655,
+      "percentiles": {
+        "p1": 3.2,
+        "p5": 12.0,
+        "p50_median": 111.0,
+        "p95": 210.0,
+        "p99": 218.8
+      }
+    },
+    {
+      "name": "ScanTime",
+      "group_path": "///GPROF/S1",
+      "dtype": "int64",
+      "shape": [
+        168
+      ],
+      "dimensions": [
+        "scan"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "The time of each satellite scan",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 168,
+      "valid_elements": 168,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412620727.0,
+      "max": 1412621040.0,
+      "mean": 1412620883.625,
+      "std": 90.92571,
+      "percentiles": {
+        "p1": 1412620730.34,
+        "p5": 1412620742.7,
+        "p50_median": 1412620884.0,
+        "p95": 1412621024.3,
+        "p99": 1412621036.66
+      }
+    },
+    {
+      "name": "surfacePrecipitation",
+      "group_path": "///GPROF/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "mm hr-1",
+      "long_name": "The instantaneous precipitation rate at the surface",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 29568,
+      "missing_elements": 7560,
+      "missing_percent": 20.362,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 48.41,
+      "mean": 0.92901,
+      "std": 2.65396,
+      "percentiles": {
+        "p1": 0.01,
+        "p5": 0.01,
+        "p50_median": 0.06,
+        "p95": 5.14,
+        "p99": 13.46
+      }
+    },
+    {
+      "name": "convectivePrecipitation",
+      "group_path": "///GPROF/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "mm hr-1",
+      "long_name": "The instantaneous convective precipitation rate at the surface",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 29568,
+      "missing_elements": 7560,
+      "missing_percent": 20.362,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 44.44,
+      "mean": 0.44446,
+      "std": 1.62733,
+      "percentiles": {
+        "p1": 0.01,
+        "p5": 0.01,
+        "p50_median": 0.03,
+        "p95": 2.18,
+        "p99": 7.6833
+      }
+    },
+    {
+      "name": "rainWaterPath",
+      "group_path": "///GPROF/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "kg m-2",
+      "long_name": "Total integrated rain water in the vertical atmospheric column",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        3000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 29568,
+      "missing_elements": 7560,
+      "missing_percent": 20.362,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 10.77,
+      "mean": 0.25149,
+      "std": 0.63445,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.02,
+        "p95": 1.38,
+        "p99": 3.18
+      }
+    },
+    {
+      "name": "cloudWaterPath",
+      "group_path": "///GPROF/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "kg m-2",
+      "long_name": "Total integrated cloud liquid water in the vertical atmospheric column",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        3000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 29568,
+      "missing_elements": 7560,
+      "missing_percent": 20.362,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.01,
+      "max": 0.95,
+      "mean": 0.15179,
+      "std": 0.20242,
+      "percentiles": {
+        "p1": 0.01,
+        "p5": 0.02,
+        "p50_median": 0.04,
+        "p95": 0.64,
+        "p99": 0.7
+      }
+    },
+    {
+      "name": "iceWaterPath",
+      "group_path": "///GPROF/S1",
+      "dtype": "float32",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "kg m-2",
+      "long_name": "Total integrated ice water in the vertical atmospheric column",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        3000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 29568,
+      "missing_elements": 7560,
+      "missing_percent": 20.362,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 6.21,
+      "mean": 0.18493,
+      "std": 0.44392,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.02,
+        "p95": 1.14,
+        "p99": 2.14
+      }
+    },
+    {
+      "name": "rainWaterContent",
+      "group_path": "///GPROF/S1",
+      "dtype": "float32",
+      "shape": [
+        28,
+        168,
+        221
+      ],
+      "dimensions": [
+        "hgtTopLayer",
+        "scan",
+        "pixel"
+      ],
+      "units": "g m-3",
+      "long_name": "Vertical profile of rain water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1039584,
+      "valid_elements": 817012,
+      "missing_elements": 222572,
+      "missing_percent": 21.4097,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 2.34,
+      "mean": 0.01786,
+      "std": 0.07703,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.1,
+        "p99": 0.39
+      }
+    },
+    {
+      "name": "cloudWaterContent",
+      "group_path": "///GPROF/S1",
+      "dtype": "float32",
+      "shape": [
+        28,
+        168,
+        221
+      ],
+      "dimensions": [
+        "hgtTopLayer",
+        "scan",
+        "pixel"
+      ],
+      "units": "g m-3",
+      "long_name": "Vertical profile of cloud water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1039584,
+      "valid_elements": 827904,
+      "missing_elements": 211680,
+      "missing_percent": 20.362,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 0.23,
+      "mean": 0.0104,
+      "std": 0.02716,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.07,
+        "p99": 0.14
+      }
+    },
+    {
+      "name": "snowWaterContent",
+      "group_path": "///GPROF/S1",
+      "dtype": "float32",
+      "shape": [
+        28,
+        168,
+        221
+      ],
+      "dimensions": [
+        "hgtTopLayer",
+        "scan",
+        "pixel"
+      ],
+      "units": "g m-3",
+      "long_name": "Vertical profile of snow water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1039584,
+      "valid_elements": 0,
+      "missing_elements": 1039584,
+      "missing_percent": 100.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": null,
+      "max": null,
+      "mean": null,
+      "std": null,
+      "percentiles": null
+    },
+    {
+      "name": "probabilityOfPrecip",
+      "group_path": "///GPROF/S1",
+      "dtype": "float64",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "%",
+      "long_name": "Fraction of raining vs non-raining Database profiles that make up the final retrieval solution",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -99.0,
+      "missing_value": -99.0,
+      "valid_range": [
+        0,
+        100
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 29568,
+      "missing_elements": 7560,
+      "missing_percent": 20.362,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1.0,
+      "max": 100.0,
+      "mean": 39.15439,
+      "std": 35.82544,
+      "percentiles": {
+        "p1": 4.0,
+        "p5": 5.0,
+        "p50_median": 22.0,
+        "p95": 100.0,
+        "p99": 100.0
+      }
+    },
+    {
+      "name": "qualityFlag",
+      "group_path": "///GPROF/S1",
+      "dtype": "float64",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "1",
+      "long_name": "Generalized quality of the retrieved pixel",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -99.0,
+      "missing_value": -99.0,
+      "valid_range": [
+        0,
+        3
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 1.0,
+      "mean": 0.00038,
+      "std": 0.01941,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.0,
+        "p99": 0.0
+      }
+    },
+    {
+      "name": "surfaceTypeIndex",
+      "group_path": "///GPROF/S1",
+      "dtype": "float64",
+      "shape": [
+        168,
+        221
+      ],
+      "dimensions": [
+        "scan",
+        "pixel"
+      ],
+      "units": "1",
+      "long_name": "Type of surface in GPROF field-of-view",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -99.0,
+      "missing_value": -99.0,
+      "valid_range": [
+        1,
+        99
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 37128,
+      "valid_elements": 37128,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1.0,
+      "max": 17.0,
+      "mean": 6.24281,
+      "std": 6.25615,
+      "percentiles": {
+        "p1": 1.0,
+        "p5": 1.0,
+        "p50_median": 1.0,
+        "p95": 17.0,
+        "p99": 17.0
+      }
+    },
+    {
+      "name": "availability_flag",
+      "group_path": "///radar_radiometer",
+      "dtype": "int8",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": null,
+      "long_name": "Availability flag for the combined radar-radiometer variables",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0,
+        1
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1.0,
+      "max": 1.0,
+      "mean": 1.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 1.0,
+        "p5": 1.0,
+        "p50_median": 1.0,
+        "p95": 1.0,
+        "p99": 1.0
+      }
+    },
+    {
+      "name": "time",
+      "group_path": "///radar_radiometer",
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of the passive microwave observation of the storm",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412620888.0,
+      "max": 1412620888.0,
+      "mean": 1412620888.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 1412620888.0,
+        "p5": 1412620888.0,
+        "p50_median": 1412620888.0,
+        "p95": 1412620888.0,
+        "p99": 1412620888.0
+      }
+    },
+    {
+      "name": "latitude",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "degrees_north",
+      "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 17248,
+      "valid_elements": 17248,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 3.063,
+      "max": 18.5239,
+      "mean": 10.79074,
+      "std": 4.19824,
+      "percentiles": {
+        "p1": 3.56849,
+        "p5": 4.25619,
+        "p50_median": 10.79755,
+        "p95": 17.3089,
+        "p99": 17.99538
+      }
+    },
+    {
+      "name": "longitude",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "degrees_east",
+      "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 17248,
+      "valid_elements": 17248,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 93.7222,
+      "max": 101.7258,
+      "mean": 97.64585,
+      "std": 1.8237,
+      "percentiles": {
+        "p1": 94.18399,
+        "p5": 94.77702,
+        "p50_median": 97.61865,
+        "p95": 100.58613,
+        "p99": 101.22406
+      }
+    },
+    {
+      "name": "x",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float64",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "km",
+      "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 17248,
+      "valid_elements": 17248,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -204.032,
+      "max": 655.584,
+      "mean": 225.00666,
+      "std": 195.71254,
+      "percentiles": {
+        "p1": -152.64056,
+        "p5": -86.74805,
+        "p50_median": 224.9945,
+        "p95": 537.19255,
+        "p99": 603.59812
+      }
+    },
+    {
+      "name": "y",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float64",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "km",
+      "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 17248,
+      "valid_elements": 17248,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -857.519,
+      "max": 857.004,
+      "mean": -1.35005,
+      "std": 466.10559,
+      "percentiles": {
+        "p1": -801.62778,
+        "p5": -725.63055,
+        "p50_median": -1.9075,
+        "p95": 723.94595,
+        "p99": 799.43541
+      }
+    },
+    {
+      "name": "binHeight",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "km",
+      "long_name": "Height of each radar bin above the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -0.5,
+        30.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1517824,
+      "valid_elements": 1517824,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -0.062,
+      "max": 21.812,
+      "mean": 10.6876,
+      "std": 6.24415,
+      "percentiles": {
+        "p1": 0.047,
+        "p5": 0.97,
+        "p50_median": 10.693,
+        "p95": 20.421,
+        "p99": 21.388
+      }
+    },
+    {
+      "name": "angle_bins",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "int16",
+      "shape": [
+        49
+      ],
+      "dimensions": [
+        "beam"
+      ],
+      "units": "1",
+      "long_name": "The angle bins used in each scan",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        1,
+        49
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 49,
+      "valid_elements": 49,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1.0,
+      "max": 49.0,
+      "mean": 25.0,
+      "std": 14.14214,
+      "percentiles": {
+        "p1": 1.48,
+        "p5": 3.4,
+        "p50_median": 25.0,
+        "p95": 46.6,
+        "p99": 48.52
+      }
+    },
+    {
+      "name": "ScanTime",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "int64",
+      "shape": [
+        352
+      ],
+      "dimensions": [
+        "scan"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "The time of each radar scan",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 352,
+      "valid_elements": 352,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412620732.0,
+      "max": 1412620977.0,
+      "mean": 1412620854.5,
+      "std": 71.13008,
+      "percentiles": {
+        "p1": 1412620734.0,
+        "p5": 1412620744.0,
+        "p50_median": 1412620854.5,
+        "p95": 1412620965.0,
+        "p99": 1412620975.0
+      }
+    },
+    {
+      "name": "correctedReflectFactor_Ku",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "dBZ",
+      "long_name": "Vertical profile of the Ku-band reflectivity factor with attenuation correction",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        -20.0,
+        100.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1517824,
+      "valid_elements": 72682,
+      "missing_elements": 1445142,
+      "missing_percent": 95.2114,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 49.87,
+      "mean": 22.17993,
+      "std": 8.02761,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 12.58,
+        "p50_median": 21.33,
+        "p95": 36.26,
+        "p99": 40.23
+      }
+    },
+    {
+      "name": "nearSurfPrecipTotRate",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "mm hr-1",
+      "long_name": "Near-surface total precipitation rate (from the lowest clutter-free bin)",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 17248,
+      "valid_elements": 17248,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 66.19,
+      "mean": 0.554,
+      "std": 2.02833,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 3.38,
+        "p99": 8.1706
+      }
+    },
+    {
+      "name": "nearSurfPrecipTotRateSigma",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "mm hr-1",
+      "long_name": "Uncertainty in the near-surface total precipitation rate (from the lowest clutter-free bin)",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 17248,
+      "valid_elements": 17248,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 13.41,
+      "mean": 0.06766,
+      "std": 0.30216,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.38,
+        "p99": 0.94
+      }
+    },
+    {
+      "name": "cloudLiqWaterCont",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "g m-3",
+      "long_name": "Vertical profile of cloud liquid water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1517824,
+      "valid_elements": 1491796,
+      "missing_elements": 26028,
+      "missing_percent": 1.7148,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 0.44,
+      "mean": 0.00598,
+      "std": 0.02835,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.02,
+        "p99": 0.16
+      }
+    },
+    {
+      "name": "cloudIceWaterCont",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "g m-3",
+      "long_name": "Vertical profile of cloud ice water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1517824,
+      "valid_elements": 0,
+      "missing_elements": 1517824,
+      "missing_percent": 100.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": null,
+      "max": null,
+      "mean": null,
+      "std": null,
+      "percentiles": null
+    },
+    {
+      "name": "precipTotWaterCont",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "g m-3",
+      "long_name": "Vertical profile of total precipitation liquid water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1517824,
+      "valid_elements": 1408558,
+      "missing_elements": 109266,
+      "missing_percent": 7.1989,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 4.62,
+      "mean": 0.00749,
+      "std": 0.0515,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.01,
+        "p99": 0.2
+      }
+    },
+    {
+      "name": "precipTotWaterContSigma",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "g m-3",
+      "long_name": "Uncertainty in the vertical profile of total precipitation liquid water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1517824,
+      "valid_elements": 1408558,
+      "missing_elements": 109266,
+      "missing_percent": 7.1989,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 0.67,
+      "mean": 0.00113,
+      "std": 0.00786,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.0,
+        "p99": 0.03
+      }
+    },
+    {
+      "name": "precipLiqWaterCont",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "g m-3",
+      "long_name": "Vertical profile of liquid precipitation water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1517824,
+      "valid_elements": 1408558,
+      "missing_elements": 109266,
+      "missing_percent": 7.1989,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 3.81,
+      "mean": 0.00519,
+      "std": 0.04343,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.0,
+        "p99": 0.16
+      }
+    },
+    {
+      "name": "precipTotRate",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "mm hr-1",
+      "long_name": "Vertical profile of total precipitation rate",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1517824,
+      "valid_elements": 1408558,
+      "missing_elements": 109266,
+      "missing_percent": 7.1989,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 73.11,
+      "mean": 0.09444,
+      "std": 0.80701,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.15,
+        "p99": 2.55
+      }
+    },
+    {
+      "name": "precipTotRateSigma",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "mm hr-1",
+      "long_name": "Uncertainty in the vertical profile of total precipitation rate",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1517824,
+      "valid_elements": 1408558,
+      "missing_elements": 109266,
+      "missing_percent": 7.1989,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 13.67,
+      "mean": 0.01119,
+      "std": 0.10883,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.02,
+        "p99": 0.28
+      }
+    },
+    {
+      "name": "precipLiqRate",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        352,
+        49
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "mm hr-1",
+      "long_name": "Vertical profiles of liquid precipitation rate",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1517824,
+      "valid_elements": 1408558,
+      "missing_elements": 109266,
+      "missing_percent": 7.1989,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 73.11,
+      "mean": 0.07923,
+      "std": 0.76714,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.0,
+        "p99": 2.27
+      }
+    },
+    {
+      "name": "mainprecipitationType",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "int16",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "1",
+      "long_name": "Main precipitation type",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -99,
+      "missing_value": null,
+      "valid_range": [
+        0,
+        4
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 17248,
+      "valid_elements": 17248,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 4.0,
+      "mean": 0.41645,
+      "std": 0.82725,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 2.0,
+        "p99": 4.0
+      }
+    },
+    {
+      "name": "surfaceType",
+      "group_path": "///radar_radiometer/KuGMI",
+      "dtype": "int32",
+      "shape": [
+        352,
+        49
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "1",
+      "long_name": "Type of surface in precipitation radar field-of-view",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999,
+      "missing_value": -9999,
+      "valid_range": [
+        0,
+        399
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 17248,
+      "valid_elements": 17248,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 300.0,
+      "mean": 50.45356,
+      "std": 62.40109,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 170.25,
+        "p99": 213.0
+      }
+    },
+    {
+      "name": "latitude",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "degrees_north",
+      "long_name": "The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 8475,
+      "valid_elements": 8475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 3.5953,
+      "max": 18.0112,
+      "mean": 10.80983,
+      "std": 4.03642,
+      "percentiles": {
+        "p1": 3.93735,
+        "p5": 4.51266,
+        "p50_median": 10.8158,
+        "p95": 17.08479,
+        "p99": 17.65846
+      }
+    },
+    {
+      "name": "longitude",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "degrees_east",
+      "long_name": "The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 8475,
+      "valid_elements": 8475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 94.3412,
+      "max": 101.0852,
+      "mean": 97.65142,
+      "std": 1.68886,
+      "percentiles": {
+        "p1": 94.64999,
+        "p5": 95.06004,
+        "p50_median": 97.6256,
+        "p95": 100.31313,
+        "p99": 100.75242
+      }
+    },
+    {
+      "name": "x",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float64",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "km",
+      "long_name": "The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 8475,
+      "valid_elements": 8475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -135.292,
+      "max": 587.25,
+      "mean": 225.77201,
+      "std": 180.93851,
+      "percentiles": {
+        "p1": -100.9829,
+        "p5": -55.408,
+        "p50_median": 225.806,
+        "p95": 506.8172,
+        "p99": 552.67434
+      }
+    },
+    {
+      "name": "y",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float64",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "km",
+      "long_name": "The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 8475,
+      "valid_elements": 8475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -798.679,
+      "max": 801.196,
+      "mean": 0.65445,
+      "std": 448.14241,
+      "percentiles": {
+        "p1": -760.85224,
+        "p5": -697.2593,
+        "p50_median": 0.3,
+        "p95": 699.1458,
+        "p99": 762.9191
+      }
+    },
+    {
+      "name": "binHeight",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "km",
+      "long_name": "Height of each radar bin above the Earth ellipsoid",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -0.5,
+        30.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 745800,
+      "valid_elements": 745800,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -0.062,
+      "max": 21.812,
+      "mean": 10.82559,
+      "std": 6.32224,
+      "percentiles": {
+        "p1": 0.047,
+        "p5": 0.982,
+        "p50_median": 10.808,
+        "p95": 20.694,
+        "p99": 21.538
+      }
+    },
+    {
+      "name": "angle_bins",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "int16",
+      "shape": [
+        25
+      ],
+      "dimensions": [
+        "beam"
+      ],
+      "units": "1",
+      "long_name": "The angle bins used in each scan",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        13,
+        37
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 25,
+      "valid_elements": 25,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 13.0,
+      "max": 37.0,
+      "mean": 25.0,
+      "std": 7.2111,
+      "percentiles": {
+        "p1": 13.24,
+        "p5": 14.2,
+        "p50_median": 25.0,
+        "p95": 35.8,
+        "p99": 36.76
+      }
+    },
+    {
+      "name": "ScanTime",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "int64",
+      "shape": [
+        339
+      ],
+      "dimensions": [
+        "scan"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "The time of each radar scan",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 339,
+      "valid_elements": 339,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412620737.0,
+      "max": 1412620973.0,
+      "mean": 1412620854.84956,
+      "std": 68.49984,
+      "percentiles": {
+        "p1": 1412620739.0,
+        "p5": 1412620748.0,
+        "p50_median": 1412620855.0,
+        "p95": 1412620961.1,
+        "p99": 1412620970.62
+      }
+    },
+    {
+      "name": "correctedReflectFactor_Ka",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "dBZ",
+      "long_name": "Vertical profile of the Ka-band reflectivity factor with attenuation correction",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        -20.0,
+        100.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 745800,
+      "valid_elements": 39531,
+      "missing_elements": 706269,
+      "missing_percent": 94.6995,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 43.78,
+      "mean": 20.43017,
+      "std": 8.00543,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 10.65,
+        "p50_median": 19.3,
+        "p95": 34.5,
+        "p99": 38.81
+      }
+    },
+    {
+      "name": "correctedReflectFactor_Ku",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "dBZ",
+      "long_name": "Vertical profile of the Ku-band reflectivity factor with attenuation correction, matched to Ka-band rays",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        -20.0,
+        100.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 745800,
+      "valid_elements": 39531,
+      "missing_elements": 706269,
+      "missing_percent": 94.6995,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 49.04,
+      "mean": 21.60812,
+      "std": 7.85763,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 12.51,
+        "p50_median": 20.68,
+        "p95": 35.54,
+        "p99": 40.28
+      }
+    },
+    {
+      "name": "nearSurfPrecipTotRate",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "mm hr-1",
+      "long_name": "Near-surface total precipitation rate (from the lowest clutter-free bin)",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 8475,
+      "valid_elements": 8475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 59.24,
+      "mean": 0.58124,
+      "std": 2.2837,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 3.093,
+        "p99": 8.4056
+      }
+    },
+    {
+      "name": "nearSurfPrecipTotRateSigma",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "mm hr-1",
+      "long_name": "Uncertainty in the near-surface total precipitation rate (from the lowest clutter-free bin)",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 8475,
+      "valid_elements": 8475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 12.32,
+      "mean": 0.07085,
+      "std": 0.33978,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.36,
+        "p99": 0.9226
+      }
+    },
+    {
+      "name": "cloudLiqWaterCont",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "g m-3",
+      "long_name": "Vertical profile of cloud liquid water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 745800,
+      "valid_elements": 733858,
+      "missing_elements": 11942,
+      "missing_percent": 1.6012,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 0.44,
+      "mean": 0.0069,
+      "std": 0.03025,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.05,
+        "p99": 0.17
+      }
+    },
+    {
+      "name": "cloudIceWaterCont",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "g m-3",
+      "long_name": "Vertical profile of cloud ice water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 745800,
+      "valid_elements": 0,
+      "missing_elements": 745800,
+      "missing_percent": 100.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": null,
+      "max": null,
+      "mean": null,
+      "std": null,
+      "percentiles": null
+    },
+    {
+      "name": "precipTotWaterCont",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "g m-3",
+      "long_name": "Vertical profile of total precipitation liquid water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 745800,
+      "valid_elements": 703694,
+      "missing_elements": 42106,
+      "missing_percent": 5.6457,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 5.9,
+      "mean": 0.00839,
+      "std": 0.06124,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.04,
+        "p99": 0.2
+      }
+    },
+    {
+      "name": "precipTotWaterContSigma",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "g m-3",
+      "long_name": "Uncertainty in the vertical profile of total precipitation liquid water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 745800,
+      "valid_elements": 703694,
+      "missing_elements": 42106,
+      "missing_percent": 5.6457,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 0.67,
+      "mean": 0.00122,
+      "std": 0.00892,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.01,
+        "p99": 0.03
+      }
+    },
+    {
+      "name": "precipLiqWaterCont",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "g m-3",
+      "long_name": "Vertical profile of liquid precipitation water content",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        18.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 745800,
+      "valid_elements": 703694,
+      "missing_elements": 42106,
+      "missing_percent": 5.6457,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 3.13,
+      "mean": 0.00586,
+      "std": 0.05047,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.0,
+        "p99": 0.15
+      }
+    },
+    {
+      "name": "precipTotRate",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "mm hr-1",
+      "long_name": "Vertical profile of total precipitation rate",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 745800,
+      "valid_elements": 703694,
+      "missing_elements": 42106,
+      "missing_percent": 5.6457,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 63.8,
+      "mean": 0.10398,
+      "std": 0.93058,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.27,
+        "p99": 2.46
+      }
+    },
+    {
+      "name": "precipTotRateSigma",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "mm hr-1",
+      "long_name": "Uncertainty in the vertical profile of total precipitation rate",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 745800,
+      "valid_elements": 703694,
+      "missing_elements": 42106,
+      "missing_percent": 5.6457,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 12.43,
+      "mean": 0.01082,
+      "std": 0.11229,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.04,
+        "p99": 0.26
+      }
+    },
+    {
+      "name": "precipLiqRate",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "float32",
+      "shape": [
+        88,
+        339,
+        25
+      ],
+      "dimensions": [
+        "range",
+        "scan",
+        "beam"
+      ],
+      "units": "mm hr-1",
+      "long_name": "Vertical profiles of liquid precipitation rate",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999.900390625,
+      "missing_value": -9999.900390625,
+      "valid_range": [
+        0.0,
+        300.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 745800,
+      "valid_elements": 703694,
+      "missing_elements": 42106,
+      "missing_percent": 5.6457,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 63.8,
+      "mean": 0.08845,
+      "std": 0.88802,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 0.0,
+        "p99": 2.26
+      }
+    },
+    {
+      "name": "mainprecipitationType",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "int16",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "1",
+      "long_name": "Main precipitation type",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -99,
+      "missing_value": null,
+      "valid_range": [
+        0,
+        4
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 8475,
+      "valid_elements": 8475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 4.0,
+      "mean": 0.52448,
+      "std": 0.9472,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 3.0,
+        "p99": 4.0
+      }
+    },
+    {
+      "name": "surfaceType",
+      "group_path": "///radar_radiometer/KuKaGMI",
+      "dtype": "int32",
+      "shape": [
+        339,
+        25
+      ],
+      "dimensions": [
+        "scan",
+        "beam"
+      ],
+      "units": "1",
+      "long_name": "Type of surface in precipitation radar field-of-view",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -9999,
+      "missing_value": -9999,
+      "valid_range": [
+        0,
+        399
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 8475,
+      "valid_elements": 8475,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 0.0,
+      "max": 300.0,
+      "mean": 50.59764,
+      "std": 63.78467,
+      "percentiles": {
+        "p1": 0.0,
+        "p5": 0.0,
+        "p50_median": 0.0,
+        "p95": 202.0,
+        "p99": 213.0
+      }
+    },
+    {
+      "name": "R5_availability_flag",
+      "group_path": "///infrared",
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": null,
+      "long_name": "Availability flag for the R5 data",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0,
+        1
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1.0,
+      "max": 1.0,
+      "mean": 1.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 1.0,
+        "p5": 1.0,
+        "p50_median": 1.0,
+        "p95": 1.0,
+        "p99": 1.0
+      }
+    },
+    {
+      "name": "R5_time",
+      "group_path": "///infrared",
+      "dtype": "int64",
+      "shape": [
+        59
+      ],
+      "dimensions": [
+        "R5_time"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of R5 observations of the storm",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 59,
+      "valid_elements": 59,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412575200.0,
+      "max": 1413201600.0,
+      "mean": 1412888400.0,
+      "std": 183917.37275,
+      "percentiles": {
+        "p1": 1412581464.0,
+        "p5": 1412606520.0,
+        "p50_median": 1412888400.0,
+        "p95": 1413170280.0,
+        "p99": 1413195336.0
+      }
+    },
+    {
+      "name": "R5",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        59
+      ],
+      "dimensions": [
+        "R5_time"
+      ],
+      "units": "degrees_latitude",
+      "long_name": "Radius of mean tangential winds of 5 knots at 850 hPa level",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0.10000000149011612,
+        35.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 59,
+      "valid_elements": 59,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 8.0,
+      "max": 17.0,
+      "mean": 13.81356,
+      "std": 2.58729,
+      "percentiles": {
+        "p1": 8.58,
+        "p5": 9.9,
+        "p50_median": 14.0,
+        "p95": 17.0,
+        "p99": 17.0
+      }
+    },
+    {
+      "name": "infrared_availability_flag",
+      "group_path": "///infrared",
+      "dtype": "int8",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": null,
+      "long_name": "Availability flag for the infrared data",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0,
+        2
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1.0,
+      "max": 1.0,
+      "mean": 1.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 1.0,
+        "p5": 1.0,
+        "p50_median": 1.0,
+        "p95": 1.0,
+        "p99": 1.0
+      }
+    },
+    {
+      "name": "time",
+      "group_path": "///infrared",
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "seconds since 1970-01-01T00:00:00Z",
+      "long_name": "Time of infrared observation of the storm",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": null,
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 1412620200.0,
+      "max": 1412620200.0,
+      "mean": 1412620200.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 1412620200.0,
+        "p5": 1412620200.0,
+        "p50_median": 1412620200.0,
+        "p95": 1412620200.0,
+        "p99": 1412620200.0
+      }
+    },
+    {
+      "name": "storm_latitude",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "degrees_north",
+      "long_name": "Tropical cyclone center latitude interpolated from the best-track to the infrared observation time",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 10.81,
+      "max": 10.81,
+      "mean": 10.81,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 10.81,
+        "p5": 10.81,
+        "p50_median": 10.81,
+        "p95": 10.81,
+        "p99": 10.81
+      }
+    },
+    {
+      "name": "storm_longitude",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "time"
+      ],
+      "units": "degrees_east",
+      "long_name": "Tropical cyclone center longitude interpolated from the best-track to the infrared observation time",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 95.57,
+      "max": 95.57,
+      "mean": 95.57,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 95.57,
+        "p5": 95.57,
+        "p50_median": 95.57,
+        "p95": 95.57,
+        "p99": 95.57
+      }
+    },
+    {
+      "name": "latitude",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        480,
+        640
+      ],
+      "dimensions": [
+        "ny",
+        "nx"
+      ],
+      "units": "degrees_north",
+      "long_name": "The Earth latitude of the center of the infrared pixel",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -90.0,
+        90.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 307200,
+      "valid_elements": 307200,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 3.16,
+      "max": 19.96,
+      "mean": 11.64306,
+      "std": 4.86564,
+      "percentiles": {
+        "p1": 3.3,
+        "p5": 4.0185,
+        "p50_median": 11.685,
+        "p95": 19.142,
+        "p99": 19.82
+      }
+    },
+    {
+      "name": "longitude",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        480,
+        640
+      ],
+      "dimensions": [
+        "ny",
+        "nx"
+      ],
+      "units": "degrees_east",
+      "long_name": "The Earth longitude of the center of the infrared pixel",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0.0,
+        360.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 307200,
+      "valid_elements": 307200,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 83.16,
+      "max": 106.12,
+      "mean": 94.64102,
+      "std": 6.63837,
+      "percentiles": {
+        "p1": 83.38,
+        "p5": 84.308,
+        "p50_median": 94.64,
+        "p95": 104.972,
+        "p99": 105.91
+      }
+    },
+    {
+      "name": "x",
+      "group_path": "///infrared",
+      "dtype": "float64",
+      "shape": [
+        480,
+        640
+      ],
+      "dimensions": [
+        "ny",
+        "nx"
+      ],
+      "units": "km",
+      "long_name": "The zonal/east-west distance of the center of the infrared pixel relative to the interpolated tropical cyclone center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 307200,
+      "valid_elements": 307200,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -1389.75,
+      "max": 1178.86,
+      "mean": -101.52421,
+      "std": 723.86507,
+      "percentiles": {
+        "p1": -1336.6902,
+        "p5": -1231.64,
+        "p50_median": -100.78,
+        "p95": 1026.9,
+        "p99": 1129.9
+      }
+    },
+    {
+      "name": "y",
+      "group_path": "///infrared",
+      "dtype": "float64",
+      "shape": [
+        480,
+        640
+      ],
+      "dimensions": [
+        "ny",
+        "nx"
+      ],
+      "units": "km",
+      "long_name": "The meridional distance of the center of the infrared pixel relative to the interpolated tropical cyclone center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -5000.0,
+        5000.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 307200,
+      "valid_elements": 307200,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -845.69,
+      "max": 1060.92,
+      "mean": 100.79073,
+      "std": 541.51442,
+      "percentiles": {
+        "p1": -825.77,
+        "p5": -749.56,
+        "p50_median": 105.595,
+        "p95": 937.2605,
+        "p99": 1009.5
+      }
+    },
+    {
+      "name": "radius",
+      "group_path": "///infrared",
+      "dtype": "int16",
+      "shape": [
+        30
+      ],
+      "dimensions": [
+        "radius"
+      ],
+      "units": "km",
+      "long_name": "Bin centers for radial profile of mean binned infrared brightness temperature",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        0,
+        120
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 30,
+      "valid_elements": 30,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 2.0,
+      "max": 118.0,
+      "mean": 60.0,
+      "std": 34.62177,
+      "percentiles": {
+        "p1": 3.16,
+        "p5": 7.8,
+        "p50_median": 60.0,
+        "p95": 112.2,
+        "p99": 116.84
+      }
+    },
+    {
+      "name": "brightness_temperature_thresholds",
+      "group_path": "///infrared",
+      "dtype": "int16",
+      "shape": [
+        6
+      ],
+      "dimensions": [
+        "brightness_temperature_thresholds"
+      ],
+      "units": "C",
+      "long_name": "Threshold of brightness temperature values for percent pixel calculation",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": null,
+      "missing_value": null,
+      "valid_range": [
+        -60,
+        -10
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 6,
+      "valid_elements": 6,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -60.0,
+      "max": -10.0,
+      "mean": -35.0,
+      "std": 17.07825,
+      "percentiles": {
+        "p1": -59.5,
+        "p5": -57.5,
+        "p50_median": -35.0,
+        "p95": -12.5,
+        "p99": -10.5
+      }
+    },
+    {
+      "name": "IRWIN",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        480,
+        640
+      ],
+      "dimensions": [
+        "ny",
+        "nx"
+      ],
+      "units": "K",
+      "long_name": "Brightness temperature at 11.20 microns",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -999.989990234375,
+      "missing_value": null,
+      "valid_range": [
+        0.0,
+        350.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 307200,
+      "valid_elements": 307200,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 191.0,
+      "max": 292.0,
+      "mean": 259.84536,
+      "std": 24.34877,
+      "percentiles": {
+        "p1": 201.0,
+        "p5": 212.0,
+        "p50_median": 266.0,
+        "p95": 288.5,
+        "p99": 290.0
+      }
+    },
+    {
+      "name": "percent_pixel_below_threshold",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        6,
+        1
+      ],
+      "dimensions": [
+        "brightness_temperature_thresholds",
+        "region"
+      ],
+      "units": "%",
+      "long_name": "Percent of pixel counts below brightness temperature threshold within an annulus region around the storm center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -999.989990234375,
+      "missing_value": null,
+      "valid_range": [
+        0.0,
+        100.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 6,
+      "valid_elements": 6,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 18.0,
+      "max": 71.5,
+      "mean": 45.16667,
+      "std": 17.85989,
+      "percentiles": {
+        "p1": 18.67,
+        "p5": 21.35,
+        "p50_median": 44.55,
+        "p95": 68.875,
+        "p99": 70.975
+      }
+    },
+    {
+      "name": "brightness_temperature_annulus_mean",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        2
+      ],
+      "dimensions": [
+        "regions"
+      ],
+      "units": "C",
+      "long_name": "Mean brightness temperature within an annulus region around the storm center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -999.989990234375,
+      "missing_value": null,
+      "valid_range": [
+        -100.0,
+        100.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 2,
+      "valid_elements": 2,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -33.0,
+      "max": -27.4,
+      "mean": -30.2,
+      "std": 2.8,
+      "percentiles": {
+        "p1": -32.944,
+        "p5": -32.72,
+        "p50_median": -30.2,
+        "p95": -27.68,
+        "p99": -27.456
+      }
+    },
+    {
+      "name": "brightness_temperature_annulus_standard_deviation",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        2
+      ],
+      "dimensions": [
+        "regions"
+      ],
+      "units": "C",
+      "long_name": "Standard deviation of brightness temperatures within an annulus region around the storm center",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -999.989990234375,
+      "missing_value": null,
+      "valid_range": [
+        0.0,
+        200.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 2,
+      "valid_elements": 2,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 26.4,
+      "max": 28.2,
+      "mean": 27.3,
+      "std": 0.9,
+      "percentiles": {
+        "p1": 26.418,
+        "p5": 26.49,
+        "p50_median": 27.3,
+        "p95": 28.11,
+        "p99": 28.182
+      }
+    },
+    {
+      "name": "brightness_temperature_eye_maximum",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "region"
+      ],
+      "units": "C",
+      "long_name": "Maximum brightness temperature in eye region",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -999.989990234375,
+      "missing_value": null,
+      "valid_range": [
+        -100.0,
+        50.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -41.2,
+      "max": -41.2,
+      "mean": -41.2,
+      "std": 0.0,
+      "percentiles": {
+        "p1": -41.2,
+        "p5": -41.2,
+        "p50_median": -41.2,
+        "p95": -41.2,
+        "p99": -41.2
+      }
+    },
+    {
+      "name": "brightness_temperature_eye_mean",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "region"
+      ],
+      "units": "C",
+      "long_name": "Mean brightness temperature in eye region",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -999.989990234375,
+      "missing_value": null,
+      "valid_range": [
+        -100.0,
+        50.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -69.2,
+      "max": -69.2,
+      "mean": -69.2,
+      "std": 0.0,
+      "percentiles": {
+        "p1": -69.2,
+        "p5": -69.2,
+        "p50_median": -69.2,
+        "p95": -69.2,
+        "p99": -69.2
+      }
+    },
+    {
+      "name": "brightness_temperature_mean_radial_profile",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        30
+      ],
+      "dimensions": [
+        "radius"
+      ],
+      "units": "C",
+      "long_name": "Radial profile of mean brightness temperatures calculated from binned brightness temperature values",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -999.989990234375,
+      "missing_value": null,
+      "valid_range": [
+        -100.0,
+        50.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 30,
+      "valid_elements": 30,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -73.2,
+      "max": -33.5,
+      "mean": -56.66333,
+      "std": 12.3713,
+      "percentiles": {
+        "p1": -73.142,
+        "p5": -72.1,
+        "p50_median": -58.7,
+        "p95": -35.395,
+        "p99": -33.645
+      }
+    },
+    {
+      "name": "brightness_temperature_radial_profile_eye_maximum_radius",
+      "group_path": "///infrared",
+      "dtype": "int16",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "region"
+      ],
+      "units": "C",
+      "long_name": "Radius of maximum brightness temperature in the eye region from radial profile of mean brightness temperatures",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -99,
+      "missing_value": null,
+      "valid_range": [
+        0,
+        120
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 26.0,
+      "max": 26.0,
+      "mean": 26.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 26.0,
+        "p5": 26.0,
+        "p50_median": 26.0,
+        "p95": 26.0,
+        "p99": 26.0
+      }
+    },
+    {
+      "name": "brightness_temperature_radial_profile_annulus_minimum",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "region"
+      ],
+      "units": "C",
+      "long_name": "Minimum brightness temperature in annulus region from radial profile of mean brightness temperatures",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -999.989990234375,
+      "missing_value": null,
+      "valid_range": [
+        -100.0,
+        50.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -68.9,
+      "max": -68.9,
+      "mean": -68.9,
+      "std": 0.0,
+      "percentiles": {
+        "p1": -68.9,
+        "p5": -68.9,
+        "p50_median": -68.9,
+        "p95": -68.9,
+        "p99": -68.9
+      }
+    },
+    {
+      "name": "brightness_temperature_radial_profile_annulus_mean",
+      "group_path": "///infrared",
+      "dtype": "float32",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "region"
+      ],
+      "units": "C",
+      "long_name": "Mean brightness temperature in annulus region from radial profile of mean brightness temperatures",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -999.989990234375,
+      "missing_value": null,
+      "valid_range": [
+        -100.0,
+        50.0
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": -53.8,
+      "max": -53.8,
+      "mean": -53.8,
+      "std": 0.0,
+      "percentiles": {
+        "p1": -53.8,
+        "p5": -53.8,
+        "p50_median": -53.8,
+        "p95": -53.8,
+        "p99": -53.8
+      }
+    },
+    {
+      "name": "brightness_temperature_radial_profile_annulus_minimum_radius",
+      "group_path": "///infrared",
+      "dtype": "int16",
+      "shape": [
+        1
+      ],
+      "dimensions": [
+        "region"
+      ],
+      "units": "C",
+      "long_name": "Radius of minimum brightness temperature in annulus region from radial profile of mean brightness temperatures",
+      "data_representation": "decoded_physical_values",
+      "scale_factor": null,
+      "add_offset": null,
+      "_FillValue": -99,
+      "missing_value": null,
+      "valid_range": [
+        0,
+        120
+      ],
+      "valid_min": null,
+      "valid_max": null,
+      "total_elements": 1,
+      "valid_elements": 1,
+      "missing_elements": 0,
+      "missing_percent": 0.0,
+      "nan_count": 0,
+      "inf_count": 0,
+      "min": 30.0,
+      "max": 30.0,
+      "mean": 30.0,
+      "std": 0.0,
+      "percentiles": {
+        "p1": 30.0,
+        "p5": 30.0,
+        "p50_median": 30.0,
+        "p95": 30.0,
+        "p99": 30.0
+      }
+    }
+  ]
+}

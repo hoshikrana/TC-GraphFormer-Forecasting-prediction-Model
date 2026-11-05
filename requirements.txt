@@ -1,0 +1,25 @@
+# TC-GraphFormer Production Dependencies
+# NOAA TC PRIMED Spatiotemporal Multimodal Forecasting Framework
+
+# Core Scientific & Data Processing
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+netCDF4>=1.6.0
+cftime>=1.6.0
+PyYAML>=6.0
+
+# Deep Learning (PyTorch)
+torch>=2.0.0
+
+# Spatial, Graph & Visualization
+matplotlib>=3.7.0
+pillow>=9.5.0
+networkx>=3.0
+
+# Cloud & S3 Ingestion
+awscli>=1.29.0
+
+# System Utilities
+tqdm>=4.65.0
+typing_extensions>=4.5.0

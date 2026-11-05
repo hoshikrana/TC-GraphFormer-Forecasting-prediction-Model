@@ -1,0 +1,11 @@
+# Self-Supervised Pretraining Configuration (Masked Feature Modeling)
+pretraining:
+  epochs: 10
+  batch_size: 16
+  learning_rate: 2.0e-4
+  weight_decay: 1.0e-4
+  mask_ratio: 0.30
+  d_model: 128
+  checkpoint_dir: "checkpoints"
+  output_report: "reports/pretraining_summary.json"
+

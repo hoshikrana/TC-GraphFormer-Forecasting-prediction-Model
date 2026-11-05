@@ -1,0 +1,72 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Large Datasets & Swath Archives (20 GB+ raw & processed files)
+data/raw/
+data/processed/
+staging/*.nc
+Data_inspection/*.nc
+Data_inspection/*.zip
+Data_inspection/TCPRIMED*
+*.nc
+*.zip
+*.tar
+*.tar.gz
+*.h5
+*.hdf5
+
+# Uncompressed S3 Inventory (56 MB - compressed s3_inventory.csv.gz is tracked)
+reports/s3_inventory.csv
+
+# PyTorch Model Checkpoints & Large Binaries (> 5 MB)
+checkpoints/*.pt
+checkpoints/*.pth
+checkpoints/*.bin
+!checkpoints/.gitkeep
+
+# IDEs & System files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & Temporary files
+*.log
+temp/
+tmp/
+*.tmp

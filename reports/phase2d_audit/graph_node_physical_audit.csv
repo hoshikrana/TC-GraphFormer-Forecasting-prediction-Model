@@ -1,0 +1,17 @@
+node_id,grid_index_i_j,radial_distance_patches,radial_distance_km,azimuth_degrees,quadrant_sector,radial_shell_classification,physical_meteorological_role,source_tokens,feature_dim
+0,"(0, 0)",2.121,530.3,225.0,North-West (NW),Outer Rainband / Synoptic Zone (r ~ 530 km),"Peripheral convection, environmental shear interaction, outer moisture inflow","Patch (0, 0) pooled across 5 modalities",128
+1,"(0, 1)",1.581,395.3,251.6,North-West (NW),Inner Rainband Zone (r ~ 395 km),"Primary spiral convective rainbands, low-level moisture convergence","Patch (0, 1) pooled across 5 modalities",128
+2,"(0, 2)",1.581,395.3,288.4,North-East (NE),Inner Rainband Zone (r ~ 395 km),"Primary spiral convective rainbands, low-level moisture convergence","Patch (0, 2) pooled across 5 modalities",128
+3,"(0, 3)",2.121,530.3,315.0,North-East (NE),Outer Rainband / Synoptic Zone (r ~ 530 km),"Peripheral convection, environmental shear interaction, outer moisture inflow","Patch (0, 3) pooled across 5 modalities",128
+4,"(1, 0)",1.581,395.3,198.4,North-West (NW),Inner Rainband Zone (r ~ 395 km),"Primary spiral convective rainbands, low-level moisture convergence","Patch (1, 0) pooled across 5 modalities",128
+5,"(1, 1)",0.707,176.8,225.0,North-West (NW),Inner Core / Eyewall Zone (r ~ 177 km),"Eyewall convection, RMW, maximum tangential wind, central pressure drop","Patch (1, 1) pooled across 5 modalities",128
+6,"(1, 2)",0.707,176.8,315.0,North-East (NE),Inner Core / Eyewall Zone (r ~ 177 km),"Eyewall convection, RMW, maximum tangential wind, central pressure drop","Patch (1, 2) pooled across 5 modalities",128
+7,"(1, 3)",1.581,395.3,341.6,North-East (NE),Inner Rainband Zone (r ~ 395 km),"Primary spiral convective rainbands, low-level moisture convergence","Patch (1, 3) pooled across 5 modalities",128
+8,"(2, 0)",1.581,395.3,161.6,South-West (SW),Inner Rainband Zone (r ~ 395 km),"Primary spiral convective rainbands, low-level moisture convergence","Patch (2, 0) pooled across 5 modalities",128
+9,"(2, 1)",0.707,176.8,135.0,South-West (SW),Inner Core / Eyewall Zone (r ~ 177 km),"Eyewall convection, RMW, maximum tangential wind, central pressure drop","Patch (2, 1) pooled across 5 modalities",128
+10,"(2, 2)",0.707,176.8,45.0,South-East (SE),Inner Core / Eyewall Zone (r ~ 177 km),"Eyewall convection, RMW, maximum tangential wind, central pressure drop","Patch (2, 2) pooled across 5 modalities",128
+11,"(2, 3)",1.581,395.3,18.4,South-East (SE),Inner Rainband Zone (r ~ 395 km),"Primary spiral convective rainbands, low-level moisture convergence","Patch (2, 3) pooled across 5 modalities",128
+12,"(3, 0)",2.121,530.3,135.0,South-West (SW),Outer Rainband / Synoptic Zone (r ~ 530 km),"Peripheral convection, environmental shear interaction, outer moisture inflow","Patch (3, 0) pooled across 5 modalities",128
+13,"(3, 1)",1.581,395.3,108.4,South-West (SW),Inner Rainband Zone (r ~ 395 km),"Primary spiral convective rainbands, low-level moisture convergence","Patch (3, 1) pooled across 5 modalities",128
+14,"(3, 2)",1.581,395.3,71.6,South-East (SE),Inner Rainband Zone (r ~ 395 km),"Primary spiral convective rainbands, low-level moisture convergence","Patch (3, 2) pooled across 5 modalities",128
+15,"(3, 3)",2.121,530.3,45.0,South-East (SE),Outer Rainband / Synoptic Zone (r ~ 530 km),"Peripheral convection, environmental shear interaction, outer moisture inflow","Patch (3, 3) pooled across 5 modalities",128

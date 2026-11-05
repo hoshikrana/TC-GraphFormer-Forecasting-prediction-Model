@@ -1,0 +1,9 @@
+step_order,stage_name,module_name,input_shapes,operation_performed,output_shapes,learnable_params
+1,Raw Batch Loading,TCPRIMEDDataset -> collate_multimodal_batch,Disk HDF5 containers,Extract 64x64 grids and 5 modality masks,"ir:(B,1,64,64), pmw:(B,4,64,64), gp:(B,1,64,64), rad:(B,1,64,64), env:(B,6,64,64), masks:(B,5)",0
+2,Modality Encoders,"ir_encoder, pmw_encoder, gprof_encoder, radar_encoder, env_encoder","ir:(B,1,64,64), pmw:(B,4,64,64), gp:(B,1,64,64), rad:(B,1,64,64), env:(B,1,64,64)",3-stage strided Conv2d (downsample to 4x4) + LayerNorm + Flatten,"5 tensors each of shape (B, 16, 128)",1609344
+3,Cross-Modal Token Stacking,TCGraphFormer.extract_overpass_features,"5 x (B, 16, 128)","torch.cat([t_ir, t_pmw, t_gp, t_rad, t_env], dim=1)","(B, 80, 128)",0
+4,Cross-Modal Attention Fusion,CrossModalFusion (2 Transformer Layers),"tokens: (B, 80, 128), key_padding_mask: (B, 80)",Multi-Head Attention across 80 tokens with modality masking,"(B, 80, 128)",396288
+5,Spatial Graph Projection,spatial_aggregator,"(B, 80, 128) reshaped to (B, 16, 640)","Linear(640, 128) -> GELU -> Linear(128, 128) -> LayerNorm","(B, 16, 128) [16 spatial nodes]",98688
+6,Spatial Message Passing (GNN),SpatialGraphEncoder (2 MPNN Layers + Attention Pool),"nodes: (B, 16, 128), edge_index: (2, E), edge_attr: (E, 16)",Message MLP + Degree-normalized aggregation + Update MLP + Attention Pool,"(B, 128) [Storm-level context vector]",33024
+7,Causal Temporal Transformer,CausalTemporalTransformer (2 Layers),"seq: (B, T, 128), delta_t: (B, T, 1)",Continuous time MLP + Upper-triangular masked causal self-attention,"(B, 128) [Latent temporal representation at t0]",396288
+8,Multi-Task Prediction Heads,TaskPredictionHeads (6 Heads),"latent: (B, 128)",6 distinct MLP heads decoding physical variables and logits,"intensity:(B,), pressure:(B,), stage:(B,6), dV:(B,4), ri:(B,), track:(B,8)",18391

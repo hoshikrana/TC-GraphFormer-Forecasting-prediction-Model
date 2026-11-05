@@ -1,0 +1,38 @@
+========================================================================================
+TC PRIMED PILOT DATASET: LOCAL FILE AUDIT REPORT
+Audit Timestamp: 2026-11-04 08:53:28 UTC
+Destination:     D:\Project\Capstone_project\data\raw\pilot
+========================================================================================
+
+1. AUDIT CLASSIFICATION SUMMARY
+----------------------------------------------------------------------------------------
+  Total Manifest Entries:         2,679
+  Expected Manifest Size:         19.9994 GB (18.6259 GiB / 19,999,443,986 bytes)
+
+  [CORRECT]    Fully Downloaded:  207 files (2.6824 GB / 2.4982 GiB)
+  [MISSING]    Missing on Disk:   2,472 files (17.3171 GB / 16.1278 GiB)
+  [INCOMPLETE] Wrong Size:        0 files (0 bytes expected)
+  [UNEXPECTED] Extraneous Files:  11 files (0.7323 GB / 732,288,770 bytes)
+
+2. DOWNLOAD PROGRESS
+----------------------------------------------------------------------------------------
+  Completed Files:    7.73% (207 of 2,679)
+  Completed Bytes:   13.41% (2.6824 of 19.9994 GB)
+
+3. UNEXPECTED LOCAL FILES (INCOMPLETE / TEMPORARY AWS CLI ARTIFACTS)
+----------------------------------------------------------------------------------------
+  * D:\Project\Capstone_project\data\raw\pilot\1993\IO\02\TCPRIMED_v01r01-final_IO021993_env_s19931127000000_e19931205180000.nc.2cF59cF4 (148,373,504 bytes)
+  * D:\Project\Capstone_project\data\raw\pilot\1993\IO\02\TCPRIMED_v01r01-final_IO021993_env_s19931127000000_e19931205180000.nc.aC6C8BF5 (144,965,632 bytes)
+  * D:\Project\Capstone_project\data\raw\pilot\1993\WP\09\TCPRIMED_v01r01-final_WP091993_env_s19930711120000_e19930717060000.nc.defF26fc (98,102,145 bytes)
+  * D:\Project\Capstone_project\data\raw\pilot\1993\WP\09\TCPRIMED_v01r01-final_WP091993_env_s19930711120000_e19930717060000.nc.E9269814 (79,167,488 bytes)
+  * D:\Project\Capstone_project\data\raw\pilot\1993\WP\09\TCPRIMED_v01r01-final_WP091993_env_s19930711120000_e19930717060000.nc.feF8D005 (98,102,145 bytes)
+  * D:\Project\Capstone_project\data\raw\pilot\1993\WP\37\TCPRIMED_v01r01-final_WP371993_env_s19931218180000_e19931230060000.nc.D6DbDD63 (80,216,064 bytes)
+  * D:\Project\Capstone_project\data\raw\pilot\1994\EP\03\TCPRIMED_v01r01-final_EP031994_SSMI_F10_018704_19940630175444.nc.fEB6acde (2,621,440 bytes)
+  * D:\Project\Capstone_project\data\raw\pilot\1994\EP\03\TCPRIMED_v01r01-final_EP031994_SSMI_F10_018711_19940701045848.nc.4FDffeE4 (786,432 bytes)
+  * D:\Project\Capstone_project\data\raw\pilot\1994\EP\13\TCPRIMED_v01r01-final_EP131994_env_s19940828180000_e19940905000000.nc.D130Ff3a (75,759,616 bytes)
+  * D:\Project\Capstone_project\data\raw\pilot\1994\EP\13\TCPRIMED_v01r01-final_EP131994_SSMI_F11_014257_19940902162644.nc.Dfe6b2ab (3,670,016 bytes)
+  * D:\Project\Capstone_project\data\raw\pilot\1994\IO\02\TCPRIMED_v01r01-final_IO021994_SSMI_F10_017779_19940427031503.nc.19dc00A3 (524,288 bytes)
+
+========================================================================================
+END OF LOCAL FILE AUDIT REPORT
+========================================================================================

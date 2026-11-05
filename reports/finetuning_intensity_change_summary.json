@@ -1,0 +1,33 @@
+{
+  "task": "intensity_change",
+  "base_checkpoint": "checkpoints/best_checkpoint.pt",
+  "epochs": 1,
+  "learning_rate": 5e-05,
+  "freeze_encoders": true,
+  "best_val_loss": 54.0195,
+  "history": [
+    {
+      "epoch": 1,
+      "train": {
+        "loss_total": 26.398990154266357,
+        "loss_intensity": 27.79741382598877,
+        "loss_pressure": 100.18208503723145,
+        "loss_stage": 1.6863078474998474,
+        "loss_intensity_change": 2.852066695690155,
+        "loss_ri": 0.38556740432977676,
+        "epoch": 1,
+        "epoch_time_sec": 3.1
+      },
+      "val": {
+        "val_loss": 54.0195,
+        "val_wind_mae_kt": 31.67,
+        "val_pressure_mae_hpa": 1003.16,
+        "val_stage_acc_pct": 37.5,
+        "val_dv_mae_kt": 12.41,
+        "val_ri_acc_pct": 100.0,
+        "total_val_samples": 8
+      },
+      "checkpoint": "checkpoints\\finetuned_intensity_change_epoch_001.pt"
+    }
+  ]
+}

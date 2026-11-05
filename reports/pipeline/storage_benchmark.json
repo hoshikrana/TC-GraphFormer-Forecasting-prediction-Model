@@ -1,0 +1,17 @@
+{
+  "pilot_benchmark": {
+    "total_raw_pilot_bytes": 19999443986,
+    "total_raw_pilot_gb": 18.63,
+    "total_processed_bytes": 1509537971,
+    "total_processed_gb": 1.41,
+    "compression_ratio_achieved": 13.25,
+    "storage_reduction_pct": 92.45,
+    "average_bytes_per_storm": 18869225.0
+  },
+  "future_500gb_deployment_estimate": {
+    "assumed_raw_archive_gb": 500.0,
+    "projected_processed_footprint_gb": 37.74,
+    "projected_total_storage_needed_gb": 557.74,
+    "feasibility_assessment": "A 500 GB raw dataset and its processed derivatives CANNOT fit on a single 500 GB drive (estimated total storage needed is ~557.7 GB). Recommendation: Deploy on at least a 1 TB external SSD or partition raw archive and processed outputs across separate disks."
+  }
+}

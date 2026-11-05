@@ -1,0 +1,33 @@
+# Machine A — Workstation Configuration (Friend's Laptop)
+# Role: Data Management, Preprocessing, Quality Control, Validation, Export & Web Serving
+
+machine:
+  role: "workstation"
+  hostname: "workstation-alpha"
+  os: "Windows 11"
+  device: "cpu"
+  num_workers: 4
+  precision: "fp32"
+
+paths:
+  raw_data_dir: "data/raw/pilot"
+  processed_data_dir: "data/processed/pilot"
+  manifest_path: "reports/pipeline/storm_split_manifest.csv"
+  sample_index_path: "reports/pipeline/sample_index.csv"
+  staging_dir: "staging"
+  staging_manifest: "staging/staging_manifest.json"
+  checkpoints_dir: "checkpoints"
+  reports_dir: "reports"
+
+capabilities:
+  can_train_heavy_models: false
+  can_run_smoke_tests: true
+  can_preprocess_raw_data: true
+  can_package_shards: true
+  anydesk_note: "AnyDesk is for desktop GUI streaming only. CUDA acceleration is NOT exposed over AnyDesk. GPU workloads run directly on Machine B."
+
+pipeline:
+  compression_level: 4
+  min_disk_free_gb: 2.0
+  batch_size: 16
+

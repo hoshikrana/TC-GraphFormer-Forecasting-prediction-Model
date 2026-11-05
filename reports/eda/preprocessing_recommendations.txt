@@ -1,0 +1,95 @@
+================================================================================================
+NOAA TC PRIMED — EXPLORATORY PREPROCESSING & TRANSFORMATION STUDY (PHASE 1E)
+================================================================================================
+
+1. OBJECTIVE & METHODOLOGY
+------------------------------------------------------------------------------------------------
+This study rigorously evaluates candidate preprocessing transformations for multimodal tropical
+cyclone intelligence. Ten distinct architectural and data engineering transformations are examined.
+For each transformation, we document: (1) why it is needed, (2) which source variables it affects,
+(3) what scientific information might be lost, (4) what metadata must be preserved, and (5) how
+it will be validated before production implementation.
+
+1. STORM-CENTERED SPATIAL CROPPING
+----------------------------------
+  * Rationale:     Satellite overpasses encompass broad swaths (1,400-2,000 km across track). The primary vortex features (eyewall, central dense overcast, inner rainbands) reside within 300-500 km of the cyclone center. Cropping focuses model receptive fields on meteorologically active convection and suppresses irrelevant peripheral background noise.
+  * Affected Vars: Affects: PMW brightness temperature channels (S1-S4 swaths), GPROF precipitation, IRWIN 2D grid.
+  * Risk / Loss:   Potential Loss: Synoptic-scale environmental steering interactions and outer feeder bands beyond 500 km.
+  * Metadata Kept: Preservation: Exact interpolated center coordinates (storm_latitude, storm_longitude), crop offset.
+  * Validation:    Validation: Check that the crop bounding box contains the maximum convective core across all channels.
+
+2. COMMON POLAR COORDINATE RE-MAPPING
+-------------------------------------
+  * Rationale:     Tropical cyclones are inherently axisymmetric rotating vortices with secondary tangential asymmetries. Converting raw Cartesian or irregular swath grids into an azimuthal-radial polar coordinate grid (r in [0, 800 km], theta in [0, 360 deg]) aligns natural physical geometries and dramatically reduces convolutional spatial variance across sensor footprint orientations.
+  * Affected Vars: Affects: Passive microwave swaths (raw IFOV conical geometry) and IRWIN Mercator grid.
+  * Risk / Loss:   Potential Loss: High-frequency sub-kilometer pixel textures near the outer swath edges.
+  * Metadata Kept: Preservation: Center latitude/longitude, original azimuth zero orientation (True North).
+  * Validation:    Validation: Verify flux and area-weighted integral conservation of precipitation and brightness temp.
+
+3. NATIVE-GRID PRESERVATION & ASYMMETRIC ENCODING
+-------------------------------------------------
+  * Rationale:     Raw PMW footprints vary significantly across frequency channels (e.g. 10 GHz is ~30x50 km, while 89 GHz is ~4x6 km). Resampling to a single fine grid interpolates and creates artificial smoothness. Preserving native swath grids in separate encoder branches respects physical antenna diffraction patterns.
+  * Affected Vars: Affects: S1, S2, S3, S4 swath arrays in passive_microwave.
+  * Risk / Loss:   Potential Loss: Simple early-fusion multi-channel tensor stacking is precluded.
+  * Metadata Kept: Preservation: Channel-specific footprint geometry (IFOV major/minor axes) and incidence angles.
+  * Validation:    Validation: Benchmark gradient backpropagation and spatial feature fidelity in multi-branch backbones.
+
+4. CANDIDATE COMMON SPATIAL GRIDS (256x256 AZIMUTHAL EQUIDISTANT)
+-----------------------------------------------------------------
+  * Rationale:     For unified vision backbones (e.g. Swin-Transformer, ConvNeXt), a standardized square tensor is required. A 256x256 grid spanning 1,024x1,024 km centered on the storm provides 4-km nominal pixel resolution, matching geostationary IRWIN and high-frequency microwave channels perfectly.
+  * Affected Vars: Affects: All spatial modalities (PMW, IRWIN, GPROF, Radar horizontal projection).
+  * Risk / Loss:   Potential Loss: Slight resampling interpolation error in low-frequency microwave channels (10-19 GHz).
+  * Metadata Kept: Preservation: Nearest-neighbor or bilinear interpolation weights; coordinate transform jacobians.
+  * Validation:    Validation: Compare image structural similarity index (SSIM) between remapped and native images.
+
+5. IR-TO-MICROWAVE TEMPORAL ALIGNMENT FILTERING
+-----------------------------------------------
+  * Rationale:     While geostationary IR scans are synchronized within a mean of +0.19 minutes of microwave swaths, 5% of overpasses exhibit offsets exceeding 15 minutes due to satellite repositioning or data gaps. Filtering or conditioning on temporal offset prevents temporal blur in fast-moving storms.
+  * Affected Vars: Affects: Multimodal paired samples (PMW + IRWIN).
+  * Risk / Loss:   Potential Loss: ~3-5% of overpasses if strict hard cutoff (|delta_t| < 15 min) is enforced.
+  * Metadata Kept: Preservation: time_offset_seconds, observation_time_utc in sample metadata.
+  * Validation:    Validation: Correlate intensity prediction error against temporal offset delta_t.
+
+6. RADAR SWATH SPATIAL COVERAGE MASKING
+---------------------------------------
+  * Rationale:     Active radar (TRMM/GPM) has a narrow swath width (~245 km) that frequently captures only one side of the hurricane eyewall. Treating unobserved pixels as zero reflectivity severely distorts models. A binary radar swath observation mask must accompany all radar inputs.
+  * Affected Vars: Affects: radar_radiometer (correctedReflectFactor_Ku, nearSurfPrecipTotRate).
+  * Risk / Loss:   Potential Loss: None (preserves true unobserved state).
+  * Metadata Kept: Preservation: Radar beam scan mask (observed vs. outside swath FOV).
+  * Validation:    Validation: Verify that outside-swath loss gradients are zeroed during training.
+
+7. VERTICAL PROFILE INTEGRATION & DIMENSIONALITY REDUCTION
+----------------------------------------------------------
+  * Rationale:     GPROF provides 28 atmospheric layers; Ku-radar provides 88 vertical range bins. Passing full 3D volumes dramatically increases parameter count. Dimensionality reduction via 1D vertical convolutions or projection onto physical layer metrics (brightband height, echo-top 20 dBZ, column integral) is effective.
+  * Affected Vars: Affects: GPROF hydrometeor profiles (rain, snow, cloud water) and Radar reflectivity volumes.
+  * Risk / Loss:   Potential Loss: Extremely fine-scale turbulent layer microphysics.
+  * Metadata Kept: Preservation: Vertical coordinate arrays (hgtTopLayer, binHeight).
+  * Validation:    Validation: Evaluate reconstruction error of 3D fields from latent vertical embeddings.
+
+8. MISSING-MODALITY MASKS & LEARNABLE EMBEDDINGS
+------------------------------------------------
+  * Rationale:     Radar is present in only 8.0% of overpasses; IRWIN is missing in 13.0%. Model architecture MUST NOT require hard multi-sensor co-presence. Learnable modality tokens with random modality dropout during training allow the model to operate flexibly on single, dual, or quad-modality inputs.
+  * Affected Vars: Affects: Model cross-attention backbone and modality fusion layers.
+  * Risk / Loss:   Potential Loss: None (increases operational robustness and deployment versatility).
+  * Metadata Kept: Preservation: Modality availability flags (pmw_valid, ir_valid, gprof_valid, radar_valid).
+  * Validation:    Validation: Test performance across all 16 possible modality presence combinations.
+
+9. QUALITY FLAG FILTERING & SURFACE CLASSIFICATION
+--------------------------------------------------
+  * Rationale:     GPROF and radar products contain quality flags (qualityFlag, surfaceTypeIndex). Heavy land contamination alters microwave emissivity drastically. Quality flags should be fused as categorical input channels.
+  * Affected Vars: Affects: GPROF and passive microwave channels.
+  * Risk / Loss:   Potential Loss: Overly aggressive filtering discards valuable coastal landfall overpasses.
+  * Metadata Kept: Preservation: Raw quality flags and distance_to_land continuous values.
+  * Validation:    Validation: Evaluate model error separately over open ocean vs. coastal/island vs. overland pixels.
+
+10. TRAIN-ONLY NORMALIZATION & STANDARDIZATION
+----------------------------------------------
+  * Rationale:     All physical features (brightness temperatures, pressures, wind speeds) must be normalized using parameters (mean, std, min, max) calculated STRICTLY from the Train split. Applying normalization derived from the entire dataset causes subtle data leakage.
+  * Affected Vars: Affects: All input features and regression targets across all modalities.
+  * Risk / Loss:   Potential Loss: None (scientifically mandatory for valid evaluation).
+  * Metadata Kept: Preservation: Stored scalar scaling dictionary (train_means, train_stds) in pipeline artifacts.
+  * Validation:    Validation: Verify that Test split values are never accessed during normalization parameter computation.
+
+================================================================================================
+END OF PREPROCESSING STUDY
+================================================================================================

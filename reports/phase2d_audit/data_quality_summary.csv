@@ -1,0 +1,12 @@
+variable_name,display_name,modality,units,total_records,valid_count,missing_count,missing_percentage,min_value,max_value,mean_value,std_dev,median_value,p01_value,p99_value,expected_physical_range,outlier_count,near_constant_flag
+intensity_vmax_kt,TC Maximum Sustained Wind (Current Intensity),Best Track / Target,knots,2599,2599,0,0.0,10.0,140.0,38.13,19.57,31.0,15.0,115.0,"[10.0, 185.0]",0,NO
+central_min_pressure_hpa,Central Minimum Sea-Level Pressure,Best Track / Target,hPa,2599,2073,526,20.24,944.0,1013.0,997.48,11.91,1002.0,961.72,1011.0,"[870.0, 1025.0]",0,NO
+storm_speed_mps,Storm Translational Forward Speed,Best Track / Auxiliary,m/s,2599,2599,0,0.0,0.4,20.8,5.29,3.28,4.6,0.7,16.61,"[0.0, 35.0]",0,NO
+storm_heading_deg,Storm Heading / Direction of Motion,Best Track / Auxiliary,degrees,2599,2599,0,0.0,0.0,359.8,220.53,105.74,270.0,2.8,355.9,"[0.0, 360.0]",0,NO
+target_intensity_change_6h,6-Hour Future Intensity Change (+6h),Best Track / Target,knots,2599,0,2599,100.0,NaN,NaN,NaN,NaN,NaN,NaN,NaN,"[-60.0, 60.0]",0,NO
+target_intensity_change_12h,12-Hour Future Intensity Change (+12h),Best Track / Target,knots,2599,0,2599,100.0,NaN,NaN,NaN,NaN,NaN,NaN,NaN,"[-80.0, 80.0]",0,NO
+target_intensity_change_18h,18-Hour Future Intensity Change (+18h),Best Track / Target,knots,2599,0,2599,100.0,NaN,NaN,NaN,NaN,NaN,NaN,NaN,"[-100.0, 100.0]",0,NO
+target_intensity_change_24h,24-Hour Future Intensity Change (+24h),Best Track / Target,knots,2599,0,2599,100.0,NaN,NaN,NaN,NaN,NaN,NaN,NaN,"[-120.0, 120.0]",0,NO
+target_track_6h_displacement_km,6-Hour Future Track Displacement,Best Track / Target,km,2599,0,2599,100.0,NaN,NaN,NaN,NaN,NaN,NaN,NaN,"[0.0, 600.0]",0,NO
+target_track_12h_displacement_km,12-Hour Future Track Displacement,Best Track / Target,km,2599,0,2599,100.0,NaN,NaN,NaN,NaN,NaN,NaN,NaN,"[0.0, 1000.0]",0,NO
+target_track_24h_displacement_km,24-Hour Future Track Displacement,Best Track / Target,km,2599,0,2599,100.0,NaN,NaN,NaN,NaN,NaN,NaN,NaN,"[0.0, 1800.0]",0,NO

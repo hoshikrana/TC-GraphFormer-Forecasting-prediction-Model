@@ -1,0 +1,18 @@
+metric_category,metric_name,value,units,description
+Overpass Gaps,total_transitions_evaluated,2519,count,Number of consecutive overpass transitions
+Overpass Gaps,mean_gap,3.36,hours,Average time between consecutive overpasses
+Overpass Gaps,median_gap,1.85,hours,Median time between consecutive overpasses
+Overpass Gaps,p25_gap,0.76,hours,25th percentile of inter-overpass gaps
+Overpass Gaps,p75_gap,3.41,hours,75th percentile of inter-overpass gaps
+Overpass Gaps,p90_gap,7.99,hours,90th percentile of inter-overpass gaps
+Overpass Gaps,min_gap,0.0,hours,Minimum observed gap between different overpasses
+Overpass Gaps,max_gap,108.13,hours,Maximum observed gap during a storm sequence
+Sequence Feasibility,gaps_le_6h_count,2206,count,Overpass transitions <= 6 hours
+Sequence Feasibility,gaps_le_6h_pct,87.57,%,Percentage of transitions <= 6 hours
+Sequence Feasibility,gaps_le_12h_count,2379,count,Overpass transitions <= 12 hours
+Sequence Feasibility,gaps_le_12h_pct,94.44,%,Percentage of transitions <= 12 hours
+Sequence Feasibility,gaps_le_24h_count,2489,count,Overpass transitions <= 24 hours
+Sequence Feasibility,gaps_le_24h_pct,98.81,%,Percentage of transitions <= 24 hours
+IR-MW Sync,mean_delta_minutes,0.19,minutes,Mean time offset between IR scan and nominal MW overpass
+IR-MW Sync,median_delta_minutes,0.03,minutes,Median time offset between IR scan and MW overpass
+IR-MW Sync,sync_within_15min_pct,85.06,%,Percentage of IR scans within +/- 15 min of MW overpass

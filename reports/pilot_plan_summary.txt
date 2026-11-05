@@ -1,0 +1,111 @@
+==========================================================================================
+TC PRIMED PILOT DATASET PLAN SUMMARY
+Generated: 2026-11-04 08:42:23 UTC
+==========================================================================================
+
+1. SIZE SUMMARY
+------------------------------------------------------------------------------------------
+  Target Size:       20.00 GB (20,000,000,000 bytes)
+  Selected Size:     19.9994 GB = 18.6259 GiB (19,999,443,986 bytes)
+  Utilization:       100.00%
+
+2. CONTENT COUNTS
+------------------------------------------------------------------------------------------
+  Complete storms:         80
+  Total NetCDF files:      2679
+  Overpass files:          2599
+  Environmental files:     80
+  Distinct seasons:        32
+  Historical periods:      4
+  Basins represented:      6
+
+3. STORMS BY BASIN
+------------------------------------------------------------------------------------------
+  AL (North Atlantic                ):   15 storms,    3.013 GB ( 15.1%), 401 files
+  CP (Central North Pacific         ):   10 storms,    2.961 GB ( 14.8%), 452 files
+  EP (Eastern North Pacific         ):   14 storms,    2.929 GB ( 14.6%), 372 files
+  IO (North Indian Ocean            ):   19 storms,    5.340 GB ( 26.7%), 726 files
+  SH (Southern Hemisphere           ):    9 storms,    2.852 GB ( 14.3%), 355 files
+  WP (Western North Pacific         ):   13 storms,    2.905 GB ( 14.5%), 373 files
+
+4. STORMS BY HISTORICAL ERA
+------------------------------------------------------------------------------------------
+  1987-1999   :   28 storms,    4.920 GB ( 24.6%), 451 files
+  2000-2009   :   23 storms,    4.867 GB ( 24.3%), 694 files
+  2010-2019   :   10 storms,    4.441 GB ( 22.2%), 683 files
+  2020+       :   19 storms,    5.771 GB ( 28.9%), 851 files
+
+5. ERA x BASIN MATRIX (Storm Count / GB)
+------------------------------------------------------------------------------------------
+  Era          |           AL |           CP |           EP |           IO |           SH |           WP | Total
+  --------------------------------------------------------------------------------------------------------------
+  1987-1999    |   5/  0.74GB |   3/  0.71GB |   5/  0.74GB |   8/  1.24GB |   3/  0.73GB |   4/  0.75GB |  28/  4.92GB
+  2000-2009    |   4/  0.77GB |   4/  0.74GB |   4/  0.73GB |   4/  1.15GB |   3/  0.74GB |   4/  0.72GB |  23/  4.87GB
+  2010-2019    |   2/  0.73GB |   1/  0.55GB |   2/  0.73GB |   2/  1.08GB |   1/  0.65GB |   2/  0.70GB |  10/  4.44GB
+  2020+        |   4/  0.77GB |   2/  0.96GB |   3/  0.73GB |   5/  1.87GB |   2/  0.72GB |   3/  0.73GB |  19/  5.77GB
+
+6. INSTRUMENT COUNTS (storms containing instrument)
+------------------------------------------------------------------------------------------
+  SSMI                :   51 storms
+  MHS                 :   34 storms
+  SSMIS               :   33 storms
+  AMSR2               :   27 storms
+  ATMS                :   27 storms
+  TMI                 :   26 storms
+  GMI                 :   22 storms
+  AMSUB               :   17 storms
+  AMSRE               :   11 storms
+
+7. PLATFORM COUNTS (storms containing platform)
+------------------------------------------------------------------------------------------
+  F16                 :   32 storms
+  F13                 :   29 storms
+  F17                 :   28 storms
+  NOAA19              :   28 storms
+  F18                 :   27 storms
+  GCOMW1              :   27 storms
+  METOPB              :   27 storms
+  NPP                 :   26 storms
+  TRMM                :   26 storms
+  F14                 :   24 storms
+  GPM                 :   22 storms
+  METOPC              :   20 storms
+  NOAA20              :   20 storms
+  F15                 :   17 storms
+  F10                 :   16 storms
+  NOAA16              :   16 storms
+  F11                 :   15 storms
+  NOAA18              :   14 storms
+  F08                 :   12 storms
+  AQUA                :   11 storms
+  METOPA              :   11 storms
+  NOAA17              :   10 storms
+  NOAA21              :    6 storms
+  F19                 :    2 storms
+
+8. NIO ALLOCATION
+------------------------------------------------------------------------------------------
+  NIO (IO) percentage of selected bytes: 26.70%
+  NIO allocation achieved (within 10% of 25%): YES
+
+9. YEAR CONCENTRATION
+------------------------------------------------------------------------------------------
+  Largest single-year contribution: 2002 (11.35%)
+
+10. LIMITATIONS AND DEVIATIONS
+------------------------------------------------------------------------------------------
+  ! Year 2002 contributes 11.4% of selected bytes (target: <=10%).
+
+11. VALIDATION CHECKLIST
+------------------------------------------------------------------------------------------
+  [✓] Multiple distinct seasons: 32
+  [✓] Multiple historical periods: 4
+  [✓] Multiple basins: 6
+  [✓] Within target budget
+  [✓ ] At least 18 GB selected
+  [✓] NIO allocation ~25%
+  [!] No single year > 10%
+
+==========================================================================================
+END OF PLAN SUMMARY
+==========================================================================================

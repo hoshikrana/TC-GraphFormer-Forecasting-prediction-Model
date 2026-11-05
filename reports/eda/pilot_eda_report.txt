@@ -1,0 +1,160 @@
+================================================================================================
+NOAA TC PRIMED PILOT DATASET: COMPREHENSIVE EXPLORATORY DATA ANALYSIS (PHASE 1E)
+Report Generated: 2026-11-05 11:49:18 UTC
+Dataset: NOAA TC PRIMED v01r01-final (s3://noaa-nesdis-tcprimed-pds/v01r01/final/)
+================================================================================================
+
+1. DATASET INTEGRITY & LOCAL INVENTORY OVERVIEW
+------------------------------------------------------------------------------------------------
+  Total Manifest Entries:         2,679
+    - Overpass NetCDF Files:      2,599
+    - Environmental NetCDF Files: 80
+  Successfully Downloaded Files:  2,679 (100.00% verified)
+  Missing Local Files:            0 (0.00%)
+  Incorrect Size Files:           0 (0.00%)
+  Failed NetCDF Open Errors:      0 (0.00%)
+  Total Downloaded Size:          19,999,443,986 bytes
+                                  = 19.9994 GB (decimal)
+                                  = 18.6259 GiB (binary)
+  Unique Cyclones (Storm Folders):80
+  Unique Seasons (Years):         32 (1987 - 2025)
+  Incomplete Storm Sequences:     0 (0 storms with partial downloads)
+
+  Basin Distribution:
+    * IO (North Indian Ocean       ):   726 files (27.10%)
+    * CP (Central North Pacific    ):   452 files (16.87%)
+    * AL (North Atlantic           ):   401 files (14.97%)
+    * WP (Western North Pacific    ):   373 files (13.92%)
+    * EP (Eastern North Pacific    ):   372 files (13.89%)
+    * SH (Southern Hemisphere      ):   355 files (13.25%)
+
+  Historical Period Distribution:
+    * 1987-1999   :   451 files (16.83%)
+    * 2000-2009   :   694 files (25.91%)
+    * 2010-2019   :   683 files (25.49%)
+    * 2020+       :   851 files (31.77%)
+
+2. SATELLITE INSTRUMENT & MODALITY CHARACTERIZATION
+------------------------------------------------------------------------------------------------
+  * Passive Microwave (PMW):
+    Present in 2,595 / 2,599 overpasses (99.85% usable; 4 early 1987 orbits have missing scanlines).
+    Sensors: SSMI, SSMIS, MHS, ATMS, AMSUB, TMI, AMSR2, GMI, AMSRE.
+    Frequencies: 10.65 to 183.31 GHz across conical swaths S1, S2, S3, S4.
+  * Infrared (IRWIN 11.2 µm):
+    Present under /infrared in 2,599 overpasses (100.0%).
+    Active availability: 2,262 overpasses (87.03%; 2,099 McIDAS, 163 HURSAT).
+    Unavailable flag (0): 337 overpasses (12.97%).
+    Spatial Grid: 480x640 4-km Mercator projection; Mean missingness: 0.81% (Median: 0.00%).
+    Provenance: 27 distinct geostationary satellites across NOAA, EUMETSAT, and JMA.
+  * R5 Tangential Wind Radii:
+    Present in 2,429 overpasses (93.46%). Available in 167 overpasses where 2D IRWIN is absent.
+  * GPROF Precipitation:
+    Present in 2,595 / 2,599 overpasses (99.85%). Provides surface precip, convective precip,
+    rain water path, ice water path, and 28-layer vertical hydrometeor profiles.
+  * Active Precipitation Radar (DPR/PR):
+    Available in 207 overpasses (7.96% of all overpasses; 100% of GMI and TMI overpasses).
+    Provides 88 vertical range bins of attenuation-corrected Ku-band reflectivity (dBZ).
+  * ERA5 Environmental Reanalysis:
+    Available for 80 / 80 storms (100.0%; exactly 1 file per storm folder).
+    Contains 23 isobaric levels (1000 to 100 hPa) across cylindrical (24x61) and rectilinear (121x121) grids.
+
+3. STATISTICAL TARGET & PREDICTAND DISTRIBUTIONS (BEST TRACK)
+------------------------------------------------------------------------------------------------
+Target Variable                  | Count  | Miss%  | Mean    | Std     | Median  | IQR [p25, p75]  | Min-Max      
+------------------------------------------------------------------------------------------------
+Tropical Cyclone Intensity (Maxi |   2599 |   0.0% |    38.1 |    19.6 |    31.0 | [25.0, 45.0]    | 10.0 - 140.0 
+Minimum Central Sea Level Pressu |   2073 |  20.2% |   997.5 |    11.9 |  1002.0 | [992.0, 1006.0] | 944.0 - 1013.0
+6-Hour Future Intensity Change ( |   2259 |  13.1% |     0.1 |     5.2 |     0.0 | [-2.0, 3.0]     | -30.0 - 36.0 
+12-Hour Future Intensity Change  |   2089 |  19.6% |     0.4 |     9.5 |     0.0 | [-5.0, 5.0]     | -55.0 - 63.0 
+18-Hour Future Intensity Change  |   1929 |  25.8% |     0.9 |    12.8 |     0.0 | [-5.0, 8.0]     | -70.0 - 69.0 
+24-Hour Future Intensity Change  |   1784 |  31.4% |     1.4 |    15.9 |     0.0 | [-7.0, 10.0]    | -84.0 - 65.0 
+6-Hour Past Intensity Change (-6 |   2251 |  13.4% |     0.1 |     5.2 |     0.0 | [-2.0, 3.0]     | -36.0 - 40.0 
+12-Hour Past Intensity Change (- |   2090 |  19.6% |     0.4 |     9.5 |     0.0 | [-5.0, 5.0]     | -54.0 - 65.0 
+24-Hour Past Intensity Change (- |   1783 |  31.4% |     1.2 |    16.7 |     0.0 | [-7.0, 10.0]    | -82.0 - 65.0 
+Storm Forward Translational Spee |   2599 |   0.0% |     5.3 |     3.3 |     4.6 | [3.0, 6.8]      | 0.4 - 20.8   
+Storm Direction of Motion        |   2599 |   0.0% |   220.5 |   105.7 |   270.0 | [131.6, 295.8]  | 0.0 - 359.8  
+Distance to Nearest Major Landma |   2599 |   0.0% |   739.0 |   664.7 |   538.5 | [232.3, 1143.5] | -633.1 - 3033.1
+
+  Development Stage Breakdown:
+    * TS        :   811 overpasses (31.20%)
+    * TD        :   761 overpasses (29.28%)
+    * UN        :   240 overpasses ( 9.23%)
+    * DB        :   234 overpasses ( 9.00%)
+    * LO        :   172 overpasses ( 6.62%)
+    * HU        :   128 overpasses ( 4.92%)
+    * EX        :    86 overpasses ( 3.31%)
+    * TY        :    82 overpasses ( 3.16%)
+    * MD        :    34 overpasses ( 1.31%)
+    * SS        :    31 overpasses ( 1.19%)
+    * SD        :    12 overpasses ( 0.46%)
+    * WV        :     8 overpasses ( 0.31%)
+
+4. TEMPORAL TIMELINE & SEQUENCE MODELING FEASIBILITY
+------------------------------------------------------------------------------------------------
+  Total Overpass Transitions Evaluated: 2,519
+  Mean Inter-Overpass Gap:             3.36 hours (Std: 5.84 h)
+  Median Inter-Overpass Gap:           1.85 hours (IQR: [0.8, 3.4] h)
+  Transitions with Δt ≤ 6 hours:        2,206 (87.57%)
+  Transitions with Δt ≤ 12 hours:       2,379 (94.44%)
+  Transitions with Δt ≤ 24 hours:       2,489 (98.81%)
+  IR-to-Microwave Time Offset:          Mean +0.19 min (Median: +0.03 min)
+  IR Scans within ±15 min of MW:        85.06%
+
+  Sequence Modeling Feasibility Assessment:
+  - Overpass sampling is irregular (polar orbiters revisit every 3-12 hours).
+  - Constructing rigid, fixed-interval video tensors (e.g. 1-hour steps) would require heavy temporal
+    interpolation of microwave channels, creating unphysical synthetic artifacts.
+  - RECOMMENDATION: Employ Continuous-Time Neural ODEs, Time-Delta Encoders, or Asynchronous Graph
+    Temporal Networks that naturally process irregularly sampled event observations.
+
+5. NUMPY EXTRACTION & REPRESENTATION BENCHMARKS
+------------------------------------------------------------------------------------------------
+  * Sensor SSMI   [CP011987 - 1987]: Passed 4/4 checks
+      - Labels extracted: intensity=46 kt, pmin=-- hPa
+      - PMW TB_19.35V shape=(79, 64), dtype=float32, valid_range=[197.2, 269.7] K
+      - IRWIN 2D shape=(480, 640), valid_mean=271.1 K, missing_count=0
+      - Coordinates preserved: Lat range=[2.4, 23.7], Lon range=[190.7, 207.7]
+  * Sensor TMI    [AL031998 - 1998]: Passed 4/4 checks
+      - Labels extracted: intensity=34 kt, pmin=1008 hPa
+      - PMW TB_10.65V shape=(152, 104), dtype=float32, valid_range=[175.3, 295.5] K
+      - IRWIN 2D shape=(480, 640), valid_mean=277.9 K, missing_count=0
+      - Coordinates preserved: Lat range=[22.9, 35.7], Lon range=[254.6, 277.2]
+  * Sensor MHS    [IO042005 - 2005]: Passed 4/4 checks
+      - Labels extracted: intensity=20 kt, pmin=1004 hPa
+      - PMW TB_89.0V shape=(97, 90), dtype=float32, valid_range=[154.7, 293.6] K
+      - IRWIN 2D shape=(480, 640), valid_mean=261.8 K, missing_count=0
+      - Coordinates preserved: Lat range=[2.8, 20.8], Lon range=[71.6, 95.7]
+  * Sensor SSMIS  [CP042006 - 2006]: Passed 4/4 checks
+      - Labels extracted: intensity=25 kt, pmin=1009 hPa
+      - PMW TB_19.35V shape=(165, 90), dtype=float32, valid_range=[202.8, 255.1] K
+      - IRWIN group absent / unavailable (handled gracefully)
+      - Coordinates preserved: Lat range=[-2.2, 22.8], Lon range=[184.1, 204.4]
+  * Sensor ATMS   [AL082013 - 2013]: Passed 4/4 checks
+      - Labels extracted: intensity=28 kt, pmin=1008 hPa
+      - PMW TB_23.8QV shape=(95, 96), dtype=float32, valid_range=[205.9, 301.5] K
+      - IRWIN 2D shape=(480, 640), valid_mean=265.2 K, missing_count=1090
+      - Coordinates preserved: Lat range=[11.9, 30.1], Lon range=[242.7, 270.4]
+  * Sensor GMI    [AL122015 - 2015]: Passed 4/4 checks
+      - Labels extracted: intensity=30 kt, pmin=1010 hPa
+      - PMW TB_10.65V shape=(172, 221), dtype=float32, valid_range=[167.9, 333.9] K
+      - IRWIN 2D shape=(480, 640), valid_mean=281.6 K, missing_count=0
+      - Coordinates preserved: Lat range=[10.8, 34.7], Lon range=[283.1, 300.3]
+
+6. LEAK-FREE STORM-LEVEL DATASET PARTITIONING (70 / 15 / 15)
+------------------------------------------------------------------------------------------------
+  * Split: TRAIN | Storms: 42 | Overpasses: 1475 | Env Files: 42 | Total: 1517
+      Basins: {'EP': 7, 'AL': 8, 'IO': 12, 'SH': 4, 'WP': 6, 'CP': 5}
+      Eras:   {'1987-1999': 16, '2000-2009': 11, '2010-2019': 6, '2020+': 9}
+  * Split: VAL   | Storms: 16 | Overpasses:  474 | Env Files: 16 | Total:  490
+      Basins: {'SH': 2, 'EP': 3, 'IO': 3, 'WP': 3, 'CP': 2, 'AL': 3}
+      Eras:   {'1987-1999': 6, '2000-2009': 6, '2020+': 4}
+  * Split: TEST  | Storms: 22 | Overpasses:  650 | Env Files: 22 | Total:  672
+      Basins: {'CP': 3, 'AL': 4, 'WP': 4, 'IO': 4, 'EP': 4, 'SH': 3}
+      Eras:   {'1987-1999': 6, '2000-2009': 6, '2010-2019': 4, '2020+': 6}
+
+  Leakage Guarantee: 0 storm IDs shared across splits. All overpasses and environmental files
+  for a given cyclone sequence reside strictly within the assigned partition.
+
+================================================================================================
+END OF TC PRIMED PILOT EXPLORATORY DATA ANALYSIS REPORT
+================================================================================================

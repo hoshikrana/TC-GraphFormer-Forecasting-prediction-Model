@@ -1,0 +1,10 @@
+target_variable,units,total_overpasses,valid_count,missing_count,missing_pct,mean,std,median,iqr_p25_p75,min,max,documented_missing_reason
+intensity,kt,2599,2599,0,0.0,38.13,19.56,31.0,"[25.0, 45.0]",10.0,140.0,Continuous Best Track 1-min sustained winds; 100% available
+central_min_pressure,hPa,2599,2073,526,20.24,997.48,11.91,1002.0,"[992.0, 1006.0]",944.0,1013.0,Omitted in older agency advisories (NIO/SH) prior to modern reanalysis
+intensity_change_6h,kt,2599,2259,340,13.08,0.14,5.2,0.0,"[-2.0, 3.0]",-30.0,36.0,Missing near cyclogenesis or dissipation within 6 hours of observation
+intensity_change_12h,kt,2599,2089,510,19.62,0.38,9.47,0.0,"[-5.0, 5.0]",-55.0,63.0,Missing near cyclogenesis or dissipation within 12 hours of observation
+intensity_change_18h,kt,2599,1929,670,25.78,0.9,12.76,0.0,"[-5.0, 8.0]",-70.0,69.0,Missing near cyclogenesis or dissipation within 18 hours of observation
+intensity_change_24h,kt,2599,1784,815,31.36,1.41,15.89,0.0,"[-7.0, 10.0]",-84.0,65.0,Missing near cyclogenesis or dissipation within 24 hours of observation
+storm_speed,m/s,2599,2599,0,0.0,5.29,3.28,4.6,"[3.0, 6.8]",0.4,20.8,Continuous Best Track translation speed; 100% available
+storm_heading,deg,2599,2599,0,0.0,220.53,105.72,270.0,"[131.6, 295.8]",0.0,359.8,Continuous Best Track direction of motion; 100% available
+distance_to_land,km,2599,2599,0,0.0,739.02,664.73,538.52,"[232.3, 1143.5]",-633.12,3033.12,Continuous distance to nearest major landmass; 100% available

@@ -1,0 +1,13 @@
+{
+  "workflow": "Self-Supervised Masked Feature Pretraining",
+  "epochs": 1,
+  "mask_ratio": 0.3,
+  "final_loss_mse": 12.376,
+  "checkpoint_path": "checkpoints\\pretrained_backbone.pt",
+  "history": [
+    {
+      "epoch": 1,
+      "loss_mse": 12.376
+    }
+  ]
+}

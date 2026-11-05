@@ -1,0 +1,29 @@
+{
+  "download_timestamp_utc": "2026-11-05 10:28:48 UTC",
+  "expected_bytes": 19999443986,
+  "expected_gb": 19.9994,
+  "downloaded_bytes": 14243657548,
+  "downloaded_gb": 14.2437,
+  "skipped_bytes": 5755786438,
+  "skipped_gb": 5.7558,
+  "total_files": 2679,
+  "completed_files": 2679,
+  "skipped_files": 583,
+  "failed_files": 0,
+  "failed_details": [],
+  "selected_storm_count": 80,
+  "downloaded_storm_count": 80,
+  "elapsed_seconds": 5030.85,
+  "instrument_counts": {
+    "AMSR2": 125,
+    "AMSRE": 54,
+    "AMSUB": 194,
+    "ATMS": 348,
+    "ERA5": 80,
+    "GMI": 76,
+    "MHS": 597,
+    "SSMI": 659,
+    "SSMIS": 415,
+    "TMI": 131
+  }
+}

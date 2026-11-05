@@ -1,0 +1,33 @@
+{
+  "task": "nio_adaptation",
+  "base_checkpoint": "checkpoints/best_checkpoint.pt",
+  "epochs": 1,
+  "learning_rate": 5e-05,
+  "freeze_encoders": true,
+  "best_val_loss": 80.5334,
+  "history": [
+    {
+      "epoch": 1,
+      "train": {
+        "loss_total": 88.65261268615723,
+        "loss_intensity": 33.410719871520996,
+        "loss_pressure": 99.40921974182129,
+        "loss_stage": 1.8905174136161804,
+        "loss_intensity_change": 3.886375844478607,
+        "loss_ri": 0.3528236970305443,
+        "epoch": 1,
+        "epoch_time_sec": 6.21
+      },
+      "val": {
+        "val_loss": 80.5334,
+        "val_wind_mae_kt": 24.87,
+        "val_pressure_mae_hpa": 1004.68,
+        "val_stage_acc_pct": 75.0,
+        "val_dv_mae_kt": 5.04,
+        "val_ri_acc_pct": 100.0,
+        "total_val_samples": 8
+      },
+      "checkpoint": "checkpoints\\finetuned_nio_adaptation_epoch_001.pt"
+    }
+  ]
+}

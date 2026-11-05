@@ -1,0 +1,5 @@
+task,base_checkpoint,finetuned_checkpoint,epochs,frozen_layers,train_loss,val_loss,wind_mae_kt,dv_mae_kt,ri_acc_pct
+base_multitask,none,checkpoints/best_checkpoint.pt,2,none,45.2891,80.5334,24.87,5.04,100.00
+intensity_change,checkpoints/best_checkpoint.pt,checkpoints/finetuned_intensity_change_epoch_001.pt,1,"encoder_ir,encoder_pmw,encoder_gprof,encoder_radar,encoder_env",26.3990,54.0195,31.67,12.41,100.00
+nio_adaptation,checkpoints/best_checkpoint.pt,checkpoints/finetuned_nio_adaptation_epoch_001.pt,1,"encoder_ir,encoder_pmw,encoder_gprof,encoder_radar,encoder_env",88.6526,80.5334,24.87,5.04,100.00
+

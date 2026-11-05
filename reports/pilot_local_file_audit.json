@@ -1,0 +1,147 @@
+{
+  "audit_timestamp_utc": "2026-11-04 08:53:28 UTC",
+  "destination_root": "D:\\Project\\Capstone_project\\data\\raw\\pilot",
+  "total_manifest_entries": 2679,
+  "expected_total_bytes": 19999443986,
+  "expected_total_gb": 19.9994,
+  "expected_total_gib": 18.6259,
+  "correct_count": 207,
+  "correct_bytes": 2682375512,
+  "correct_gb": 2.6824,
+  "correct_gib": 2.4982,
+  "missing_count": 2472,
+  "missing_bytes": 17317068474,
+  "missing_gb": 17.3171,
+  "missing_gib": 16.1278,
+  "incomplete_count": 0,
+  "incomplete_expected_bytes": 0,
+  "incomplete_actual_bytes": 0,
+  "unexpected_count": 11,
+  "unexpected_bytes": 732288770,
+  "unexpected_files": [
+    {
+      "local_path": "D:\\Project\\Capstone_project\\data\\raw\\pilot\\1993\\IO\\02\\TCPRIMED_v01r01-final_IO021993_env_s19931127000000_e19931205180000.nc.2cF59cF4",
+      "size_bytes": 148373504
+    },
+    {
+      "local_path": "D:\\Project\\Capstone_project\\data\\raw\\pilot\\1993\\IO\\02\\TCPRIMED_v01r01-final_IO021993_env_s19931127000000_e19931205180000.nc.aC6C8BF5",
+      "size_bytes": 144965632
+    },
+    {
+      "local_path": "D:\\Project\\Capstone_project\\data\\raw\\pilot\\1993\\WP\\09\\TCPRIMED_v01r01-final_WP091993_env_s19930711120000_e19930717060000.nc.defF26fc",
+      "size_bytes": 98102145
+    },
+    {
+      "local_path": "D:\\Project\\Capstone_project\\data\\raw\\pilot\\1993\\WP\\09\\TCPRIMED_v01r01-final_WP091993_env_s19930711120000_e19930717060000.nc.E9269814",
+      "size_bytes": 79167488
+    },
+    {
+      "local_path": "D:\\Project\\Capstone_project\\data\\raw\\pilot\\1993\\WP\\09\\TCPRIMED_v01r01-final_WP091993_env_s19930711120000_e19930717060000.nc.feF8D005",
+      "size_bytes": 98102145
+    },
+    {
+      "local_path": "D:\\Project\\Capstone_project\\data\\raw\\pilot\\1993\\WP\\37\\TCPRIMED_v01r01-final_WP371993_env_s19931218180000_e19931230060000.nc.D6DbDD63",
+      "size_bytes": 80216064
+    },
+    {
+      "local_path": "D:\\Project\\Capstone_project\\data\\raw\\pilot\\1994\\EP\\03\\TCPRIMED_v01r01-final_EP031994_SSMI_F10_018704_19940630175444.nc.fEB6acde",
+      "size_bytes": 2621440
+    },
+    {
+      "local_path": "D:\\Project\\Capstone_project\\data\\raw\\pilot\\1994\\EP\\03\\TCPRIMED_v01r01-final_EP031994_SSMI_F10_018711_19940701045848.nc.4FDffeE4",
+      "size_bytes": 786432
+    },
+    {
+      "local_path": "D:\\Project\\Capstone_project\\data\\raw\\pilot\\1994\\EP\\13\\TCPRIMED_v01r01-final_EP131994_env_s19940828180000_e19940905000000.nc.D130Ff3a",
+      "size_bytes": 75759616
+    },
+    {
+      "local_path": "D:\\Project\\Capstone_project\\data\\raw\\pilot\\1994\\EP\\13\\TCPRIMED_v01r01-final_EP131994_SSMI_F11_014257_19940902162644.nc.Dfe6b2ab",
+      "size_bytes": 3670016
+    },
+    {
+      "local_path": "D:\\Project\\Capstone_project\\data\\raw\\pilot\\1994\\IO\\02\\TCPRIMED_v01r01-final_IO021994_SSMI_F10_017779_19940427031503.nc.19dc00A3",
+      "size_bytes": 524288
+    }
+  ],
+  "correct_sample": [
+    {
+      "s3_key": "v01r01/final/1987/CP/01/TCPRIMED_v01r01-final_CP011987_SSMI_F08_000982_19870828164449.nc",
+      "local_destination": "data\\raw\\pilot\\1987\\CP\\01\\TCPRIMED_v01r01-final_CP011987_SSMI_F08_000982_19870828164449.nc",
+      "expected_size": 4222423,
+      "actual_size": 4222423,
+      "storm_id": "CP011987",
+      "is_environmental": false
+    },
+    {
+      "s3_key": "v01r01/final/1987/CP/01/TCPRIMED_v01r01-final_CP011987_SSMI_F08_000989_19870829052208.nc",
+      "local_destination": "data\\raw\\pilot\\1987\\CP\\01\\TCPRIMED_v01r01-final_CP011987_SSMI_F08_000989_19870829052208.nc",
+      "expected_size": 4036599,
+      "actual_size": 4036599,
+      "storm_id": "CP011987",
+      "is_environmental": false
+    },
+    {
+      "s3_key": "v01r01/final/1987/CP/01/TCPRIMED_v01r01-final_CP011987_SSMI_F08_000996_19870829163228.nc",
+      "local_destination": "data\\raw\\pilot\\1987\\CP\\01\\TCPRIMED_v01r01-final_CP011987_SSMI_F08_000996_19870829163228.nc",
+      "expected_size": 4012760,
+      "actual_size": 4012760,
+      "storm_id": "CP011987",
+      "is_environmental": false
+    },
+    {
+      "s3_key": "v01r01/final/1987/CP/01/TCPRIMED_v01r01-final_CP011987_env_s19870826000000_e19870829180000.nc",
+      "local_destination": "data\\raw\\pilot\\1987\\CP\\01\\TCPRIMED_v01r01-final_CP011987_env_s19870826000000_e19870829180000.nc",
+      "expected_size": 63870630,
+      "actual_size": 63870630,
+      "storm_id": "CP011987",
+      "is_environmental": true
+    },
+    {
+      "s3_key": "v01r01/final/1987/EP/14/TCPRIMED_v01r01-final_EP141987_SSMI_F08_001220_19870914131531.nc",
+      "local_destination": "data\\raw\\pilot\\1987\\EP\\14\\TCPRIMED_v01r01-final_EP141987_SSMI_F08_001220_19870914131531.nc",
+      "expected_size": 4053725,
+      "actual_size": 4053725,
+      "storm_id": "EP141987",
+      "is_environmental": false
+    }
+  ],
+  "missing_sample": [
+    {
+      "s3_key": "v01r01/final/1994/EP/13/TCPRIMED_v01r01-final_EP131994_SSMI_F11_014257_19940902162644.nc",
+      "local_destination": "data\\raw\\pilot\\1994\\EP\\13\\TCPRIMED_v01r01-final_EP131994_SSMI_F11_014257_19940902162644.nc",
+      "expected_size": 4002826,
+      "storm_id": "EP131994",
+      "is_environmental": false
+    },
+    {
+      "s3_key": "v01r01/final/1994/EP/13/TCPRIMED_v01r01-final_EP131994_env_s19940828180000_e19940905000000.nc",
+      "local_destination": "data\\raw\\pilot\\1994\\EP\\13\\TCPRIMED_v01r01-final_EP131994_env_s19940828180000_e19940905000000.nc",
+      "expected_size": 118145694,
+      "storm_id": "EP131994",
+      "is_environmental": true
+    },
+    {
+      "s3_key": "v01r01/final/1994/IO/02/TCPRIMED_v01r01-final_IO021994_SSMI_F10_017779_19940427031503.nc",
+      "local_destination": "data\\raw\\pilot\\1994\\IO\\02\\TCPRIMED_v01r01-final_IO021994_SSMI_F10_017779_19940427031503.nc",
+      "expected_size": 2349797,
+      "storm_id": "IO021994",
+      "is_environmental": false
+    },
+    {
+      "s3_key": "v01r01/final/1994/IO/02/TCPRIMED_v01r01-final_IO021994_SSMI_F10_017801_19940428152222.nc",
+      "local_destination": "data\\raw\\pilot\\1994\\IO\\02\\TCPRIMED_v01r01-final_IO021994_SSMI_F10_017801_19940428152222.nc",
+      "expected_size": 2294619,
+      "storm_id": "IO021994",
+      "is_environmental": false
+    },
+    {
+      "s3_key": "v01r01/final/1994/IO/02/TCPRIMED_v01r01-final_IO021994_SSMI_F10_017808_19940429035131.nc",
+      "local_destination": "data\\raw\\pilot\\1994\\IO\\02\\TCPRIMED_v01r01-final_IO021994_SSMI_F10_017808_19940429035131.nc",
+      "expected_size": 2266757,
+      "storm_id": "IO021994",
+      "is_environmental": false
+    }
+  ],
+  "incomplete_sample": []
+}

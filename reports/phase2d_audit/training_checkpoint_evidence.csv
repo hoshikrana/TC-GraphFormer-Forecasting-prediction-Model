@@ -1,0 +1,8 @@
+checkpoint_file,file_size_bytes,file_size_mb,dictionary_keys,recorded_epoch,recorded_device,val_loss,val_wind_mae_kt,val_pressure_mae_hpa,subsampled_eval_count,execution_truth
+pretrained_backbone.pt,5903705,5.63,epoch; model_state_dict; d_model; history,1,cpu,N/A,N/A,N/A,N/A,Verified local CPU execution (AMD64); falsifies remote GPU claim
+checkpoint_epoch_001.pt,17570665,16.76,epoch; model_state_dict; optimizer_state_dict; metrics; d_model; device,1,cpu,97.2984,35.52,1001.43,16,Verified local CPU execution (AMD64); falsifies remote GPU claim
+checkpoint_epoch_002.pt,17570665,16.76,epoch; model_state_dict; optimizer_state_dict; metrics; d_model; device,2,cpu,96.9445,35.24,1001.38,16,Verified local CPU execution (AMD64); falsifies remote GPU claim
+best_checkpoint.pt,8492421,8.1,epoch; model_state_dict; optimizer_state_dict; metrics; d_model; device,1,cpu,80.5334,24.87,1004.68,8,Verified local CPU execution (AMD64); falsifies remote GPU claim
+latest_checkpoint.pt,8493763,8.1,epoch; model_state_dict; optimizer_state_dict; metrics; d_model; device,1,cpu,80.5334,24.87,1004.68,8,Verified local CPU execution (AMD64); falsifies remote GPU claim
+finetuned_intensity_change_epoch_001.pt,8506576,8.11,epoch; model_state_dict; optimizer_state_dict; metrics; d_model; device,1,cpu,54.0195,31.67,1003.16,8,Verified local CPU execution (AMD64); falsifies remote GPU claim
+finetuned_nio_adaptation_epoch_001.pt,8505234,8.11,epoch; model_state_dict; optimizer_state_dict; metrics; d_model; device,1,cpu,80.5334,24.87,1004.68,8,Verified local CPU execution (AMD64); falsifies remote GPU claim

@@ -1,0 +1,44 @@
+{
+  "audit_phase": "Phase 2D Comprehensive Technical & Scientific Audit",
+  "audit_timestamp_utc": "2026-11-05T22:58:00Z",
+  "machine_a_workstation": {
+    "host_os": "Windows 11 AMD64 (10.0.26300)",
+    "processor": "Intel64 Family 6 Model 154 Stepping 4, GenuineIntel (12 Logical Cores)",
+    "physical_ram_gb": 15.73,
+    "available_ram_gb": 3.88,
+    "python_environment": "Python 3.13.12 (D:\\Project\\Capstone_project\\.venv\\Scripts\\python.exe)",
+    "torch_version": "2.15.0+cpu",
+    "local_cuda_available": false,
+    "storage_capacity": {
+      "drive_c_free_gb": 38.86,
+      "drive_d_free_gb": 31.33,
+      "total_internal_free_gb": 70.19,
+      "status": "FATAL STORAGE DEFICIT FOR 500 GB DATASET"
+    }
+  },
+  "machine_b_remote_gpu_node": {
+    "status": "UNVERIFIED IN-SITU / PLACEHOLDER RECORD DETECTED",
+    "critical_finding": "reports/hardware_inventory_gpu_node.json contains identical hardware specs to Machine A (local CPU). The professor's remote computer was never probed directly, and its remote GPU, VRAM, and CUDA drivers remain entirely unverified.",
+    "access_reality": "AnyDesk was used for GUI remote viewing only; no SSH, CUDA tunneling, or network volume was established."
+  },
+  "storage_arithmetic_reconciliation": {
+    "stated_estimate_gb": 557.7,
+    "comprehensive_budget_gb": 608.6,
+    "discrepancy_delta_gb": 50.9,
+    "reconciliation_breakdown": {
+      "raw_netcdf_archive_gb": 500.0,
+      "processed_hdf5_containers_gb": 38.6,
+      "interleaved_shards_and_staging_cache_gb": 40.0,
+      "model_checkpoints_and_runs_gb": 10.0,
+      "operational_headroom_gb": 20.0,
+      "sum_total_gb": 608.6,
+      "explanation_of_50_9_gb": "The additional 50.9 GB consists of 40.0 GB for interleaved training shards (export_shards.py staging cache), 10.0 GB for model checkpoints/logs across 50 epochs, and 0.9 GB container rounding."
+    }
+  },
+  "hardware_procurement_mandate": {
+    "required_hardware": "Dedicated External High-Performance NVMe SSD (1 TB or 2 TB capacity, USB 3.2 Gen 2 or USB4)",
+    "target_mount": "External dedicated drive (e.g., E:\\)",
+    "blocking_status": "BLOCKS DATASET SCALING (Attempting 500 GB download to internal C: or D: will crash OS)"
+  }
+}
+

@@ -1,0 +1,65 @@
+{
+  "audit_phase": "Phase 2C",
+  "dataset": "NOAA TC PRIMED v01r01-final",
+  "workstation_storage_audit": {
+    "host_os": "Windows 11 AMD64",
+    "drive_c": {
+      "total_bytes": 425838538752,
+      "total_gb": 396.59,
+      "free_bytes": 41722683392,
+      "free_gb": 38.86,
+      "usage_pct": 90.2
+    },
+    "drive_d": {
+      "total_bytes": 83884027904,
+      "total_gb": 78.12,
+      "free_bytes": 33637658624,
+      "free_gb": 31.33,
+      "usage_pct": 59.9
+    },
+    "total_internal_free_bytes": 75360342016,
+    "total_internal_free_gb": 70.19,
+    "sufficient_for_500gb_raw": false,
+    "deficit_gb": 429.81
+  },
+  "pilot_storage_actuals": {
+    "raw_pilot_manifest_bytes": 19999443986,
+    "raw_pilot_manifest_gb": 20.00,
+    "raw_pilot_manifest_gib": 18.63,
+    "raw_pilot_actual_bytes": 20736018725,
+    "raw_pilot_actual_gb": 20.74,
+    "raw_pilot_actual_gib": 19.31,
+    "raw_file_count": 2694,
+    "processed_pilot_bytes": 1509537971,
+    "processed_pilot_gb": 1.51,
+    "processed_pilot_gib": 1.41,
+    "processed_container_count": 80,
+    "total_overpasses": 2599,
+    "compression_factor": 13.74,
+    "processed_ratio_pct": 7.28,
+    "bytes_per_overpass_avg": 580814.9,
+    "bytes_per_overpass_historical_1987_1999": 492236.8,
+    "bytes_per_overpass_modern_2020_plus": 627609.6,
+    "modern_growth_rate_pct": 27.5
+  },
+  "dataset_scaling_projection_500gb": {
+    "target_raw_budget_gb": 500.0,
+    "projected_overpasses": 64800,
+    "projected_cyclone_count": 2000,
+    "storage_breakdown": {
+      "raw_netcdf_archive_gb": 500.0,
+      "processed_hdf5_containers_gb": 38.6,
+      "interleaved_shards_and_staging_gb": 40.0,
+      "model_checkpoints_and_runs_gb": 10.0,
+      "operational_headroom_gb": 20.0,
+      "total_required_gb": 608.6
+    },
+    "machine_architecture_recommendation": {
+      "recommendation": "External High-Performance NVMe SSD (1 TB or 2 TB, USB 3.2 Gen 2 or USB4/Thunderbolt)",
+      "target_mount": "Dedicated Drive (e.g. E: or external mount)",
+      "two_machine_staging_policy": "Machine A downloads and processes to External SSD; batches staged via rsync/SSH or fast direct LAN to Machine B (Remote GPU)",
+      "local_hard_drive_constraint": "DO NOT attempt raw 500 GB download to internal C: (38.9 GB free) or D: (31.3 GB free); immediate disk-full exhaustion will crash OS and corrupt workspace."
+    }
+  }
+}
+

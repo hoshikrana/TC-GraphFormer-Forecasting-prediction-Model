@@ -1,0 +1,11 @@
+submodule_name,class_name,input_signature,output_shape,parameter_count,trainable,gradient_flow_in_multitask,active_in_eval,missing_modality_handling
+ir_encoder (IREncoder),IREncoder,"ir: (B, 1, 64, 64), mask: (B,)","(B, 16, 128)",617312,True,Active (receives gradients from all 6 heads through fusion),Active,Zeroed out if m_ir == 0
+pmw_encoder (PMWEncoder),PMWEncoder,"pmw: (B, 4, 64, 64), mask: (B,)","(B, 16, 128)",617664,True,Active (receives gradients through fusion),Active,Zeroed out if m_pmw == 0
+gprof_encoder (GPROFEncoder),GPROFEncoder,"gprof: (B, 1, 64, 64), mask: (B,)","(B, 16, 128)",304736,True,Active,Active,Zeroed out if m_gp == 0
+radar_encoder (RadarEncoder),RadarEncoder,"radar: (B, 1, 64, 64), mask: (B,)","(B, 16, 128)",18576,True,Active (sparse in 2.9% of samples),Active,Zeroed out if m_rad == 0
+env_encoder (EnvEncoder),EnvEncoder,"env: (B, 1, 64, 64), mask: (B,)","(B, 16, 128)",304736,True,Active (100% of samples present),Active,Zeroed out if m_env == 0
+fusion (CrossModalFusion),CrossModalFusion,"tokens: 5 x (B, 16, 128), masks: (B, 5)","(B, 80, 128)",399488,True,Active (central cross-modal attention bottleneck),Active,Key-padding mask blocks attention to unobserved sensors
+spatial_aggregator (MLP),Sequential,"(B, 16, 640)","(B, 16, 128)",98816,True,Active (projects 80 tokens to 16 nodes),Active,Pass-through projection
+spatial_graph (SpatialGraphEncoder),SpatialGraphEncoder,"spatial_nodes: (B, 16, 128)","(B, 128)",218881,True,Active (2 MPNN layers + attention pooling),Active,Operates on pooled patch embeddings
+temporal_transformer (CausalTemporalTransformer),CausalTemporalTransformer,"seq: (B, T, 128), delta_t: (B, T, 1)","(B, T, 128)",429824,True,Active (causal temporal self-attention),Active,Padding mask for variable sequence lengths
+task_heads (TaskPredictionHeads),TaskPredictionHeads,"latent: (B, 128)",dict of 6 prediction tensors,50901,True,Active (each head receives loss gradients),Active,Loss masks handle missing targets

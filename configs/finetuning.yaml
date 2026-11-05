@@ -1,0 +1,31 @@
+# Task-Specific Fine-Tuning and Domain Adaptation Configuration
+finetuning:
+  base_checkpoint: "checkpoints/best_checkpoint.pt"
+  checkpoint_dir: "checkpoints"
+
+tasks:
+  intensity_change:
+    epochs: 5
+    batch_size: 16
+    learning_rate: 5.0e-5
+    freeze_encoders: true
+    loss_weights:
+      weight_intensity: 0.2
+      weight_pressure: 0.1
+      weight_stage: 0.2
+      weight_intensity_change: 3.0
+      weight_ri: 5.0
+
+  nio_adaptation:
+    basin_filter: "IO" # North Indian Ocean
+    epochs: 5
+    batch_size: 16
+    learning_rate: 3.0e-5
+    freeze_encoders: true
+    loss_weights:
+      weight_intensity: 1.0
+      weight_pressure: 0.5
+      weight_stage: 0.5
+      weight_intensity_change: 1.0
+      weight_ri: 2.0
+

@@ -1,0 +1,506 @@
+{
+  "verification_status": "SUCCESS",
+  "verified_at_utc": "2026-11-05T15:53:39.990280+00:00",
+  "manifest_path": "staging/staging_manifest.json",
+  "total_files": 82,
+  "passed_files": 82,
+  "failed_files": 0,
+  "missing_files": 0,
+  "size_mismatches": 0,
+  "hash_mismatches": 0,
+  "pass_rate_pct": 100.0,
+  "results": {
+    "data/processed/pilot/1987/CP/CP011987/CP011987_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 1714151,
+      "sha256": "9dfd71c7cfd4dba12e685f5b9cd81d50efa59b0b67b19e93c42ea1fc6550676a",
+      "actual_path": ".\\data/processed/pilot/1987/CP/CP011987/CP011987_processed.nc"
+    },
+    "data/processed/pilot/1987/EP/EP141987/EP141987_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 2772654,
+      "sha256": "60bfb616e26cf9d4216a75832230c40dd4626c8bf9d715a19c1d50c527ea4506",
+      "actual_path": ".\\data/processed/pilot/1987/EP/EP141987/EP141987_processed.nc"
+    },
+    "data/processed/pilot/1988/AL/AL011988/AL011988_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 1560426,
+      "sha256": "bbc79c16ec7a08b2352d4f1b06c439489fc3716075842c067a31e292d5f52069",
+      "actual_path": ".\\data/processed/pilot/1988/AL/AL011988/AL011988_processed.nc"
+    },
+    "data/processed/pilot/1988/AL/AL031988/AL031988_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 5746922,
+      "sha256": "ee94a700f7402144b5e595c32d2f691a8955823993b1f9f2c269d5a45ec43fbd",
+      "actual_path": ".\\data/processed/pilot/1988/AL/AL031988/AL031988_processed.nc"
+    },
+    "data/processed/pilot/1988/IO/IO011988/IO011988_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 2179266,
+      "sha256": "8a2fd5667288a0c376937a3330d9bb2aac00878d5ae2e4a1098e5f81d3a2f55c",
+      "actual_path": ".\\data/processed/pilot/1988/IO/IO011988/IO011988_processed.nc"
+    },
+    "data/processed/pilot/1988/SH/SH081988/SH081988_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 2352712,
+      "sha256": "a457ac50a3ef0f9dbbe1720c62231c6004d25ccc197aaaea41c9d57c514903b3",
+      "actual_path": ".\\data/processed/pilot/1988/SH/SH081988/SH081988_processed.nc"
+    },
+    "data/processed/pilot/1989/AL/AL071989/AL071989_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 3603191,
+      "sha256": "00a3b2c62c953894a067a2fafb6f2e4e4d9d7104f29ba334a5c27ef7b98bb97c",
+      "actual_path": ".\\data/processed/pilot/1989/AL/AL071989/AL071989_processed.nc"
+    },
+    "data/processed/pilot/1989/SH/SH111989/SH111989_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 6663859,
+      "sha256": "ac9d4a4b9070df716ac55873b9ea2be6a331bfd51f1cc52ffea8ae5928b01480",
+      "actual_path": ".\\data/processed/pilot/1989/SH/SH111989/SH111989_processed.nc"
+    },
+    "data/processed/pilot/1990/EP/EP201990/EP201990_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 2514082,
+      "sha256": "840882c872ebd7f7bd58786437715f401024e81494705f4007520bf21a86733b",
+      "actual_path": ".\\data/processed/pilot/1990/EP/EP201990/EP201990_processed.nc"
+    },
+    "data/processed/pilot/1990/IO/IO011990/IO011990_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 911560,
+      "sha256": "8456afe5c23673023fff2d664fe8f074fb78a7adb060d570614cbc29ab6cf403",
+      "actual_path": ".\\data/processed/pilot/1990/IO/IO011990/IO011990_processed.nc"
+    },
+    "data/processed/pilot/1991/IO/IO031991/IO031991_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 3517749,
+      "sha256": "e57b670e2bedc8e4d9aa6c9f32748bac77ae48bf165ee626134b9cccfe35c500",
+      "actual_path": ".\\data/processed/pilot/1991/IO/IO031991/IO031991_processed.nc"
+    },
+    "data/processed/pilot/1991/WP/WP041991/WP041991_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 7132018,
+      "sha256": "461fa88126047922da33f53dce09e5045283aa4bd64c8ebd1a1ccf692c6f63e3",
+      "actual_path": ".\\data/processed/pilot/1991/WP/WP041991/WP041991_processed.nc"
+    },
+    "data/processed/pilot/1992/CP/CP021992/CP021992_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 2992240,
+      "sha256": "87b21487dad4c12c8479c6584d7c3396f2f35740f3639cb2e389213b078c0306",
+      "actual_path": ".\\data/processed/pilot/1992/CP/CP021992/CP021992_processed.nc"
+    },
+    "data/processed/pilot/1992/IO/IO101992/IO101992_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 10953006,
+      "sha256": "14b237608cb25c4a6413f438dcc79374505e25d7411541ec52ce030383111617",
+      "actual_path": ".\\data/processed/pilot/1992/IO/IO101992/IO101992_processed.nc"
+    },
+    "data/processed/pilot/1993/IO/IO021993/IO021993_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 7556538,
+      "sha256": "adc89869d631f28e2f5d7e6d62ebd1210287d9c6096237115da99ab97a07aca4",
+      "actual_path": ".\\data/processed/pilot/1993/IO/IO021993/IO021993_processed.nc"
+    },
+    "data/processed/pilot/1993/WP/WP091993/WP091993_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 5291617,
+      "sha256": "21b50af101b9067f0d22850f99016fe2f408ad0e55f2f014da683242e982a97f",
+      "actual_path": ".\\data/processed/pilot/1993/WP/WP091993/WP091993_processed.nc"
+    },
+    "data/processed/pilot/1993/WP/WP371993/WP371993_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 10414202,
+      "sha256": "8dc2f21f05a25d801862c8b8aa5cc2e2c5dde8cd02ace16d1acabfcedc139d5b",
+      "actual_path": ".\\data/processed/pilot/1993/WP/WP371993/WP371993_processed.nc"
+    },
+    "data/processed/pilot/1994/EP/EP031994/EP031994_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 6036593,
+      "sha256": "15e98f607b55f8ca122bd8c08ee51ede35446ca2121d1a80bbcaec995eaccfd9",
+      "actual_path": ".\\data/processed/pilot/1994/EP/EP031994/EP031994_processed.nc"
+    },
+    "data/processed/pilot/1994/EP/EP131994/EP131994_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 5414393,
+      "sha256": "aded1e0e99939e0b39a65a5ea4d02f75b3af291c922ec60439f3dd4fabe2a598",
+      "actual_path": ".\\data/processed/pilot/1994/EP/EP131994/EP131994_processed.nc"
+    },
+    "data/processed/pilot/1994/IO/IO021994/IO021994_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 5519082,
+      "sha256": "3ab39a90072a782736e0023cab5d8a0a7a4a2943d5d1762658e52257afae4177",
+      "actual_path": ".\\data/processed/pilot/1994/IO/IO021994/IO021994_processed.nc"
+    },
+    "data/processed/pilot/1995/IO/IO041995/IO041995_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 6413146,
+      "sha256": "b1bbffb2a12acc3ae63c9705225c16603182cbf359c90ef80127e88d780973b1",
+      "actual_path": ".\\data/processed/pilot/1995/IO/IO041995/IO041995_processed.nc"
+    },
+    "data/processed/pilot/1996/AL/AL011996/AL011996_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 6132998,
+      "sha256": "1e17b5630c1c751ccbb996f69a9d3010e586dde7fd8e1984d09e32ac2007ebc8",
+      "actual_path": ".\\data/processed/pilot/1996/AL/AL011996/AL011996_processed.nc"
+    },
+    "data/processed/pilot/1996/EP/EP071996/EP071996_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 12077612,
+      "sha256": "c484f81296f4e6233edc0eca70c1a3887ddcb31312dfbb0c515f91fab2d93f27",
+      "actual_path": ".\\data/processed/pilot/1996/EP/EP071996/EP071996_processed.nc"
+    },
+    "data/processed/pilot/1996/SH/SH211996/SH211996_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 18150657,
+      "sha256": "e40d64998a1783d3d2842aa7c782e5e1c5d48a6ab4e7d2720f38c9b9778c3161",
+      "actual_path": ".\\data/processed/pilot/1996/SH/SH211996/SH211996_processed.nc"
+    },
+    "data/processed/pilot/1996/WP/WP151996/WP151996_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 5077323,
+      "sha256": "456d0b06778fdac26825767173a5dfb138a685950483b28ef2ea3327583a35d3",
+      "actual_path": ".\\data/processed/pilot/1996/WP/WP151996/WP151996_processed.nc"
+    },
+    "data/processed/pilot/1997/CP/CP021997/CP021997_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 37341945,
+      "sha256": "f10e65370c9e6c7e06979705b9d20616d2815738fd9b95a6a160f83112ab35e7",
+      "actual_path": ".\\data/processed/pilot/1997/CP/CP021997/CP021997_processed.nc"
+    },
+    "data/processed/pilot/1998/AL/AL031998/AL031998_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 11031332,
+      "sha256": "4f1f0dd3bd5f5f1e233bce120f6f8b84b24b5d1031c6766d161589ba6e7150e2",
+      "actual_path": ".\\data/processed/pilot/1998/AL/AL031998/AL031998_processed.nc"
+    },
+    "data/processed/pilot/1998/IO/IO031998/IO031998_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 17134056,
+      "sha256": "6e596738cdcd1220f13058c45aaf0beeb6c864b33873adb42f44879faee88a15",
+      "actual_path": ".\\data/processed/pilot/1998/IO/IO031998/IO031998_processed.nc"
+    },
+    "data/processed/pilot/2000/AL/AL012000/AL012000_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 1628342,
+      "sha256": "f28eff199eeda5d88b75f561c0b903191db116d0091906abb06d19ecb8e89e41",
+      "actual_path": ".\\data/processed/pilot/2000/AL/AL012000/AL012000_processed.nc"
+    },
+    "data/processed/pilot/2000/CP/CP022000/CP022000_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 5313316,
+      "sha256": "ddbf66e9712be2f10750912348932be9c2709000551b49f90e9cdb73732daaf5",
+      "actual_path": ".\\data/processed/pilot/2000/CP/CP022000/CP022000_processed.nc"
+    },
+    "data/processed/pilot/2000/EP/EP042000/EP042000_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 2208290,
+      "sha256": "e470ac21f51b22c02ee64ff49a22a638032f3bee1e67cb1367d938818d88fe11",
+      "actual_path": ".\\data/processed/pilot/2000/EP/EP042000/EP042000_processed.nc"
+    },
+    "data/processed/pilot/2000/EP/EP052000/EP052000_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 2879800,
+      "sha256": "70155dd570f5d3b7607508535aa29ca094bbd5c26d0637f7d172290ff5cd19fc",
+      "actual_path": ".\\data/processed/pilot/2000/EP/EP052000/EP052000_processed.nc"
+    },
+    "data/processed/pilot/2000/WP/WP022000/WP022000_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 8788311,
+      "sha256": "df1bdb26c0d3e7a0ee3ae5c0a3a3bea91741afc37c0fef45875900022bec2b22",
+      "actual_path": ".\\data/processed/pilot/2000/WP/WP022000/WP022000_processed.nc"
+    },
+    "data/processed/pilot/2000/WP/WP032000/WP032000_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 3256455,
+      "sha256": "3dc64bbbfab761f662911c070a9ece0a8a8955c1cf17565d43a62afbd88877bd",
+      "actual_path": ".\\data/processed/pilot/2000/WP/WP032000/WP032000_processed.nc"
+    },
+    "data/processed/pilot/2001/AL/AL022001/AL022001_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 4171601,
+      "sha256": "c730331854a05a36fb3f10df6b75bd56a763e78853a272a75c982a66cb0dbac0",
+      "actual_path": ".\\data/processed/pilot/2001/AL/AL022001/AL022001_processed.nc"
+    },
+    "data/processed/pilot/2001/CP/CP012001/CP012001_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 5931162,
+      "sha256": "436630ea19a74b0ed896e2ddf7fbb52c8a43f2715b8f62a543641b4ac29a6caf",
+      "actual_path": ".\\data/processed/pilot/2001/CP/CP012001/CP012001_processed.nc"
+    },
+    "data/processed/pilot/2002/AL/AL082002/AL082002_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 42221661,
+      "sha256": "b99b667e205bfe21099bee12f7009e8c491628aae61a0e1033f195182dd21716",
+      "actual_path": ".\\data/processed/pilot/2002/AL/AL082002/AL082002_processed.nc"
+    },
+    "data/processed/pilot/2002/EP/EP152002/EP152002_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 48130045,
+      "sha256": "385ff71b3a6c7cf98eeb7beaf6110fa3d8417cab601922b07c2592e8c4928373",
+      "actual_path": ".\\data/processed/pilot/2002/EP/EP152002/EP152002_processed.nc"
+    },
+    "data/processed/pilot/2002/IO/IO012002/IO012002_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 17125953,
+      "sha256": "e5146ac177037abebfe24204061cda44833c31c0235e8acd2a00b10459596e14",
+      "actual_path": ".\\data/processed/pilot/2002/IO/IO012002/IO012002_processed.nc"
+    },
+    "data/processed/pilot/2002/IO/IO022002/IO022002_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 13102964,
+      "sha256": "2e1ded325e386875733cff7571e64143071c91dddb944687b5de16b03c9f12af",
+      "actual_path": ".\\data/processed/pilot/2002/IO/IO022002/IO022002_processed.nc"
+    },
+    "data/processed/pilot/2002/SH/SH072002/SH072002_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 16221215,
+      "sha256": "ada1b56207a9dc3be4d040a0e404ce619b9d9e98ee657b6d186da6ba3985fde5",
+      "actual_path": ".\\data/processed/pilot/2002/SH/SH072002/SH072002_processed.nc"
+    },
+    "data/processed/pilot/2002/SH/SH142002/SH142002_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 12117125,
+      "sha256": "27453031762123ab2aff00158ddcf27c855b3184c43e17cfac01e0480ca59293",
+      "actual_path": ".\\data/processed/pilot/2002/SH/SH142002/SH142002_processed.nc"
+    },
+    "data/processed/pilot/2002/SH/SH242002/SH242002_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 21682947,
+      "sha256": "9099d0f999b98e00b68c86f69885cf300520bbb179597914863e88623ab958be",
+      "actual_path": ".\\data/processed/pilot/2002/SH/SH242002/SH242002_processed.nc"
+    },
+    "data/processed/pilot/2003/AL/AL062003/AL062003_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 12186690,
+      "sha256": "88947d2780a768008a240ffaf9ab059a7f2abd119c6a5fe7d75dae4d951bc85b",
+      "actual_path": ".\\data/processed/pilot/2003/AL/AL062003/AL062003_processed.nc"
+    },
+    "data/processed/pilot/2003/WP/WP222003/WP222003_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 16935058,
+      "sha256": "9c728ea3ad103c15947ee8dcc2148d537f373254be0e4103a0a61b39968567b6",
+      "actual_path": ".\\data/processed/pilot/2003/WP/WP222003/WP222003_processed.nc"
+    },
+    "data/processed/pilot/2004/CP/CP012004/CP012004_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 7073073,
+      "sha256": "03c53268a7ae9196e8ef16530a832a0a20c6a0a934a88a1bbbb2e663b4af88ff",
+      "actual_path": ".\\data/processed/pilot/2004/CP/CP012004/CP012004_processed.nc"
+    },
+    "data/processed/pilot/2005/IO/IO042005/IO042005_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 29971023,
+      "sha256": "10050b8f4a83e24a877250ba6c91e882769d52f1fc9179e3fc253dc42d5ddc1c",
+      "actual_path": ".\\data/processed/pilot/2005/IO/IO042005/IO042005_processed.nc"
+    },
+    "data/processed/pilot/2006/CP/CP042006/CP042006_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 39121428,
+      "sha256": "8d52c61808a8edb3120d3e0378b87b55818c98b5823dd0a93ebbc08b4d8b1b6a",
+      "actual_path": ".\\data/processed/pilot/2006/CP/CP042006/CP042006_processed.nc"
+    },
+    "data/processed/pilot/2006/EP/EP202006/EP202006_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 5670739,
+      "sha256": "6baedc24e49d07252f4dabdac4794313f9175f0cffbf53369bd58b44991d29f9",
+      "actual_path": ".\\data/processed/pilot/2006/EP/EP202006/EP202006_processed.nc"
+    },
+    "data/processed/pilot/2006/WP/WP192006/WP192006_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 29491794,
+      "sha256": "fe53e078e914698be6865edc762bf67ec80a4557169a3d3242960cd800d16644",
+      "actual_path": ".\\data/processed/pilot/2006/WP/WP192006/WP192006_processed.nc"
+    },
+    "data/processed/pilot/2009/IO/IO022009/IO022009_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 30957733,
+      "sha256": "6756022b2a11983bfb8347cd806ccecee593047a07cc85699c85427f377d8bdb",
+      "actual_path": ".\\data/processed/pilot/2009/IO/IO022009/IO022009_processed.nc"
+    },
+    "data/processed/pilot/2010/EP/EP022010/EP022010_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 7299519,
+      "sha256": "2a9920969296f16090f2b256bc381d4f34722cbc9a11b54a8e3ab5c7dad663b5",
+      "actual_path": ".\\data/processed/pilot/2010/EP/EP022010/EP022010_processed.nc"
+    },
+    "data/processed/pilot/2010/WP/WP012010/WP012010_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 10690879,
+      "sha256": "42219e7c02e98798d04c648bfedb99483be9a11aa11e286725a97c11eab892e4",
+      "actual_path": ".\\data/processed/pilot/2010/WP/WP012010/WP012010_processed.nc"
+    },
+    "data/processed/pilot/2013/AL/AL082013/AL082013_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 8838288,
+      "sha256": "9dac088ed9550fe903485bdf3d4ca240216499bf446e54a985826cceec234f74",
+      "actual_path": ".\\data/processed/pilot/2013/AL/AL082013/AL082013_processed.nc"
+    },
+    "data/processed/pilot/2013/IO/IO052013/IO052013_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 72560859,
+      "sha256": "aa3c8e7addf7a3db1f3ff8b3391afc1c6d44a437b439919890473b73505ddb83",
+      "actual_path": ".\\data/processed/pilot/2013/IO/IO052013/IO052013_processed.nc"
+    },
+    "data/processed/pilot/2015/AL/AL122015/AL122015_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 56881735,
+      "sha256": "f5ee06806e2b2665a00f39dffe9d34347ff0e8c4a1c259eb8f890bcd94b649e2",
+      "actual_path": ".\\data/processed/pilot/2015/AL/AL122015/AL122015_processed.nc"
+    },
+    "data/processed/pilot/2015/CP/CP082015/CP082015_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 53024321,
+      "sha256": "a00435e2f909e0ab5ca9b592f75da10693213367a3ade911a761cd4de2de7000",
+      "actual_path": ".\\data/processed/pilot/2015/CP/CP082015/CP082015_processed.nc"
+    },
+    "data/processed/pilot/2016/IO/IO022016/IO022016_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 21133873,
+      "sha256": "9f1669a7567d992d248ffd9625e41518d76578f43ef6b51df3d60a0adcbaa099",
+      "actual_path": ".\\data/processed/pilot/2016/IO/IO022016/IO022016_processed.nc"
+    },
+    "data/processed/pilot/2017/SH/SH012017/SH012017_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 60723294,
+      "sha256": "1b77ad37aee16a99dc018fc1db0d76587bef111f3652981194fef1ad5dd48224",
+      "actual_path": ".\\data/processed/pilot/2017/SH/SH012017/SH012017_processed.nc"
+    },
+    "data/processed/pilot/2017/WP/WP112017/WP112017_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 52945531,
+      "sha256": "2b6e88375a0b94599f5e0f7137f3cee3e6eccded27f054aa9ed784a871b0569d",
+      "actual_path": ".\\data/processed/pilot/2017/WP/WP112017/WP112017_processed.nc"
+    },
+    "data/processed/pilot/2019/EP/EP102019/EP102019_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 58898273,
+      "sha256": "531eae370967aeb3a39d98b2e58e299262e93418f2d15ad591a2100ab663b7be",
+      "actual_path": ".\\data/processed/pilot/2019/EP/EP102019/EP102019_processed.nc"
+    },
+    "data/processed/pilot/2020/EP/EP022020/EP022020_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 8934874,
+      "sha256": "413f8154d3648b36f6936acc588e51c39562ede27fb4a7342ba09a302bdebfdb",
+      "actual_path": ".\\data/processed/pilot/2020/EP/EP022020/EP022020_processed.nc"
+    },
+    "data/processed/pilot/2020/EP/EP072020/EP072020_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 20691773,
+      "sha256": "28572f8538ea5a20ab909e8c09b4363e938890dc3fe8e9cd8d7af66aee4bf521",
+      "actual_path": ".\\data/processed/pilot/2020/EP/EP072020/EP072020_processed.nc"
+    },
+    "data/processed/pilot/2020/IO/IO032020/IO032020_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 41749682,
+      "sha256": "d624aa51f1817a3b9a1b2ab21edec310b06551861e85a2da56596e83c387faa6",
+      "actual_path": ".\\data/processed/pilot/2020/IO/IO032020/IO032020_processed.nc"
+    },
+    "data/processed/pilot/2020/SH/SH232020/SH232020_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 33081216,
+      "sha256": "9a6189e0e834138a242747aafc2c0c56fb8a7d1c3ea041f2131865375768a5be",
+      "actual_path": ".\\data/processed/pilot/2020/SH/SH232020/SH232020_processed.nc"
+    },
+    "data/processed/pilot/2021/AL/AL022021/AL022021_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 25214896,
+      "sha256": "daec8137b06c43dc4aceccb83c6f00a77a6b64ac33d1f13443aa136c17540001",
+      "actual_path": ".\\data/processed/pilot/2021/AL/AL022021/AL022021_processed.nc"
+    },
+    "data/processed/pilot/2021/AL/AL042021/AL042021_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 13945211,
+      "sha256": "29458f1b82975ee18f0ce3fca41474eb5683952e51b3cc0e6f40f103d109bc69",
+      "actual_path": ".\\data/processed/pilot/2021/AL/AL042021/AL042021_processed.nc"
+    },
+    "data/processed/pilot/2021/SH/SH282021/SH282021_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 32039052,
+      "sha256": "2f47a9031dbbdffc8611e6f1256c8018ea89cf163d6472ae274f4a5eb650981d",
+      "actual_path": ".\\data/processed/pilot/2021/SH/SH282021/SH282021_processed.nc"
+    },
+    "data/processed/pilot/2021/WP/WP072021/WP072021_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 15444266,
+      "sha256": "e15db08e42db87018406d69fc886b0fae9ea6449a08593bb8f93b84586042376",
+      "actual_path": ".\\data/processed/pilot/2021/WP/WP072021/WP072021_processed.nc"
+    },
+    "data/processed/pilot/2021/WP/WP172021/WP172021_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 35616457,
+      "sha256": "11992361b13bc33af36e338fc844f3dff8ab765ce43bf00d4121cc6c2400a53d",
+      "actual_path": ".\\data/processed/pilot/2021/WP/WP172021/WP172021_processed.nc"
+    },
+    "data/processed/pilot/2022/AL/AL122022/AL122022_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 21945655,
+      "sha256": "3587cc038de897142421cadcae8e2edc9da9e8e1ed814ff6753510698673e88a",
+      "actual_path": ".\\data/processed/pilot/2022/AL/AL122022/AL122022_processed.nc"
+    },
+    "data/processed/pilot/2022/IO/IO012022/IO012022_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 36295552,
+      "sha256": "6f493a6c6c8cdead25e7745a53c32101f0623c7d36403bc0faf56e1a503bfb76",
+      "actual_path": ".\\data/processed/pilot/2022/IO/IO012022/IO012022_processed.nc"
+    },
+    "data/processed/pilot/2022/IO/IO032022/IO032022_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 22295099,
+      "sha256": "7e6828e175b08ecab3d12aa9f44b2daf7a97b7cd5782c406895b269b59f6c776",
+      "actual_path": ".\\data/processed/pilot/2022/IO/IO032022/IO032022_processed.nc"
+    },
+    "data/processed/pilot/2022/WP/WP082022/WP082022_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 15275019,
+      "sha256": "bab2397383d963fda9eb32eec5c28f426fda7958c872c182b080b8d6f704bb7d",
+      "actual_path": ".\\data/processed/pilot/2022/WP/WP082022/WP082022_processed.nc"
+    },
+    "data/processed/pilot/2023/IO/IO032023/IO032023_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 16105078,
+      "sha256": "75ef7d7b42f1e997d9b4fa836fa67da49264a0bf1f7a0c309e2ae9e921a92fc6",
+      "actual_path": ".\\data/processed/pilot/2023/IO/IO032023/IO032023_processed.nc"
+    },
+    "data/processed/pilot/2024/AL/AL032024/AL032024_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 7051563,
+      "sha256": "c3d727e7663893f42deae1cced26acf0cf9b08ca22f703d28caa6bd864db372c",
+      "actual_path": ".\\data/processed/pilot/2024/AL/AL032024/AL032024_processed.nc"
+    },
+    "data/processed/pilot/2024/EP/EP112024/EP112024_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 36098901,
+      "sha256": "b2913ea8d38e034822c77a1d0f798356969d4a35c59c10ce833b2ae7329e87ea",
+      "actual_path": ".\\data/processed/pilot/2024/EP/EP112024/EP112024_processed.nc"
+    },
+    "data/processed/pilot/2024/IO/IO012024/IO012024_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 53679522,
+      "sha256": "b63ee6c8aeb8291993b0273ffb10f1a30740c2f2b0c929ae3f4b5dcbf8f6018f",
+      "actual_path": ".\\data/processed/pilot/2024/IO/IO012024/IO012024_processed.nc"
+    },
+    "data/processed/pilot/2025/CP/CP012025/CP012025_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 61001285,
+      "sha256": "799bf1aa32a8512080514a893cd8acd6d13bd835d7f07a2e832e193c8f8b10ae",
+      "actual_path": ".\\data/processed/pilot/2025/CP/CP012025/CP012025_processed.nc"
+    },
+    "data/processed/pilot/2025/CP/CP022025/CP022025_processed.nc": {
+      "status": "VALID",
+      "size_bytes": 25684243,
+      "sha256": "9e44f0d442a93ddbed3358305c844a790bff0aeae594354917c453d848bd5b13",
+      "actual_path": ".\\data/processed/pilot/2025/CP/CP022025/CP022025_processed.nc"
+    },
+    "reports/pipeline/storm_split_manifest.csv": {
+      "status": "VALID",
+      "size_bytes": 4523,
+      "sha256": "a9e913d97ef40f0006030f82332a500a1546ef36748d2909057894824c20c101",
+      "actual_path": ".\\reports/pipeline/storm_split_manifest.csv"
+    },
+    "reports/pipeline/sample_index.csv": {
+      "status": "VALID",
+      "size_bytes": 1012700,
+      "sha256": "d4b4798a9f4b2d261b431f98c6dc9de2042c19b83c50f557340d8aa28008ca1b",
+      "actual_path": ".\\reports/pipeline/sample_index.csv"
+    }
+  }
+}

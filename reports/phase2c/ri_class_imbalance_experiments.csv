@@ -1,0 +1,5 @@
+configuration,loss_function,train_samples,train_positives,val_samples,val_positives,tp,fp,tn,fn,precision,recall,f1_score,false_alarm_rate,pr_auc,recommendation_status
+Standard BCE,BCEWithLogitsLoss (pos_weight=1.0),1243,36,428,15,0,0,413,15,0.0,0.0,0.0,0.0,0.1896,Inferior
+Weighted BCE (w=10),BCEWithLogitsLoss (pos_weight=10.0),1243,36,428,15,2,42,371,13,0.0455,0.1333,0.0678,0.1017,0.1551,Inferior
+Class-Ratio BCE (w=33.3),BCEWithLogitsLoss (pos_weight=33.3),1243,36,428,15,2,77,336,13,0.0253,0.1333,0.0426,0.1864,0.0761,Inferior
+Focal Loss,"FocalLoss (alpha=0.25, gamma=2.0)",1243,36,428,15,0,0,413,15,0.0,0.0,0.0,0.0,0.2218,Inferior

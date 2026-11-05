@@ -1,0 +1,3 @@
+# Checkpoints directory
+# PyTorch model weights (.pt files) are gitignored due to size limits.
+# Checkpoint summaries and metadata JSON files are tracked in reports/.

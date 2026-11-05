@@ -1,0 +1,64 @@
+{
+  "model_name": "TC-GraphFormer",
+  "d_model": 64,
+  "device": "cpu",
+  "epochs_trained": 2,
+  "batch_size": 8,
+  "learning_rate": 0.0001,
+  "train_samples": 64,
+  "val_samples": 16,
+  "best_val_loss": 96.9445,
+  "checkpoints_directory": "checkpoints",
+  "latest_checkpoint": "checkpoints\\latest_checkpoint.pt",
+  "best_checkpoint": "checkpoints\\best_checkpoint.pt",
+  "history": [
+    {
+      "epoch": 1,
+      "train": {
+        "loss_total": 85.97914218902588,
+        "loss_intensity": 28.554283618927002,
+        "loss_pressure": 100.20234298706055,
+        "loss_stage": 1.6226046234369278,
+        "loss_intensity_change": 5.536713719367981,
+        "loss_ri": 0.4878357723355293,
+        "epoch": 1,
+        "epoch_time_sec": 17.23
+      },
+      "val": {
+        "val_loss": 97.2984,
+        "val_wind_mae_kt": 35.52,
+        "val_pressure_mae_hpa": 1001.43,
+        "val_stage_acc_pct": 0.0,
+        "val_dv_mae_kt": 11.26,
+        "val_ri_acc_pct": 100.0,
+        "total_val_samples": 16
+      },
+      "is_best": true,
+      "checkpoint_path": "checkpoints\\checkpoint_epoch_001.pt"
+    },
+    {
+      "epoch": 2,
+      "train": {
+        "loss_total": 85.26365947723389,
+        "loss_intensity": 28.03837823867798,
+        "loss_pressure": 100.19878196716309,
+        "loss_stage": 1.6654006093740463,
+        "loss_intensity_change": 5.441785931587219,
+        "loss_ri": 0.42570164054632187,
+        "epoch": 2,
+        "epoch_time_sec": 17.42
+      },
+      "val": {
+        "val_loss": 96.9445,
+        "val_wind_mae_kt": 35.24,
+        "val_pressure_mae_hpa": 1001.38,
+        "val_stage_acc_pct": 12.5,
+        "val_dv_mae_kt": 11.23,
+        "val_ri_acc_pct": 100.0,
+        "total_val_samples": 16
+      },
+      "is_best": true,
+      "checkpoint_path": "checkpoints\\checkpoint_epoch_002.pt"
+    }
+  ]
+}

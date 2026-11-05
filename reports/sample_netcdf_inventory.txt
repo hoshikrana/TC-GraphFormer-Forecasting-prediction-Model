@@ -1,0 +1,424 @@
+===============================================================================================
+TC PRIMED NetCDF Inspection Report: sample_gmi.nc
+Inspection Timestamp: 2026-11-02 10:53:51 UTC
+Full Path: C:\Users\hoshi\Desktop\Capstone_project\data\raw\sample_gmi.nc
+File Size: 14.872 MB (15,594,398 bytes)
+===============================================================================================
+
+1. STORM IDENTIFICATION & BEST-TRACK LABELS
+-----------------------------------------------------------------------------------------------
+  Basin:              IO | Season: 2014 | Storm ID: 3
+  Instrument/Platform: GMI on GPM
+  Position:           10.819999694824219 deg N, 95.55999755859375 deg E
+  Intensity:          25 knots (1-min max sustained wind)
+  Central Min Pressure:1004 hPa
+  Development Stage:  TD
+  Distance to Land:   321.2300109863281 km
+  Coverage Fraction:  68.76%
+
+2. MODALITY AUDIT (AVAILABLE VS MISSING OBSERVATIONS)
+-----------------------------------------------------------------------------------------------
+  * PASSIVE_MICROWAVE    [PRESENT & USABLE]             - Passive Microwave Imagery
+      Swath 'S1': 9 channels (TB_10.65V, TB_10.65H, TB_18.7V, TB_18.7H, TB_23.8V, TB_36.64V, TB_36.64H, TB_89.0V, TB_89.0H, shape: [168, 221])
+      Swath 'S2': 4 channels (TB_166.0V, TB_166.0H, TB_183.31_3.0V, TB_183.31_7.0V, shape: [157, 175])
+  * INFRARED             [PRESENT & USABLE]             - Geostationary Infrared (IR)
+      Availability Flag: 1
+  * GPROF                [PRESENT & USABLE]             - NASA GPROF Precipitation Retrievals
+      Availability Flag: 1
+      Subgroups: S1
+  * RADAR_RADIOMETER     [PRESENT & USABLE]             - TRMM/GPM Radar-Radiometer Observation
+      Availability Flag: 1
+      Subgroups: KuGMI, KuKaGMI
+
+3. ROOT GLOBAL ATTRIBUTES
+-----------------------------------------------------------------------------------------------
+  Conventions                        : CF-1.11, ACDD-1.3
+  automated_tropical_cyclone_forecasting_system_storm_identifier: io032014
+  comment                            : TC PRIMED uses hierarchical groups within its netCDF datasets, which may not be initially visible from some software.
+  contributor_name                   : COLOSTATE/ATMOS > Department of Atmospheric Science, Colorado State University
+ DOC/NOAA/NESDIS/STAR > Center for Sat...
+  creator_country                    : USA
+  creator_email                      : CIRA_tcprimed@colostate.edu
+  creator_institution                : COLOSTATE/CIRA > Cooperative Institute for Research in the Atmosphere, Colorado State University
+  creator_name                       : COLOSTATE/CIRA/TC PRIMED TEAM > TC PRIMED TEAM, Cooperative Institute for Research in the Atmosphere, Colorado State ...
+  creator_sector                     : academic
+  creator_type                       : group
+  creator_url                        : https://www.cira.colostate.edu/
+  data_groups                        : overpass_metadata overpass_storm_metadata passive_microwave radar_radiometer infrared
+  date_created                       : 2024-08-22T16:01:23.648Z
+  date_issued                        : 2024-07-01T18:00:00.000Z
+  date_metadata_modified             : 2024-11-18T23:56:26.000Z
+  date_modified                      : 2024-11-18T23:56:26.000Z
+  history                            : Created 2024-08-22T16:01:23.648Z
+Modified 2024-11-18T23:56:26.000Z to correct overpass_storm_metadata/storm_heading
+  id                                 : TCPRIMED_v01r01-final_IO032014_GMI_GPM_003440_20141006184128.nc
+  infoURL                            : https://rammb-data.cira.colostate.edu/tcprimed/
+  institution                        : COLOSTATE/CIRA > Cooperative Institute for Research in the Atmosphere, Colorado State University
+  keywords                           : EARTH SCIENCE SERVICES > DATA MANAGEMENT/DATA HANDLING > SUBSETTING/SUPERSETTING, EARTH SCIENCE > ATMOSPHERE > WEATHE...
+  keywords_vocabulary                : GCMD:Global Change Master Directory Keywords v18.7
+  license                            : No constraints on data access or use unless otherwise stated
+  metadata_link                      : https://doi.org/10.25921/dmy1-0595
+  naming_authority                   : edu.colostate.cira
+  product_version                    : v01r01-final
+  project                            : TC PRIMED > Tropical Cyclone Precipitation, Infrared, Microwave, and Environmental Dataset
+  publisher_country                  : USA
+  publisher_email                    : ncei.info@noaa.gov
+  publisher_institution              : DOC/NOAA/NESDIS/NCEI > National Centers for Environmental Information, NESDIS, NOAA, U.S. Department of Commerce
+  publisher_name                     : DOC/NOAA/NESDIS/NCEI > National Centers for Environmental Information, NESDIS, NOAA, U.S. Department of Commerce
+  publisher_sector                   : gov_federal
+  publisher_type                     : institution
+  publisher_url                      : https://www.ncei.noaa.gov
+  references                         : Razin, Muhammad Naufal; Slocum, Christopher J.; Knaff, John A.; Brown, Paula J. 2023. Tropical Cyclone PRecipitation,...
+  standard_name_vocabulary           : CF Standard Name Table v85
+  summary                            : The Tropical Cyclone Precipitation, Infrared, Microwave, and Environmental Dataset (TC PRIMED) is a dataset of satell...
+  title                              : Tropical Cyclone Precipitation, Infrared, Microwave, and Environmental Dataset (TC PRIMED)
+  uuid                               : b9125cf6-a608-11ef-b814-3cecefd0da00
+
+4. ROOT DIMENSIONS
+-----------------------------------------------------------------------------------------------
+  (No root-level dimensions defined; dimensions reside within groups)
+
+5. DISCOVERED GROUP HIERARCHY
+-----------------------------------------------------------------------------------------------
+  Total groups discovered: 13
+  / (root)
+  //  [Vars: 0, Dims: ()]
+  ///overpass_metadata  [Vars: 9, Dims: (time=1)]
+  ///overpass_storm_metadata  [Vars: 14, Dims: (time=1, intensity_change_periods=9)]
+  ///passive_microwave  [Vars: 1, Dims: (time=1)]
+  ///passive_microwave/S1  [Vars: 16, Dims: (scan=168, pixel=221)]
+  ///passive_microwave/S2  [Vars: 11, Dims: (scan=157, pixel=175)]
+  ///GPROF  [Vars: 2, Dims: (time=1)]
+  ///GPROF/S1  [Vars: 18, Dims: (scan=168, pixel=221, hgtTopLayer=28)]
+  ///radar_radiometer  [Vars: 2, Dims: (time=1)]
+  ///radar_radiometer/KuGMI  [Vars: 20, Dims: (scan=352, beam=49, range=88)]
+  ///radar_radiometer/KuKaGMI  [Vars: 21, Dims: (scan=339, beam=25, range=88)]
+  ///infrared  [Vars: 24, Dims: (time=1, R5_time=59, nx=640, ny=480, radius=30, brightness_temperature_thresholds=6, region=1, regions=2)]
+
+6. COMPLETE VARIABLE INVENTORY
+-----------------------------------------------------------------------------------------------
+  Total variables: 138
+
+  === Group: ///GPROF (2 variables) ===
+  Variable Name              Shape            Dtype        Dimensions               Units       
+  ---------------------------------------------------------------------------------------------
+  time                       (1,)             int64        time                     seconds si. 
+    -> long_name: 'Time of the passive microwave observation of the storm'
+  availability_flag          (1,)             int64        time                     -           
+    -> long_name: 'Availability flag for the GPROF variables'
+
+  === Group: ///GPROF/S1 (18 variables) ===
+  Variable Name              Shape            Dtype        Dimensions               Units       
+  ---------------------------------------------------------------------------------------------
+  latitude                   (168, 221)       float32      scan,pixel               degrees_no. 
+    -> long_name: 'The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid'
+  longitude                  (168, 221)       float32      scan,pixel               degrees_ea. 
+    -> long_name: 'The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid'
+  x                          (168, 221)       float64      scan,pixel               km          
+    -> long_name: 'The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center'
+  y                          (168, 221)       float64      scan,pixel               km          
+    -> long_name: 'The meridional/north-south distance of the center of the IFOV at the altitude of the Earth, relative to the interpolated tropical cyclone center'
+  hgtTopLayer                (28,)            float32      hgtTopLayer              km          
+    -> long_name: 'Height of the top of each of 28 atmospheric layers in the vertical profiles'
+  angle_bins                 (221,)           int16        pixel                    1           
+    -> long_name: 'The angle bins used in each scan of the swath'
+  ScanTime                   (168,)           int64        scan                     seconds si. 
+    -> long_name: 'The time of each satellite scan'
+  surfacePrecipitation       (168, 221)       float32      scan,pixel               mm hr-1     
+    -> long_name: 'The instantaneous precipitation rate at the surface'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  convectivePrecipitation    (168, 221)       float32      scan,pixel               mm hr-1     
+    -> long_name: 'The instantaneous convective precipitation rate at the surface'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  rainWaterPath              (168, 221)       float32      scan,pixel               kg m-2      
+    -> long_name: 'Total integrated rain water in the vertical atmospheric column'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  cloudWaterPath             (168, 221)       float32      scan,pixel               kg m-2      
+    -> long_name: 'Total integrated cloud liquid water in the vertical atmospheric column'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  iceWaterPath               (168, 221)       float32      scan,pixel               kg m-2      
+    -> long_name: 'Total integrated ice water in the vertical atmospheric column'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  rainWaterContent           (28, 168, 221)   float32      hgtTopLayer,scan,pixel   g m-3       
+    -> long_name: 'Vertical profile of rain water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  cloudWaterContent          (28, 168, 221)   float32      hgtTopLayer,scan,pixel   g m-3       
+    -> long_name: 'Vertical profile of cloud water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  snowWaterContent           (28, 168, 221)   float32      hgtTopLayer,scan,pixel   g m-3       
+    -> long_name: 'Vertical profile of snow water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  probabilityOfPrecip        (168, 221)       float64      scan,pixel               %           
+    -> long_name: 'Fraction of raining vs non-raining Database profiles that make up the final retrieval solution'; _FillValue: -99.0; missing_value: -99.0
+  qualityFlag                (168, 221)       float64      scan,pixel               1           
+    -> long_name: 'Generalized quality of the retrieved pixel'; _FillValue: -99.0; missing_value: -99.0
+  surfaceTypeIndex           (168, 221)       float64      scan,pixel               1           
+    -> long_name: 'Type of surface in GPROF field-of-view'; _FillValue: -99.0; missing_value: -99.0
+
+  === Group: ///infrared (24 variables) ===
+  Variable Name              Shape            Dtype        Dimensions               Units       
+  ---------------------------------------------------------------------------------------------
+  R5_availability_flag       (1,)             int64        time                     -           
+    -> long_name: 'Availability flag for the R5 data'
+  R5_time                    (59,)            int64        R5_time                  seconds si. 
+    -> long_name: 'Time of R5 observations of the storm'
+  R5                         (59,)            float32      R5_time                  degrees_la. 
+    -> long_name: 'Radius of mean tangential winds of 5 knots at 850 hPa level'
+  infrared_availability_flag (1,)             int8         time                     -           
+    -> long_name: 'Availability flag for the infrared data'
+  time                       (1,)             int64        time                     seconds si. 
+    -> long_name: 'Time of infrared observation of the storm'
+  storm_latitude             (1,)             float32      time                     degrees_no. 
+    -> long_name: 'Tropical cyclone center latitude interpolated from the best-track to the infrared observation time'
+  storm_longitude            (1,)             float32      time                     degrees_ea. 
+    -> long_name: 'Tropical cyclone center longitude interpolated from the best-track to the infrared observation time'
+  latitude                   (480, 640)       float32      ny,nx                    degrees_no. 
+    -> long_name: 'The Earth latitude of the center of the infrared pixel'
+  longitude                  (480, 640)       float32      ny,nx                    degrees_ea. 
+    -> long_name: 'The Earth longitude of the center of the infrared pixel'
+  x                          (480, 640)       float64      ny,nx                    km          
+    -> long_name: 'The zonal/east-west distance of the center of the infrared pixel relative to the interpolated tropical cyclone center'
+  y                          (480, 640)       float64      ny,nx                    km          
+    -> long_name: 'The meridional distance of the center of the infrared pixel relative to the interpolated tropical cyclone center'
+  radius                     (30,)            int16        radius                   km          
+    -> long_name: 'Bin centers for radial profile of mean binned infrared brightness temperature'
+  brightness_temperature_thresholds (6,)             int16        brightness_temperat...   C           
+    -> long_name: 'Threshold of brightness temperature values for percent pixel calculation'
+  IRWIN                      (480, 640)       float32      ny,nx                    K           
+    -> long_name: 'Brightness temperature at 11.20 microns'; _FillValue: -999.989990234375
+  percent_pixel_below_threshold (6, 1)           float32      brightness_temperat...   %           
+    -> long_name: 'Percent of pixel counts below brightness temperature threshold within an annulus region around the storm center'; _FillValue: -999.989990234375
+  brightness_temperature_annulus_mean (2,)             float32      regions                  C           
+    -> long_name: 'Mean brightness temperature within an annulus region around the storm center'; _FillValue: -999.989990234375
+  brightness_temperature_annulus_standard_deviation (2,)             float32      regions                  C           
+    -> long_name: 'Standard deviation of brightness temperatures within an annulus region around the storm center'; _FillValue: -999.989990234375
+  brightness_temperature_eye_maximum (1,)             float32      region                   C           
+    -> long_name: 'Maximum brightness temperature in eye region'; _FillValue: -999.989990234375
+  brightness_temperature_eye_mean (1,)             float32      region                   C           
+    -> long_name: 'Mean brightness temperature in eye region'; _FillValue: -999.989990234375
+  brightness_temperature_mean_radial_profile (30,)            float32      radius                   C           
+    -> long_name: 'Radial profile of mean brightness temperatures calculated from binned brightness temperature values'; _FillValue: -999.989990234375
+  brightness_temperature_radial_profile_eye_maximum_radius (1,)             int16        region                   C           
+    -> long_name: 'Radius of maximum brightness temperature in the eye region from radial profile of mean brightness temperatures'; _FillValue: -99
+  brightness_temperature_radial_profile_annulus_minimum (1,)             float32      region                   C           
+    -> long_name: 'Minimum brightness temperature in annulus region from radial profile of mean brightness temperatures'; _FillValue: -999.989990234375
+  brightness_temperature_radial_profile_annulus_mean (1,)             float32      region                   C           
+    -> long_name: 'Mean brightness temperature in annulus region from radial profile of mean brightness temperatures'; _FillValue: -999.989990234375
+  brightness_temperature_radial_profile_annulus_minimum_radius (1,)             int16        region                   C           
+    -> long_name: 'Radius of minimum brightness temperature in annulus region from radial profile of mean brightness temperatures'; _FillValue: -99
+
+  === Group: ///overpass_metadata (9 variables) ===
+  Variable Name              Shape            Dtype        Dimensions               Units       
+  ---------------------------------------------------------------------------------------------
+  time                       (1,)             int64        time                     seconds si. 
+    -> long_name: 'Time of the passive microwave observation of the storm'
+  basin                      (1,)             <class 'str'> time                     -           
+    -> long_name: 'Tropical cyclone basin'
+  cyclone_number             (1,)             int8         time                     1           
+    -> long_name: 'Tropical cyclone annual cyclone number'
+  season                     (1,)             int16        time                     -           
+    -> long_name: 'Tropical cyclone basin season'
+  instrument_name            (1,)             <class 'str'> time                     -           
+    -> long_name: 'Satellite instrument name'
+  platform_name              (1,)             <class 'str'> time                     -           
+    -> long_name: 'Satellite platform name'
+  granule_number             (1,)             <class 'str'> time                     -           
+    -> long_name: 'Satellite granule number for the tropical cyclone overpass'
+  coverage_fraction          (1,)             int16        time                     %           
+    -> long_name: 'Amount of satellite passive microwave coverage from the S1 swath within 750 km radius centered on the storm center'; scale_factor: 0.01
+  env_time                   (1,)             int64        time                     seconds si. 
+    -> long_name: 'Closest standard synoptic time (0000, 0600, 1200, 1800 UTC) to the passive microwave observation time for TC PRIMED environmental file'
+
+  === Group: ///overpass_storm_metadata (14 variables) ===
+  Variable Name              Shape            Dtype        Dimensions               Units       
+  ---------------------------------------------------------------------------------------------
+  time                       (1,)             int64        time                     seconds si. 
+    -> long_name: 'Time of the passive microwave observation of the storm'
+  storm_latitude             (1,)             float32      time                     degrees_no. 
+    -> long_name: 'Tropical cyclone center latitude interpolated from the best-track to the passive microwave observation time'
+  storm_longitude            (1,)             float32      time                     degrees_ea. 
+    -> long_name: 'Tropical cyclone center longitude interpolated from the best-track to the passive microwave observation time'
+  intensity                  (1,)             int16        time                     kt          
+    -> long_name: 'Tropical cyclone intensity linearly interpolated from the best-track to the passive microwave observation time; maximum 1-min average sustained wind speed at 10 m'; _FillValue: -999; missing_value: -999
+  intensity_change_periods   (9,)             int8         intensity_change_pe...   hours       
+    -> long_name: 'Periods of intensity change relative to the passive microwave observation time'
+  intensity_change_times     (9,)             int64        intensity_change_pe...   seconds si. 
+    -> long_name: 'Times corresponding to the intensity change periods'
+  intensity_change           (9,)             int16        intensity_change_pe...   kt          
+    -> long_name: 'Forward-differenced intensity change over 0, 6, 12, 18, and 24 hours before and after passive microwave observation time'; _FillValue: -999; missing_value: -999
+  central_min_pressure       (1,)             int16        time                     hPa         
+    -> long_name: 'Tropical cyclone minimum sea level pressure linearly interpolated from the best-track to the passive microwave observation time'; _FillValue: -999; missing_value: -999
+  development_level          (1,)             <class 'str'> time                     -           
+    -> long_name: 'Tropical cyclone best-track development level closest to the passive microwave observation time'; _FillValue: UN; missing_value: UN
+  distance_to_land           (1,)             float32      time                     km          
+    -> long_name: 'Distance to nearest major land mass at the passive microwave observation time; Negative values overland'
+  storm_speed                (1,)             int16        time                     m s-1       
+    -> long_name: 'Tropical cyclone translational speed of motion linearly interpolated from the best-track to the passive microwave observation time'; _FillValue: -9990; missing_value: -9990; scale_factor: 0.1
+  storm_heading              (1,)             int16        time                     degree      
+    -> long_name: 'Tropical cyclone direction of motion linear interpolated from the best-track to the passive microwave observation time'; _FillValue: -9990; missing_value: -9990; scale_factor: 0.1
+  storm_speed_meridional_component (1,)             int16        time                     m s-1       
+    -> long_name: 'Tropical cyclone meridional/northward component of the storm motion interpolated from the best-track to the passive microwave observation time'; _FillValue: -9990; missing_value: -9990; scale_factor: 0.1
+  storm_speed_zonal_component (1,)             int16        time                     m s-1       
+    -> long_name: 'Tropical cyclone zonal/eastward component of the storm motion interpolated from the best-track to passive the microwave observation time'; _FillValue: -9990; missing_value: -9990; scale_factor: 0.1
+
+  === Group: ///passive_microwave (1 variables) ===
+  Variable Name              Shape            Dtype        Dimensions               Units       
+  ---------------------------------------------------------------------------------------------
+  time                       (1,)             int64        time                     seconds si. 
+    -> long_name: 'Time of the passive microwave observation of the storm'
+
+  === Group: ///passive_microwave/S1 (16 variables) ===
+  Variable Name              Shape            Dtype        Dimensions               Units       
+  ---------------------------------------------------------------------------------------------
+  latitude                   (168, 221)       float32      scan,pixel               degrees_no. 
+    -> long_name: 'The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid'
+  longitude                  (168, 221)       float32      scan,pixel               degrees_ea. 
+    -> long_name: 'The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid'
+  x                          (168, 221)       float64      scan,pixel               km          
+    -> long_name: 'The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center'
+  y                          (168, 221)       float64      scan,pixel               km          
+    -> long_name: 'The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center'
+  angle_bins                 (221,)           int16        pixel                    1           
+    -> long_name: 'The angle bins used in each scan for the S1 swath'
+  ScanTime                   (168,)           int64        scan                     seconds si. 
+    -> long_name: 'The time of each satellite scan'
+  surface_type               (168, 221)       int16        scan,pixel               1           
+    -> long_name: 'Surface type for the the center of the IFOV at the altitude of the Earth ellipsoid'; _FillValue: -99; missing_value: -99
+  TB_10.65V                  (168, 221)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 10.65 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  TB_10.65H                  (168, 221)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 10.65 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  TB_18.7V                   (168, 221)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 18.7 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  TB_18.7H                   (168, 221)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 18.7 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  TB_23.8V                   (168, 221)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 23.8 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  TB_36.64V                  (168, 221)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 36.64 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  TB_36.64H                  (168, 221)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 36.64 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  TB_89.0V                   (168, 221)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 89.0 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  TB_89.0H                   (168, 221)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 89.0 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+
+  === Group: ///passive_microwave/S2 (11 variables) ===
+  Variable Name              Shape            Dtype        Dimensions               Units       
+  ---------------------------------------------------------------------------------------------
+  latitude                   (157, 175)       float32      scan,pixel               degrees_no. 
+    -> long_name: 'The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid'
+  longitude                  (157, 175)       float32      scan,pixel               degrees_ea. 
+    -> long_name: 'The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid'
+  x                          (157, 175)       float64      scan,pixel               km          
+    -> long_name: 'The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center'
+  y                          (157, 175)       float64      scan,pixel               km          
+    -> long_name: 'The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center'
+  angle_bins                 (175,)           int16        pixel                    1           
+    -> long_name: 'The angle bins used in each scan for the S2 swath'
+  ScanTime                   (157,)           int64        scan                     seconds si. 
+    -> long_name: 'The time of each satellite scan'
+  surface_type               (157, 175)       int16        scan,pixel               1           
+    -> long_name: 'Surface type for the the center of the IFOV at the altitude of the Earth ellipsoid'; _FillValue: -99; missing_value: -99
+  TB_166.0V                  (157, 175)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 166.0 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  TB_166.0H                  (157, 175)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 166.0 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  TB_183.31_3.0V             (157, 175)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 183.31+/-3.0 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  TB_183.31_7.0V             (157, 175)       float32      scan,pixel               K           
+    -> long_name: 'Earth view brightness temperature at 183.31+/-7.0 GHz'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+
+  === Group: ///radar_radiometer (2 variables) ===
+  Variable Name              Shape            Dtype        Dimensions               Units       
+  ---------------------------------------------------------------------------------------------
+  availability_flag          (1,)             int8         time                     -           
+    -> long_name: 'Availability flag for the combined radar-radiometer variables'
+  time                       (1,)             int64        time                     seconds si. 
+    -> long_name: 'Time of the passive microwave observation of the storm'
+
+  === Group: ///radar_radiometer/KuGMI (20 variables) ===
+  Variable Name              Shape            Dtype        Dimensions               Units       
+  ---------------------------------------------------------------------------------------------
+  latitude                   (352, 49)        float32      scan,beam                degrees_no. 
+    -> long_name: 'The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid'
+  longitude                  (352, 49)        float32      scan,beam                degrees_ea. 
+    -> long_name: 'The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid'
+  x                          (352, 49)        float64      scan,beam                km          
+    -> long_name: 'The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center'
+  y                          (352, 49)        float64      scan,beam                km          
+    -> long_name: 'The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center'
+  binHeight                  (88, 352, 49)    float32      range,scan,beam          km          
+    -> long_name: 'Height of each radar bin above the Earth ellipsoid'
+  angle_bins                 (49,)            int16        beam                     1           
+    -> long_name: 'The angle bins used in each scan'
+  ScanTime                   (352,)           int64        scan                     seconds si. 
+    -> long_name: 'The time of each radar scan'
+  correctedReflectFactor_Ku  (88, 352, 49)    float32      range,scan,beam          dBZ         
+    -> long_name: 'Vertical profile of the Ku-band reflectivity factor with attenuation correction'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  nearSurfPrecipTotRate      (352, 49)        float32      scan,beam                mm hr-1     
+    -> long_name: 'Near-surface total precipitation rate (from the lowest clutter-free bin)'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  nearSurfPrecipTotRateSigma (352, 49)        float32      scan,beam                mm hr-1     
+    -> long_name: 'Uncertainty in the near-surface total precipitation rate (from the lowest clutter-free bin)'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  cloudLiqWaterCont          (88, 352, 49)    float32      range,scan,beam          g m-3       
+    -> long_name: 'Vertical profile of cloud liquid water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  cloudIceWaterCont          (88, 352, 49)    float32      range,scan,beam          g m-3       
+    -> long_name: 'Vertical profile of cloud ice water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  precipTotWaterCont         (88, 352, 49)    float32      range,scan,beam          g m-3       
+    -> long_name: 'Vertical profile of total precipitation liquid water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  precipTotWaterContSigma    (88, 352, 49)    float32      range,scan,beam          g m-3       
+    -> long_name: 'Uncertainty in the vertical profile of total precipitation liquid water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  precipLiqWaterCont         (88, 352, 49)    float32      range,scan,beam          g m-3       
+    -> long_name: 'Vertical profile of liquid precipitation water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  precipTotRate              (88, 352, 49)    float32      range,scan,beam          mm hr-1     
+    -> long_name: 'Vertical profile of total precipitation rate'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  precipTotRateSigma         (88, 352, 49)    float32      range,scan,beam          mm hr-1     
+    -> long_name: 'Uncertainty in the vertical profile of total precipitation rate'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  precipLiqRate              (88, 352, 49)    float32      range,scan,beam          mm hr-1     
+    -> long_name: 'Vertical profiles of liquid precipitation rate'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  mainprecipitationType      (352, 49)        int16        scan,beam                1           
+    -> long_name: 'Main precipitation type'; _FillValue: -99
+  surfaceType                (352, 49)        int32        scan,beam                1           
+    -> long_name: 'Type of surface in precipitation radar field-of-view'; _FillValue: -9999; missing_value: -9999
+
+  === Group: ///radar_radiometer/KuKaGMI (21 variables) ===
+  Variable Name              Shape            Dtype        Dimensions               Units       
+  ---------------------------------------------------------------------------------------------
+  latitude                   (339, 25)        float32      scan,beam                degrees_no. 
+    -> long_name: 'The Earth latitude of the center of the IFOV at the altitude of the Earth ellipsoid'
+  longitude                  (339, 25)        float32      scan,beam                degrees_ea. 
+    -> long_name: 'The Earth longitude of the center of the IFOV at the altitude of the Earth ellipsoid'
+  x                          (339, 25)        float64      scan,beam                km          
+    -> long_name: 'The zonal/east-west distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center'
+  y                          (339, 25)        float64      scan,beam                km          
+    -> long_name: 'The meridional/north-south distance of the center of the IFOV at the altitude of the Earth ellipsoid, relative to the interpolated tropical cyclone center'
+  binHeight                  (88, 339, 25)    float32      range,scan,beam          km          
+    -> long_name: 'Height of each radar bin above the Earth ellipsoid'
+  angle_bins                 (25,)            int16        beam                     1           
+    -> long_name: 'The angle bins used in each scan'
+  ScanTime                   (339,)           int64        scan                     seconds si. 
+    -> long_name: 'The time of each radar scan'
+  correctedReflectFactor_Ka  (88, 339, 25)    float32      range,scan,beam          dBZ         
+    -> long_name: 'Vertical profile of the Ka-band reflectivity factor with attenuation correction'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  correctedReflectFactor_Ku  (88, 339, 25)    float32      range,scan,beam          dBZ         
+    -> long_name: 'Vertical profile of the Ku-band reflectivity factor with attenuation correction, matched to Ka-band rays'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  nearSurfPrecipTotRate      (339, 25)        float32      scan,beam                mm hr-1     
+    -> long_name: 'Near-surface total precipitation rate (from the lowest clutter-free bin)'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  nearSurfPrecipTotRateSigma (339, 25)        float32      scan,beam                mm hr-1     
+    -> long_name: 'Uncertainty in the near-surface total precipitation rate (from the lowest clutter-free bin)'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  cloudLiqWaterCont          (88, 339, 25)    float32      range,scan,beam          g m-3       
+    -> long_name: 'Vertical profile of cloud liquid water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  cloudIceWaterCont          (88, 339, 25)    float32      range,scan,beam          g m-3       
+    -> long_name: 'Vertical profile of cloud ice water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  precipTotWaterCont         (88, 339, 25)    float32      range,scan,beam          g m-3       
+    -> long_name: 'Vertical profile of total precipitation liquid water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  precipTotWaterContSigma    (88, 339, 25)    float32      range,scan,beam          g m-3       
+    -> long_name: 'Uncertainty in the vertical profile of total precipitation liquid water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  precipLiqWaterCont         (88, 339, 25)    float32      range,scan,beam          g m-3       
+    -> long_name: 'Vertical profile of liquid precipitation water content'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  precipTotRate              (88, 339, 25)    float32      range,scan,beam          mm hr-1     
+    -> long_name: 'Vertical profile of total precipitation rate'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  precipTotRateSigma         (88, 339, 25)    float32      range,scan,beam          mm hr-1     
+    -> long_name: 'Uncertainty in the vertical profile of total precipitation rate'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  precipLiqRate              (88, 339, 25)    float32      range,scan,beam          mm hr-1     
+    -> long_name: 'Vertical profiles of liquid precipitation rate'; _FillValue: -9999.900390625; missing_value: -9999.900390625
+  mainprecipitationType      (339, 25)        int16        scan,beam                1           
+    -> long_name: 'Main precipitation type'; _FillValue: -99
+  surfaceType                (339, 25)        int32        scan,beam                1           
+    -> long_name: 'Type of surface in precipitation radar field-of-view'; _FillValue: -9999; missing_value: -9999
+
+===============================================================================================
+END OF INSPECTION REPORT
+===============================================================================================

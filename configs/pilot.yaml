@@ -1,0 +1,45 @@
+# TC PRIMED Pilot Data Pipeline Configuration
+# Dataset: NOAA TC PRIMED v01r01-final (Pilot ~20 GB)
+
+dataset:
+  root: "data/raw/pilot"
+  manifest: "reports/pilot_manifest.csv"
+  date_start: null
+  date_end: null
+  include_storms: null
+  exclude_storms: null
+  include_basins: null
+
+output:
+  root: "data/processed/pilot"
+  reports_dir: "reports/pipeline"
+  format: "netcdf4_hdf5"
+  compression_level: 4
+  min_disk_free_gb: 2.0
+
+processing:
+  workers: 1
+  batch_size: 16
+  resume: true
+  preserve_native_grids: true
+  atomic_writes: true
+
+splitting:
+  train: 0.70
+  validation: 0.15
+  test: 0.15
+  seed: 42
+
+targets:
+  horizons_hours: [6, 12, 18, 24]
+  ri_threshold_kt: 30.0
+
+quality_control:
+  ir_mw_max_diff_minutes: 60.0
+  enforce_causal_environmental: true
+  min_valid_pixel_fraction: 0.05
+  tb_min_k: 50.0
+  tb_max_k: 350.0
+  ir_min_k: 150.0
+  ir_max_k: 350.0
+

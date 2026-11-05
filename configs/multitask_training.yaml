@@ -1,0 +1,19 @@
+# Supervised Multi-Task Training Configuration
+training:
+  epochs: 15
+  batch_size: 16
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-4
+  d_model: 128
+  grad_clip_norm: 1.0
+  checkpoint_dir: "checkpoints"
+  output_report: "reports/multitask_training_summary.json"
+
+loss_weights:
+  weight_intensity: 1.0
+  weight_pressure: 0.5
+  weight_stage: 0.5
+  weight_intensity_change: 1.0
+  weight_ri: 2.0
+  ri_pos_weight: 10.0 # handles ~3% RI prevalence
+

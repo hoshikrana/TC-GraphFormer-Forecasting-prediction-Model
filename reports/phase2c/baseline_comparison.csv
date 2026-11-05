@@ -1,0 +1,17 @@
+partition,task,model,n_samples,mae,rmse,bias,notes
+VAL,Current Intensity (v_max),Climatology (Mean),612,15.73,22.76,-2.17,kt units
+VAL,Current Intensity (v_max),Linear Regression,612,15.53,22.64,-2.96,kt units
+VAL,Current Intensity (v_max),TC-GraphFormer,612,39.1,45.19,-39.1,kt units
+VAL,Central Pressure (p_min),Climatology (Mean),476,9.11,11.45,1.12,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+VAL,Central Pressure (p_min),Linear Pressure-Wind Fit,476,5.1,6.52,1.1,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+VAL,Central Pressure (p_min),TC-GraphFormer,476,995.93,996.0,-995.93,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+VAL,Development Stage,Majority Class (TS),612,57.52,0.0,0.0,Accuracy: 42.48%
+VAL,Development Stage,TC-GraphFormer,612,69.93,0.0,0.0,Accuracy: 30.07%
+TEST,Current Intensity (v_max),Climatology (Mean),245,12.31,17.08,6.02,kt units
+TEST,Current Intensity (v_max),Linear Regression,245,12.75,18.81,4.97,kt units
+TEST,Current Intensity (v_max),TC-GraphFormer,245,30.92,34.81,-30.92,kt units
+TEST,Central Pressure (p_min),Climatology (Mean),172,7.11,7.48,-5.79,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+TEST,Central Pressure (p_min),Linear Pressure-Wind Fit,172,2.87,3.84,0.3,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+TEST,Central Pressure (p_min),TC-GraphFormer,172,1002.84,1002.85,-1002.84,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+TEST,Development Stage,Majority Class (TS),245,77.55,0.0,0.0,Accuracy: 22.45%
+TEST,Development Stage,TC-GraphFormer,245,52.24,0.0,0.0,Accuracy: 47.76%

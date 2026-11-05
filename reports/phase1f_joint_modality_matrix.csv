@@ -1,0 +1,6 @@
+modality_combination,overpass_count,percentage_of_total_overpasses,pmw_present,irwin_present,gprof_present,radar_present,env_present
+PMW + IRWIN + GPROF + ENV,2073,79.76,True,True,True,False,True
+PMW + GPROF + ENV,315,12.12,True,False,True,False,True
+PMW + IRWIN + GPROF + Radar + ENV,185,7.12,True,True,True,True,True
+PMW + GPROF + Radar + ENV,22,0.85,True,False,True,True,True
+IRWIN + GPROF + ENV,4,0.15,False,True,True,False,True
