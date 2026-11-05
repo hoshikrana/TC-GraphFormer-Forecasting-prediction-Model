@@ -4,3 +4,4 @@ set -euo pipefail
 
 echo "[EVAL] Evaluating Models & Baselines on Val and Test partitions..."
 python src/evaluation/evaluate_baselines.py
+

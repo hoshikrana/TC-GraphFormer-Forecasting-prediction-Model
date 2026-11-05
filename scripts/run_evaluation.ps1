@@ -8,3 +8,4 @@ $ErrorActionPreference = "Stop"
 Write-Host "Evaluating Models & Baselines on Val and Test splits..." -ForegroundColor Cyan
 
 python src/evaluation/evaluate_baselines.py
+

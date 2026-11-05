@@ -7,3 +7,4 @@ RESUME_FLAG=${2:-""}
 
 echo "[PIPELINE] Launching TC PRIMED Preprocessing Engine..."
 python -m tcprimed_pipeline --config "$CONFIG" $RESUME_FLAG
+
