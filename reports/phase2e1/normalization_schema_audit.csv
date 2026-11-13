@@ -1,0 +1,23 @@
+modality,variable_name,raw_units,raw_fill_values,normalization_formula,output_range,sentinel_detection_stage
+Infrared,IRWIN,K,NaN / <= -9000.0 / < 100.0 / > 360.0,clip((Tb - 170.0) / 150.0, 0.0, 1.0),[0.0, 1.0],Raw array checked before arithmetic; invalid pixels set to NaN
+Passive Microwave,TB_19.35V / 18.7V,K,NaN / <= -9000.0 / < 50.0 / > 360.0,clip((Tb - 100.0) / 220.0, 0.0, 1.0),[0.0, 1.0],Raw array checked before arithmetic; invalid pixels set to NaN
+Passive Microwave,TB_19.35H / 18.7H,K,NaN / <= -9000.0 / < 50.0 / > 360.0,clip((Tb - 100.0) / 220.0, 0.0, 1.0),[0.0, 1.0],Raw array checked before arithmetic; invalid pixels set to NaN
+Passive Microwave,TB_37.0V / 36.64V,K,NaN / <= -9000.0 / < 50.0 / > 360.0,clip((Tb - 100.0) / 220.0, 0.0, 1.0),[0.0, 1.0],Raw array checked before arithmetic; invalid pixels set to NaN
+Passive Microwave,TB_85.5V / 89.0V,K,NaN / <= -9000.0 / < 50.0 / > 360.0,clip((Tb - 100.0) / 220.0, 0.0, 1.0),[0.0, 1.0],Raw array checked before arithmetic; invalid pixels set to NaN
+GPROF,surfacePrecipitation,mm/hr,NaN / <= -9000.0 / < 0.0,log1p(maximum(raw, 0.0)) / 5.0,[0.0, 1.0],Raw array checked before np.maximum/log1p; invalid pixels set to NaN
+GPROF,convectivePrecipitation,mm/hr,NaN / <= -9000.0 / < 0.0,log1p(maximum(raw, 0.0)) / 5.0,[0.0, 1.0],Raw array checked before np.maximum/log1p; invalid pixels set to NaN
+GPROF,rainWaterPath,kg/m^2,NaN / <= -9000.0 / < 0.0,log1p(maximum(raw, 0.0)) / 5.0,[0.0, 1.0],Raw array checked before np.maximum/log1p; invalid pixels set to NaN
+GPROF,iceWaterPath,kg/m^2,NaN / <= -9000.0 / < 0.0,log1p(maximum(raw, 0.0)) / 5.0,[0.0, 1.0],Raw array checked before np.maximum/log1p; invalid pixels set to NaN
+Radar,correctedReflectFactor_Ku,dBZ,NaN / <= -9000.0 / < -20.0 / > 100.0,clip((Ku - (-20.0)) / 100.0, 0.0, 1.0),[0.0, 1.0],Raw array checked before arithmetic; values outside [-20, 100] masked invalid
+ERA5 Reanalysis,precipitable_water,kg/m^2,NaN / <= -9000.0 / == -32768,(pw - 0.0) / 80.0,[0.0, 1.0],Raw array checked before arithmetic; invalid pixels set to NaN
+ERA5 Reanalysis,sst,K,NaN / <= -9000.0 / == -32768,(sst - 273.15) / 35.0,[0.0, 1.0],Raw array checked before arithmetic; invalid pixels set to NaN
+ERA5 Reanalysis,pressure_msl,hPa,NaN / <= -9000.0 / == -32768,(p - 1013.25) / 50.0,[-1.0, 1.0],Raw array checked before arithmetic; verified units are hPa (not Pa)
+ERA5 Reanalysis,temperature_2m,K,NaN / <= -9000.0 / == -32768,(t2m - 273.15) / 40.0,[0.0, 1.0],Raw array checked before arithmetic; invalid pixels set to NaN
+ERA5 Reanalysis,u_10m,m/s,NaN / <= -9000.0 / == -32768,(u10 - 0.0) / 30.0,[-1.0, 1.0],Raw array checked before arithmetic; invalid pixels set to NaN
+ERA5 Reanalysis,v_10m,m/s,NaN / <= -9000.0 / == -32768,(v10 - 0.0) / 30.0,[-1.0, 1.0],Raw array checked before arithmetic; invalid pixels set to NaN
+Target,intensity_vmax_kt,kt,NaN,raw value (kt),[0, 200],Masked by intensity_mask (1.0 if valid, 0.0 if missing)
+Target,central_min_pressure_hpa,hPa,NaN,raw value (hPa),[850, 1030],Masked by pressure_mask (1.0 if valid, 0.0 if missing)
+Target,development_stage_raw,category,UN / None,STAGE_MAPPING_CANONICAL,[0, 4],Masked by stage_mask (0.0 for unmapped classes)
+Target,intensity_change_Xh_kt,kt,NaN,raw value (kt),[-100, 100],Masked by intensity_change_mask per horizon (+6h, +12h, +18h, +24h)
+Target,is_rapid_intensification_24h,binary,NaN,raw binary indicator,{0.0, 1.0},Masked by ri_mask (1.0 if valid, 0.0 if missing)
+Target,track_displacement_Xh,km,NaN,dx_km and dy_km via tangent plane,[-1000, 1000],Masked by track_mask per horizon (+6h, +12h, +18h, +24h)

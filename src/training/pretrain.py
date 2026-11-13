@@ -127,19 +127,23 @@ def run_pretraining(
             m_rad = masks[:, 3]
             m_env = masks[:, 4]
 
-            # 1. Student forward pass WITH autograd tracking
-            t_ir = model.ir_encoder(ir, m_ir)
-            t_pmw = model.pmw_encoder(pmw, m_pmw, channel_mask=ch_masks.get("pmw"))
-            t_gp = model.gprof_encoder(gprof, m_gp, channel_mask=ch_masks.get("gprof"))
-            t_rad = model.radar_encoder(radar, m_rad)
-            t_env = model.env_encoder(env, m_env, channel_mask=ch_masks.get("env"))
+            pix_masks = {k: v.to(device) for k, v in batch["pixel_masks"].items()} if "pixel_masks" in batch and batch["pixel_masks"] else {}
+            pix_ir = pix_masks.get("ir")
+            pix_pmw = pix_masks.get("pmw")
+            pix_gp = pix_masks.get("gprof")
+            pix_rad = pix_masks.get("radar")
+            pix_env = pix_masks.get("env")
 
-            all_student_tokens = torch.cat([t_ir, t_pmw, t_gp, t_rad, t_env], dim=1) # (B, 80, d_model)
+            # 1. Target representations: detached from gradient graph (unmasked forward pass with no_grad)
+            with torch.no_grad():
+                t_ir_tgt = model.ir_encoder(ir, m_ir, pixel_mask=pix_ir).detach()
+                t_pmw_tgt = model.pmw_encoder(pmw, m_pmw, channel_mask=ch_masks.get("pmw"), pixel_mask=pix_pmw).detach()
+                t_gp_tgt = model.gprof_encoder(gprof, m_gp, channel_mask=ch_masks.get("gprof"), pixel_mask=pix_gp).detach()
+                t_rad_tgt = model.radar_encoder(radar, m_rad, voxel_mask=pix_rad).detach()
+                t_env_tgt = model.env_encoder(env, m_env, channel_mask=ch_masks.get("env"), pixel_mask=pix_env).detach()
+                all_targets = torch.cat([t_ir_tgt, t_pmw_tgt, t_gp_tgt, t_rad_tgt, t_env_tgt], dim=1)  # (B, 80, d_model)
 
-            # 2. Target representations: detached from gradient graph
-            all_targets = all_student_tokens.detach().clone()
-
-            # 3. Construct token-level validity mask: (B, 80, 1)
+            # 2. Construct token-level validity mask: (B, 80, 1)
             # Only tokens belonging to genuinely present modalities can be masked or reconstructed
             valid_tok_mask = torch.cat([
                 m_ir.view(B, 1, 1).repeat(1, 16, 1),
@@ -147,9 +151,9 @@ def run_pretraining(
                 m_gp.view(B, 1, 1).repeat(1, 16, 1),
                 m_rad.view(B, 1, 1).repeat(1, 16, 1),
                 m_env.view(B, 1, 1).repeat(1, 16, 1),
-            ], dim=1) # (B, 80, 1)
+            ], dim=1)  # (B, 80, 1)
 
-            # 4. Generate random mask strictly over valid tokens
+            # 3. Generate random mask strictly over valid tokens
             mask_to_recon = torch.zeros((B, 80, 1), dtype=torch.float32, device=device)
 
             for b in range(B):
@@ -172,22 +176,79 @@ def run_pretraining(
             total_masked_tokens += n_masked_batch
             total_visible_tokens += n_visible_batch
 
-            # 5. Corrupt student tokens by zeroing masked valid positions
-            # (Visible tokens keep active computational path to encoders)
-            corrupted_tokens = all_student_tokens * (1.0 - mask_to_recon)
+            # 4. Student input masking: Zero out raw spatial patches so student encoder cannot see masked regions
+            ir_stud = ir.clone()
+            pmw_stud = pmw.clone()
+            gp_stud = gprof.clone()
+            rad_stud = radar.clone()
+            env_stud = env.clone()
 
-            s_ir = corrupted_tokens[:, 0:16]
-            s_pmw = corrupted_tokens[:, 16:32]
-            s_gp = corrupted_tokens[:, 32:48]
-            s_rad = corrupted_tokens[:, 48:64]
-            s_env = corrupted_tokens[:, 64:80]
+            pix_ir_stud = pix_ir.clone() if pix_ir is not None else torch.ones_like(ir)
+            pix_pmw_stud = pix_pmw.clone() if pix_pmw is not None else torch.ones_like(pmw)
+            pix_gp_stud = pix_gp.clone() if pix_gp is not None else torch.ones_like(gprof)
+            pix_rad_stud = pix_rad.clone() if pix_rad is not None else torch.ones_like(radar)
+            pix_env_stud = pix_env.clone() if pix_env is not None else torch.ones_like(env)
+
+            # Apply patch-level spatial masking on student inputs
+            for b in range(B):
+                # IR: tokens 0..15
+                for p in range(16):
+                    if mask_to_recon[b, p, 0] > 0.5:
+                        r_idx, c_idx = p // 4, p % 4
+                        h_s, h_e = r_idx * 16, (r_idx + 1) * 16
+                        w_s, w_e = c_idx * 16, (c_idx + 1) * 16
+                        ir_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+                        pix_ir_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+
+                # PMW: tokens 16..31
+                for p in range(16):
+                    if mask_to_recon[b, 16 + p, 0] > 0.5:
+                        r_idx, c_idx = p // 4, p % 4
+                        h_s, h_e = r_idx * 16, (r_idx + 1) * 16
+                        w_s, w_e = c_idx * 16, (c_idx + 1) * 16
+                        pmw_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+                        pix_pmw_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+
+                # GPROF: tokens 32..47
+                for p in range(16):
+                    if mask_to_recon[b, 32 + p, 0] > 0.5:
+                        r_idx, c_idx = p // 4, p % 4
+                        h_s, h_e = r_idx * 16, (r_idx + 1) * 16
+                        w_s, w_e = c_idx * 16, (c_idx + 1) * 16
+                        gp_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+                        pix_gp_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+
+                # Radar: tokens 48..63 (32x32 spatial grid -> 8x8 patches)
+                for p in range(16):
+                    if mask_to_recon[b, 48 + p, 0] > 0.5:
+                        r_idx, c_idx = p // 4, p % 4
+                        h_s, h_e = r_idx * 8, (r_idx + 1) * 8
+                        w_s, w_e = c_idx * 8, (c_idx + 1) * 8
+                        rad_stud[b, :, :, h_s:h_e, w_s:w_e] = 0.0
+                        pix_rad_stud[b, :, :, h_s:h_e, w_s:w_e] = 0.0
+
+                # Env: tokens 64..79
+                for p in range(16):
+                    if mask_to_recon[b, 64 + p, 0] > 0.5:
+                        r_idx, c_idx = p // 4, p % 4
+                        h_s, h_e = r_idx * 16, (r_idx + 1) * 16
+                        w_s, w_e = c_idx * 16, (c_idx + 1) * 16
+                        env_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+                        pix_env_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+
+            # 5. Student forward pass with active autograd graph
+            s_ir = model.ir_encoder(ir_stud, m_ir, pixel_mask=pix_ir_stud)
+            s_pmw = model.pmw_encoder(pmw_stud, m_pmw, channel_mask=ch_masks.get("pmw"), pixel_mask=pix_pmw_stud)
+            s_gp = model.gprof_encoder(gp_stud, m_gp, channel_mask=ch_masks.get("gprof"), pixel_mask=pix_gp_stud)
+            s_rad = model.radar_encoder(rad_stud, m_rad, voxel_mask=pix_rad_stud)
+            s_env = model.env_encoder(env_stud, m_env, channel_mask=ch_masks.get("env"), pixel_mask=pix_env_stud)
 
             # Cross-modal fusion and reconstruction head
             fused = model.fusion([s_ir, s_pmw, s_gp, s_rad, s_env], masks)
             recon = recon_head(fused)
 
             # 6. Loss computed ONLY on masked valid tokens
-            diff = F.mse_loss(recon, all_targets, reduction="none") # (B, 80, d_model)
+            diff = F.mse_loss(recon, all_targets, reduction="none")  # (B, 80, d_model)
             denom = mask_to_recon.sum().clamp(min=1.0)
             loss = (diff * mask_to_recon).sum() / denom
 

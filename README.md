@@ -3,7 +3,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![PyTorch 2.0+](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg)](https://pytorch.org/)
 [![Dataset](https://img.shields.io/badge/Dataset-NOAA%20TC%20PRIMED%20v01r01--final-0077b6.svg)](https://registry.opendata.aws/noaa-nesdis-tcprimed-pds/)
-[![Tests](https://img.shields.io/badge/Tests-131%20Passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-141%20Passed-brightgreen.svg)](tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 An enterprise-ready, scientifically validated deep learning and remote sensing data pipeline for tropical cyclone monitoring, intensity estimation, rapid intensification detection, and 6–24-hour track and intensity forecasting using the **NOAA Tropical Cyclone PRecipitation, Infrared, Microwave, and Environmental Dataset (TC PRIMED v01r01-final)**.
@@ -253,7 +253,10 @@ python src/evaluation/evaluate_baselines.py
 ### Benchmark Summary & Qualification (Pilot Test Partition):
 
 > [!NOTE]
-> **Benchmarking Qualification:** Baseline evaluation results below reflect operational climatology (training split mean), linear regression, persistence (zero intensity change / stationary storm position), and initial TC-GraphFormer checkpoints evaluated on the 20 GB pilot dataset. Full multi-epoch convergence on continuous regression targets ($v_{\max}$ and $p_{\min}$) is planned for Machine B (remote GPU node) in Phase 3.
+> **Scientific & Benchmarking Qualification:**  
+> 1. **Integration & Data-Flow Readiness (Phase 2E.1):** The data pipeline, mask preservation, coordinate-aware swath resampling, true polar spatial graph, and multi-task loss masking have been thoroughly verified with 141 automated regression tests and real pilot dataset execution.
+> 2. **Evaluation Qualification:** Results below reflect operational climatology (training split mean), linear regression, persistence (zero intensity change / stationary storm position), and initial TC-GraphFormer checkpoints evaluated on the 20 GB development pilot (80 storms, 2,599 samples).
+> 3. **Convergence & Forecast Skill Distinction:** Software integration and pipeline execution must not be conflated with meteorological convergence. Long-horizon multi-epoch training and operational forecasting accuracy will be executed on Machine B (remote GPU node) using the complete 2000–2025 dataset (~500 GB, ~1,500 storms).
 
 | Model / Baseline | Task | Metric | Test Performance | Operational Notes |
 | :--- | :--- | :---: | :---: | :--- |
@@ -289,24 +292,42 @@ Data staging generates bitwise cryptographic manifests (`staging/staging_manifes
 
 ---
 
-## Research Integrity & Phase 2E Deliverables
+## Research Integrity & Scientific Audit Deliverables
 
-All technical and scientific audit reports, empirical data distributions, and failure analyses generated during Phase 2C, Phase 2D, and Phase 2E are preserved under `reports/`:
+All technical and scientific audit reports, empirical data distributions, and failure analyses generated throughout the project are preserved under `reports/`:
+
+### Phase 2E.1 Deliverables (Scientific Integrity, Geospatial Alignment & Data-Flow)
+- [`reports/phase2e1/phase2e1_master_integrity_report.md`](reports/phase2e1/phase2e1_master_integrity_report.md) — Master Phase 2E.1 scientific integrity report.
+- [`reports/phase2e1/geospatial_registration_validation.md`](reports/phase2e1/geospatial_registration_validation.md) — Storm-centered reference grid & KDTree distance masking.
+- [`reports/phase2e1/pixel_mask_dataflow_report.md`](reports/phase2e1/pixel_mask_dataflow_report.md) — End-to-end mask flow & mathematical invariance proof.
+- [`reports/phase2e1/pmw_sensor_mapping_validation.csv`](reports/phase2e1/pmw_sensor_mapping_validation.csv) — 9-sensor PMW channel mapping matrix.
+- [`reports/phase2e1/normalization_schema_audit.csv`](reports/phase2e1/normalization_schema_audit.csv) — Audit of all physical variables, units, sentinels, and ranges.
+- [`reports/phase2e1/radar_quality_control_report.md`](reports/phase2e1/radar_quality_control_report.md) — 3D Ku reflectivity QC & precipitation echo thresholding.
+- [`reports/phase2e1/graph_geometry_validation.md`](reports/phase2e1/graph_geometry_validation.md) — 16-node polar graph layout, 92 edges, and 8D geometric edge attributes.
+- [`reports/phase2e1/mfm_masking_and_transfer_report.md`](reports/phase2e1/mfm_masking_and_transfer_report.md) — Raw spatial patch masking & transfer provenance.
+- [`reports/phase2e1/nio_partition_isolation_report.md`](reports/phase2e1/nio_partition_isolation_report.md) — North Indian Ocean domain adaptation & zero-leakage holdout.
+- [`reports/phase2e1/split_provenance_reconciliation.md`](reports/phase2e1/split_provenance_reconciliation.md) — Reconciliation of 56/12/12 split & sequence end-padding.
+- [`reports/phase2e1/test_execution_report.md`](reports/phase2e1/test_execution_report.md) — Full 141-test suite execution and pilot integration test logs.
+- [`reports/phase2e1/remaining_scientific_risks.md`](reports/phase2e1/remaining_scientific_risks.md) — Software readiness vs. meteorological scaling risks.
+
+### Historical Phase 2E Deliverables
 - [`reports/phase2e/phase2e_implementation_report.md`](reports/phase2e/phase2e_implementation_report.md) — Master Phase 2E repair report.
 - [`reports/phase2e/verified_defects_fixed.csv`](reports/phase2e/verified_defects_fixed.csv) — Audit matrix of all 14 verified defects and fixes.
-- [`reports/phase2e/pilot_integration_test_report.md`](reports/phase2e/pilot_integration_test_report.md) — Full pilot integration test execution log.
+- [`reports/phase2e/pilot_integration_test_report.md`](reports/phase2e/pilot_integration_test_report.md) — Pilot integration test execution log.
 - [`reports/phase2e/feature_schema_report.md`](reports/phase2e/feature_schema_report.md) — Canonical 5-modality feature schema & PMW mapping.
 - [`reports/phase2e/geospatial_alignment_report.md`](reports/phase2e/geospatial_alignment_report.md) — Tangent-plane geodesic track displacement derivation.
 - [`reports/phase2e/target_mask_validation.csv`](reports/phase2e/target_mask_validation.csv) — Target availability and validity masks across partitions.
 - [`reports/phase2e/sequence_construction_report.md`](reports/phase2e/sequence_construction_report.md) — Causal sequence dataset properties and revisit analysis.
-- [`reports/phase2e/model_tensor_flow_report.md`](reports/phase2e/model_tensor_flow_report.md) — Layer-by-layer tensor dimension tracing (1.44M parameters).
-- [`reports/phase2e/graph_coordinate_validation.md`](reports/phase2e/graph_coordinate_validation.md) — 16-node polar graph layout & 8D real geometric edge attributes.
+- [`reports/phase2e/model_tensor_flow_report.md`](reports/phase2e/model_tensor_flow_report.md) — Layer-by-layer tensor dimension tracing.
+- [`reports/phase2e/graph_coordinate_validation.md`](reports/phase2e/graph_coordinate_validation.md) — 16-node polar graph layout documentation.
 - [`reports/phase2e/remaining_known_issues.md`](reports/phase2e/remaining_known_issues.md) — Transparent catalog of known scientific & hardware limitations.
-- [`reports/phase2d_audit/phase2d_master_audit_report.md`](reports/phase2d_audit/phase2d_master_audit_report.md) — Historical Phase 2D technical audit report.
+
+### Historical Phase 2D Audit Deliverables
+- [`reports/phase2d_audit/phase2d_master_audit_report.md`](reports/phase2d_audit/phase2d_master_audit_report.md) — Phase 2D technical audit report.
 - [`risk_register.csv`](reports/phase2d_audit/risk_register.csv) — Prioritized 11-point engineering risk register.
 - [`source_execution_dependency_map.md`](reports/phase2d_audit/source_execution_dependency_map.md) — Module execution flow.
-- [`test_quality_assessment.csv`](reports/phase2d_audit/test_quality_assessment.csv) — Comprehensive breakdown of all 107 tests.
-- [`hardware_storage_audit.json`](reports/phase2d_audit/hardware_storage_audit.json) — Workstation storage audit and 608.6 GB budget.
+- [`test_quality_assessment.csv`](reports/phase2d_audit/test_quality_assessment.csv) — Breakdown of all tests.
+- [`hardware_storage_audit.json`](reports/phase2d_audit/hardware_storage_audit.json) — Workstation storage audit.
 
 ---
 

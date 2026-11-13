@@ -57,6 +57,10 @@ class TCGraphFormerTrainer:
         if "channel_masks" in batch and batch["channel_masks"]:
             ch_masks = {k: v.to(self.device) for k, v in batch["channel_masks"].items()}
 
+        pix_masks = None
+        if "pixel_masks" in batch and batch["pixel_masks"]:
+            pix_masks = {k: v.to(self.device) for k, v in batch["pixel_masks"].items()}
+
         delta_t = batch.get("delta_times_hours")
         if delta_t is not None:
             delta_t = delta_t.to(self.device)
@@ -75,6 +79,7 @@ class TCGraphFormerTrainer:
             delta_times_hours=delta_t,
             seq_pad_mask=seq_pad,
             channel_masks=ch_masks,
+            pixel_masks=pix_masks,
         )
         return preds
 

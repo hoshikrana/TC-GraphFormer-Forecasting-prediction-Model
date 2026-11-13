@@ -133,20 +133,18 @@ def run_finetuning(
     if use_sequences:
         train_ds = TCPRIMEDSequenceDataset(
             sample_index_csv=sample_index_csv,
-            partition="TRAIN",
+            df=df_train,
             max_history_len=max_history_len,
-            max_sequences=len(df_train),
         )
         val_ds = TCPRIMEDSequenceDataset(
             sample_index_csv=sample_index_csv,
-            partition="VAL",
+            df=df_val,
             max_history_len=max_history_len,
-            max_sequences=len(df_val),
         )
         collate_fn = collate_sequence_batch
     else:
-        train_ds = TCPRIMEDDataset(sample_index_csv=sample_index_csv, partition="TRAIN", max_samples=len(df_train))
-        val_ds = TCPRIMEDDataset(sample_index_csv=sample_index_csv, partition="VAL", max_samples=len(df_val))
+        train_ds = TCPRIMEDDataset(sample_index_csv=sample_index_csv, df=df_train)
+        val_ds = TCPRIMEDDataset(sample_index_csv=sample_index_csv, df=df_val)
         collate_fn = collate_multimodal_batch
 
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)

@@ -90,6 +90,7 @@ class TCGraphFormer(nn.Module):
         env: torch.Tensor,
         modality_masks: torch.Tensor,
         channel_masks: Dict[str, torch.Tensor] = None,
+        pixel_masks: Dict[str, torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Extract spatial graph representation for an observation batch.
@@ -108,12 +109,18 @@ class TCGraphFormer(nn.Module):
         ch_gprof = channel_masks.get("gprof") if channel_masks else None
         ch_env = channel_masks.get("env") if channel_masks else None
 
-        # 1. Modality Token Encoders (each produces B, 16, d_model)
-        t_ir = self.ir_encoder(ir, m_ir)
-        t_pmw = self.pmw_encoder(pmw, m_pmw, channel_mask=ch_pmw)
-        t_gprof = self.gprof_encoder(gprof, m_gprof, channel_mask=ch_gprof)
-        t_radar = self.radar_encoder(radar, m_radar)
-        t_env = self.env_encoder(env, m_env, channel_mask=ch_env)
+        pix_ir = pixel_masks.get("ir") if pixel_masks else None
+        pix_pmw = pixel_masks.get("pmw") if pixel_masks else None
+        pix_gprof = pixel_masks.get("gprof") if pixel_masks else None
+        pix_radar = pixel_masks.get("radar") if pixel_masks else None
+        pix_env = pixel_masks.get("env") if pixel_masks else None
+
+        # 1. Modality Token Encoders (each produces B, 16, d_model with pixel masking)
+        t_ir = self.ir_encoder(ir, m_ir, pixel_mask=pix_ir)
+        t_pmw = self.pmw_encoder(pmw, m_pmw, channel_mask=ch_pmw, pixel_mask=pix_pmw)
+        t_gprof = self.gprof_encoder(gprof, m_gprof, channel_mask=ch_gprof, pixel_mask=pix_gprof)
+        t_radar = self.radar_encoder(radar, m_radar, voxel_mask=pix_radar)
+        t_env = self.env_encoder(env, m_env, channel_mask=ch_env, pixel_mask=pix_env)
 
         # 2. Mask-Aware Cross-Modal Fusion
         # fused_tokens: (B, 80, d_model)
@@ -139,6 +146,7 @@ class TCGraphFormer(nn.Module):
         delta_times_hours: torch.Tensor = None,
         seq_pad_mask: torch.Tensor = None,
         channel_masks: Dict[str, torch.Tensor] = None,
+        pixel_masks: Dict[str, torch.Tensor] = None,
         timestamps: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
         """
@@ -165,9 +173,17 @@ class TCGraphFormer(nn.Module):
                     if v is not None and v.dim() >= 2:
                         ch_flat[k] = v.reshape(B * T, *v.shape[2:])
 
+            pix_flat = None
+            if pixel_masks:
+                pix_flat = {}
+                for k, v in pixel_masks.items():
+                    if v is not None and v.dim() >= 3:
+                        pix_flat[k] = v.reshape(B * T, *v.shape[2:])
+
             # Extract spatial graph latent for each timestep: (B * T, d_model)
             latent_flat = self.extract_overpass_features(
-                ir_flat, pmw_flat, gprof_flat, radar_flat, env_flat, masks_flat, channel_masks=ch_flat
+                ir_flat, pmw_flat, gprof_flat, radar_flat, env_flat, masks_flat,
+                channel_masks=ch_flat, pixel_masks=pix_flat
             )
             seq_latent = latent_flat.view(B, T, self.d_model) # (B, T, d_model)
 
@@ -201,7 +217,8 @@ class TCGraphFormer(nn.Module):
             # Single-observation mode: (B, C, H, W)
             B = modality_masks.size(0)
             latent = self.extract_overpass_features(
-                ir, pmw, gprof, radar, env, modality_masks, channel_masks=channel_masks
+                ir, pmw, gprof, radar, env, modality_masks,
+                channel_masks=channel_masks, pixel_masks=pixel_masks
             )
 
             # Pass through temporal model as T=1

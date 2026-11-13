@@ -16,6 +16,12 @@ import torch
 from torch.utils.data import Dataset
 import torch.nn.functional as F
 
+try:
+    from scipy.spatial import cKDTree
+    HAS_SCIPY = True
+except ImportError:
+    HAS_SCIPY = False
+
 logger = logging.getLogger(__name__)
 
 # Canonical 5-class stage mapping (0..4) with invalid stage mask for unmapped/unknown
@@ -146,6 +152,8 @@ class TCPRIMEDDataset(Dataset):
         max_samples: Optional[int] = None,
         strict_mode: bool = False,
         transform=None,
+        basin: Optional[str] = None,
+        df: Optional[pd.DataFrame] = None,
     ):
         super().__init__()
         self.sample_index_csv = sample_index_csv
@@ -153,20 +161,27 @@ class TCPRIMEDDataset(Dataset):
         self.grid_size = grid_size
         self.strict_mode = strict_mode
         self.transform = transform
+        self.basin = basin
         self.processing_errors: List[Dict[str, Any]] = []
 
-        if not os.path.exists(sample_index_csv):
-            raise FileNotFoundError(f"Sample index not found at: {sample_index_csv}")
+        if df is not None:
+            self.df = df.copy()
+        else:
+            if not os.path.exists(sample_index_csv):
+                raise FileNotFoundError(f"Sample index not found at: {sample_index_csv}")
+            self.df = pd.read_csv(sample_index_csv)
 
-        df = pd.read_csv(sample_index_csv)
-        if self.partition:
-            df = df[df["partition"] == self.partition].copy()
+        if self.partition and df is None:
+            self.df = self.df[self.df["partition"] == self.partition].copy()
+
+        if self.basin:
+            self.df = self.df[self.df["basin"] == self.basin].copy()
 
         if max_samples is not None and max_samples > 0:
-            df = df.iloc[:max_samples].copy()
+            self.df = self.df.iloc[:max_samples].copy()
 
-        self.df = df.reset_index(drop=True)
-        print(f"[DATASET] Loaded {len(self.df)} samples for partition: {self.partition or 'ALL'}")
+        self.df = self.df.reset_index(drop=True)
+        print(f"[DATASET] Loaded {len(self.df)} samples for partition: {self.partition or 'ALL'} (basin: {self.basin or 'ALL'})")
 
     def __len__(self) -> int:
         return len(self.df)
@@ -197,15 +212,92 @@ class TCPRIMEDDataset(Dataset):
         arr_clean = np.where(valid, arr, mean_val).astype(np.float32)
         mask_clean = valid.astype(np.float32)
 
-        t_data = torch.from_numpy(arr_clean).unsqueeze(0).unsqueeze(0) # (1, 1, H, W)
-        t_mask = torch.from_numpy(mask_clean).unsqueeze(0).unsqueeze(0) # (1, 1, H, W)
+        t_data = torch.from_numpy(arr_clean).unsqueeze(0).unsqueeze(0)  # (1, 1, H, W)
+        t_mask = torch.from_numpy(mask_clean).unsqueeze(0).unsqueeze(0)  # (1, 1, H, W)
 
-        data_resized = F.interpolate(t_data, size=target_shape, mode="bilinear", align_corners=False).squeeze(0) # (1, H, W)
-        mask_resized = F.interpolate(t_mask, size=target_shape, mode="nearest").squeeze(0) # (1, H, W)
+        data_resized = F.interpolate(t_data, size=target_shape, mode="bilinear", align_corners=False).squeeze(0)  # (1, H, W)
+        mask_resized = F.interpolate(t_mask, size=target_shape, mode="nearest").squeeze(0)  # (1, H, W)
 
         # Zero out invalid pixels so imputed values never pollute valid tensor values
         data_clean = data_resized * mask_resized
         return data_clean, mask_resized
+
+    def _resample_swath_with_coords(
+        self,
+        arr: np.ndarray,
+        grp: Optional[nc.Group],
+        storm_lat: Optional[float],
+        storm_lon: Optional[float],
+        target_shape: Tuple[int, int] = (64, 64),
+        domain_km: float = 500.0,
+        max_dist_km: float = 35.0,
+    ) -> Tuple[torch.Tensor, torch.Tensor, str]:
+        """
+        Resample 2D swath array onto storm-centered reference grid [-domain_km, +domain_km].
+        Uses actual UTM or geodetic coordinates when present in grp; falls back cleanly
+        to nominal grid interpolation if coordinates are missing.
+        Enforces distance_upper_bound=max_dist_km so pixels outside swath are strictly masked invalid (0).
+        """
+        if arr is None or arr.size == 0 or np.all(np.isnan(arr)):
+            z_t = torch.zeros((1, target_shape[0], target_shape[1]), dtype=torch.float32)
+            z_m = torch.zeros((1, target_shape[0], target_shape[1]), dtype=torch.float32)
+            return z_t, z_m, "empty"
+
+        x_2d, y_2d = None, None
+        source = "nominal_fallback"
+
+        if grp is not None:
+            try:
+                if "x" in grp.variables and "y" in grp.variables:
+                    x_raw = np.ma.filled(grp.variables["x"][:], np.nan)
+                    y_raw = np.ma.filled(grp.variables["y"][:], np.nan)
+                    if x_raw.ndim == 1 and y_raw.ndim == 1 and (len(y_raw), len(x_raw)) == arr.shape:
+                        x_2d, y_2d = np.meshgrid(x_raw, y_raw)
+                        source = "utm_storm_centered_km"
+                    elif x_raw.shape == arr.shape and y_raw.shape == arr.shape:
+                        x_2d, y_2d = x_raw, y_raw
+                        source = "utm_storm_centered_km"
+                elif "latitude" in grp.variables and "longitude" in grp.variables and storm_lat is not None and storm_lon is not None:
+                    lat_raw = np.ma.filled(grp.variables["latitude"][:], np.nan)
+                    lon_raw = np.ma.filled(grp.variables["longitude"][:], np.nan)
+                    if lat_raw.shape == arr.shape and lon_raw.shape == arr.shape:
+                        cos_lat = max(1e-4, math.cos(math.radians(storm_lat)))
+                        d_lon = ((lon_raw - storm_lon + 180.0) % 360.0) - 180.0
+                        x_2d = d_lon * cos_lat * 111.32
+                        y_2d = (lat_raw - storm_lat) * 110.57
+                        source = "tangent_plane_geodetic_km"
+            except Exception:
+                x_2d, y_2d = None, None
+                source = "nominal_fallback"
+
+        if x_2d is not None and y_2d is not None and HAS_SCIPY:
+            valid_pts = (~np.isnan(arr)) & (arr > -9000.0) & (~np.isnan(x_2d)) & (~np.isnan(y_2d))
+            valid_pts = valid_pts & (np.abs(x_2d) <= domain_km * 2.0) & (np.abs(y_2d) <= domain_km * 2.0)
+
+            if np.any(valid_pts):
+                coords = np.column_stack([x_2d[valid_pts].flatten(), y_2d[valid_pts].flatten()])
+                vals = arr[valid_pts].flatten()
+
+                tree = cKDTree(coords)
+                gx = np.linspace(-domain_km, domain_km, target_shape[1])
+                gy = np.linspace(domain_km, -domain_km, target_shape[0])  # North positive
+                grid_x, grid_y = np.meshgrid(gx, gy)
+                query_pts = np.column_stack([grid_x.flatten(), grid_y.flatten()])
+
+                dists, indices = tree.query(query_pts, distance_upper_bound=max_dist_km)
+                is_valid = dists <= max_dist_km
+
+                grid_vals = np.zeros(target_shape[0] * target_shape[1], dtype=np.float32)
+                grid_mask = np.zeros(target_shape[0] * target_shape[1], dtype=np.float32)
+                grid_vals[is_valid] = vals[indices[is_valid]].astype(np.float32)
+                grid_mask[is_valid] = 1.0
+
+                t_data = torch.from_numpy(grid_vals.reshape(1, target_shape[0], target_shape[1]))
+                t_mask = torch.from_numpy(grid_mask.reshape(1, target_shape[0], target_shape[1]))
+                return t_data, t_mask, source
+
+        t_data, t_mask = self._resize_to_grid_with_mask(arr, target_shape)
+        return t_data, t_mask, "nominal_fallback"
 
     def _load_radar_volume(
         self, radar_grp: nc.Group, target_grid: Tuple[int, int], target_depth: int = 16
@@ -213,6 +305,7 @@ class TCPRIMEDDataset(Dataset):
         """
         Load 3D volumetric radar reflectivity (Ku band), interpolate depth to target_depth,
         and spatial dimensions to (target_grid[0]//2, target_grid[1]//2).
+        Valid range: [-20, 100] dBZ. Normalization: [-20, 80] dBZ -> [0, 1].
         Returns: (radar_tensor, radar_mask, is_valid)
         """
         H, W = target_grid[0] // 2, target_grid[1] // 2
@@ -223,29 +316,28 @@ class TCPRIMEDDataset(Dataset):
             return empty_tensor, empty_mask, False
 
         raw_ku = np.ma.filled(radar_grp.variables["correctedReflectFactor_Ku"][:], np.nan)
-        # Expect shape: (range_gates, scans, beams) e.g. (88, 373, 49)
         if raw_ku.ndim != 3:
             return empty_tensor, empty_mask, False
 
-        valid = (~np.isnan(raw_ku)) & (raw_ku > -9000.0)
+        # Ku band valid reflectivity range: [-20, 100] dBZ
+        valid = (~np.isnan(raw_ku)) & (raw_ku > -9000.0) & (raw_ku >= -20.0) & (raw_ku <= 100.0)
         if not np.any(valid):
             return empty_tensor, empty_mask, False
 
-        # Physical normalization: dBZ usually [0, 60] -> [0, 1]
-        norm_ku = np.clip(np.where(valid, raw_ku, 0.0), 0.0, 60.0) / 60.0
+        # Physical normalization: dBZ [-20, 80] -> [0, 1]
+        norm_ku = np.clip(np.where(valid, raw_ku, -20.0) - (-20.0), 0.0, 100.0) / 100.0
         mask_ku = valid.astype(np.float32)
 
-        # Reshape to (1, 1, D, H_in, W_in) for 3D trilinear interpolation
         t_data = torch.from_numpy(norm_ku.astype(np.float32)).unsqueeze(0).unsqueeze(0)
         t_mask = torch.from_numpy(mask_ku).unsqueeze(0).unsqueeze(0)
 
         data_resized = F.interpolate(
             t_data, size=(target_depth, H, W), mode="trilinear", align_corners=False
-        ).squeeze(0) # (1, D, H, W)
+        ).squeeze(0)  # (1, D, H, W)
 
         mask_resized = F.interpolate(
             t_mask, size=(target_depth, H, W), mode="nearest"
-        ).squeeze(0) # (1, D, H, W)
+        ).squeeze(0)  # (1, D, H, W)
 
         data_clean = data_resized * mask_resized
         return data_clean, mask_resized, True
@@ -315,15 +407,21 @@ class TCPRIMEDDataset(Dataset):
                             if "storm_longitude" in tgt_grp.variables:
                                 storm_lon_from_nc = float(tgt_grp.variables["storm_longitude"][:])
 
+                        storm_lat = storm_lat_from_nc if storm_lat_from_nc is not None else (float(row["latitude"]) if "latitude" in row and not pd.isna(row["latitude"]) else None)
+                        storm_lon = storm_lon_from_nc if storm_lon_from_nc is not None else (float(row["longitude"]) if "longitude" in row and not pd.isna(row["longitude"]) else None)
+
                         # 1. Infrared (IRWIN)
                         if has_ir and "infrared" in curr_grp.groups:
                             try:
                                 ir_grp = curr_grp.groups["infrared"]
                                 if "IRWIN" in ir_grp.variables:
                                     raw_ir = np.ma.filled(ir_grp.variables["IRWIN"][:], np.nan)
-                                    # Normalize IR brightness temperature: 200-300 K -> [0, 1]
-                                    norm_ir = (raw_ir - 200.0) / 100.0
-                                    ir_tensor, ir_pixel_mask = self._resize_to_grid_with_mask(norm_ir, (H, W))
+                                    # Raw valid range check: [100, 360] K before arithmetic
+                                    valid_ir = (~np.isnan(raw_ir)) & (raw_ir > -9000.0) & (raw_ir > 100.0) & (raw_ir < 360.0)
+                                    norm_ir = np.where(valid_ir, np.clip((raw_ir - 170.0) / 150.0, 0.0, 1.0), np.nan)
+                                    ir_tensor, ir_pixel_mask, ir_src = self._resample_swath_with_coords(
+                                        norm_ir, ir_grp, storm_lat, storm_lon, (H, W)
+                                    )
                                     if ir_pixel_mask.sum() == 0:
                                         has_ir = False
                             except Exception as e_ir:
@@ -341,10 +439,14 @@ class TCPRIMEDDataset(Dataset):
                                     if mapping is not None:
                                         sw_name, var_name = mapping
                                         if sw_name in pmw_grp.groups and var_name in pmw_grp.groups[sw_name].variables:
-                                            raw_tb = np.ma.filled(pmw_grp.groups[sw_name].variables[var_name][:], np.nan)
-                                            # Normalize TB: 150-300 K -> [0, 1]
-                                            norm_tb = (raw_tb - 150.0) / 150.0
-                                            t_ch, m_ch = self._resize_to_grid_with_mask(norm_tb, (H, W))
+                                            sw_grp = pmw_grp.groups[sw_name]
+                                            raw_tb = np.ma.filled(sw_grp.variables[var_name][:], np.nan)
+                                            # Raw valid range check: [50, 360] K before arithmetic
+                                            valid_tb = (~np.isnan(raw_tb)) & (raw_tb > -9000.0) & (raw_tb > 50.0) & (raw_tb < 360.0)
+                                            norm_tb = np.where(valid_tb, np.clip((raw_tb - 100.0) / 220.0, 0.0, 1.0), np.nan)
+                                            t_ch, m_ch, _ = self._resample_swath_with_coords(
+                                                norm_tb, sw_grp, storm_lat, storm_lon, (H, W)
+                                            )
                                             if m_ch.sum() > 0:
                                                 pmw_tensor[ch_idx] = t_ch.squeeze(0)
                                                 pmw_pixel_mask[ch_idx] = m_ch.squeeze(0)
@@ -369,8 +471,12 @@ class TCPRIMEDDataset(Dataset):
                                 for fname, fidx, norm_scale in gprof_fields:
                                     if fname in gp_grp.variables:
                                         raw_f = np.ma.filled(gp_grp.variables[fname][:], np.nan)
-                                        norm_f = np.log1p(np.maximum(raw_f, 0.0)) / norm_scale
-                                        t_f, m_f = self._resize_to_grid_with_mask(norm_f, (H, W))
+                                        # Detect raw invalid sentinels BEFORE any arithmetic or log1p
+                                        valid_f = (~np.isnan(raw_f)) & (raw_f > -9000.0) & (raw_f >= 0.0)
+                                        norm_f = np.where(valid_f, np.log1p(np.maximum(raw_f, 0.0)) / norm_scale, np.nan)
+                                        t_f, m_f, _ = self._resample_swath_with_coords(
+                                            norm_f, gp_grp, storm_lat, storm_lon, (H, W)
+                                        )
                                         if m_f.sum() > 0:
                                             gprof_tensor[fidx] = t_f.squeeze(0)
                                             gprof_pixel_mask[fidx] = m_f.squeeze(0)
@@ -414,8 +520,12 @@ class TCPRIMEDDataset(Dataset):
                                 for fname, fidx, fscale, foffset in env_fields:
                                     if fname in env_grp.variables:
                                         raw_e = np.ma.filled(env_grp.variables[fname][:], np.nan)
-                                        norm_e = (raw_e - foffset) / fscale
-                                        t_e, m_e = self._resize_to_grid_with_mask(norm_e, (H, W))
+                                        # Raw invalid detection: _FillValue = -32768 or <= -9000
+                                        valid_e = (~np.isnan(raw_e)) & (raw_e > -9000.0) & (raw_e != -32768)
+                                        norm_e = np.where(valid_e, (raw_e - foffset) / fscale, np.nan)
+                                        t_e, m_e, _ = self._resample_swath_with_coords(
+                                            norm_e, env_grp, storm_lat, storm_lon, (H, W)
+                                        )
                                         if m_e.sum() > 0:
                                             env_tensor[fidx] = t_e.squeeze(0)
                                             env_pixel_mask[fidx] = m_e.squeeze(0)
@@ -602,6 +712,8 @@ class TCPRIMEDSequenceDataset(Dataset):
         min_seq_len: int = 1,
         max_sequences: Optional[int] = None,
         strict_mode: bool = False,
+        basin: Optional[str] = None,
+        df: Optional[pd.DataFrame] = None,
     ):
         super().__init__()
         self.base_dataset = TCPRIMEDDataset(
@@ -609,6 +721,8 @@ class TCPRIMEDSequenceDataset(Dataset):
             partition=partition,
             grid_size=grid_size,
             strict_mode=strict_mode,
+            basin=basin,
+            df=df,
         )
         self.max_history_len = max_history_len
         self.max_history_hours = max_history_hours
