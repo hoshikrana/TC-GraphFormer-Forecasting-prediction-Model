@@ -67,45 +67,71 @@ class GraphMessagePassingLayer(nn.Module):
 
 class SpatialGraphEncoder(nn.Module):
     """
-    Constructs a topological cyclone graph (Core, Eyewall, Rainbands, Quadrants)
-    and executes message passing across spatial nodes.
+    Constructs a topological spatial-grid cyclone graph (Core, Eyewall, Inner Core, Rainbands)
+    with storm-relative physical coordinates and executes message passing across spatial nodes.
+    
+    Nodes correspond to 16 storm-centered spatial patches (4x4 grid spanning [-250km, +250km]).
+    Edges represent physical adjacent connections with real geometric radial and azimuthal attributes:
+      [dr, dtheta, sin(dtheta), cos(dtheta), r_u, r_v, |dr|, dist_uv] (edge_dim = 8)
     """
 
-    def __init__(self, d_model: int = 128, num_spatial_nodes: int = 16, num_layers: int = 2):
+    def __init__(self, d_model: int = 128, num_spatial_nodes: int = 16, num_layers: int = 2, domain_radius_km: float = 250.0):
         super().__init__()
         self.d_model = d_model
         self.num_nodes = num_spatial_nodes
-        self.edge_dim = 16
+        self.edge_dim = 8
+        self.domain_radius_km = domain_radius_km
 
-        # Build cyclone-centric spatial graph topology (4x4 grid patches)
+        # Build storm-relative spatial graph topology (4x4 grid patches)
         edge_list = []
         edge_attrs = []
         grid_dim = int(math.isqrt(num_spatial_nodes)) # 4
 
         # Center of the 4x4 grid is (1.5, 1.5)
         cx, cy = (grid_dim - 1) / 2.0, (grid_dim - 1) / 2.0
+        # Patch spacing in km (e.g. 500 km domain / 4 = 125 km per cell)
+        cell_spacing_km = (2.0 * domain_radius_km) / grid_dim
+
+        # Compute node centers in storm-relative coordinates (km East, km North)
+        node_coords = []
+        for i in range(grid_dim):
+            for j in range(grid_dim):
+                x_km = (j - cy) * cell_spacing_km
+                y_km = (cx - i) * cell_spacing_km # North positive
+                node_coords.append((x_km, y_km))
+
+        self.register_buffer("node_coords_km", torch.tensor(node_coords, dtype=torch.float32))
 
         for i in range(grid_dim):
             for j in range(grid_dim):
                 u = i * grid_dim + j
-                r_u = math.sqrt((i - cx)**2 + (j - cy)**2)
-                theta_u = math.atan2(j - cy, i - cx)
+                xu, yu = node_coords[u]
+                r_u = math.sqrt(xu**2 + yu**2)
+                theta_u = math.atan2(yu, xu)
 
-                # Connect to 4-way neighbors and cyclonic neighbors
+                # Connect to 4-way spatial neighbors
                 for di, dj in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                     ni, nj = i + di, j + dj
                     if 0 <= ni < grid_dim and 0 <= nj < grid_dim:
                         v = ni * grid_dim + nj
-                        r_v = math.sqrt((ni - cx)**2 + (nj - cy)**2)
-                        theta_v = math.atan2(nj - cy, ni - cx)
+                        xv, yv = node_coords[v]
+                        r_v = math.sqrt(xv**2 + yv**2)
+                        theta_v = math.atan2(yv, xv)
 
                         edge_list.append((u, v))
-                        dr = r_v - r_u
+                        dr = (r_v - r_u) / max(1.0, domain_radius_km)
                         dtheta = theta_v - theta_u
-                        # Encode relative radial and azimuthal distance
+                        dist_uv = math.sqrt((xv - xu)**2 + (yv - yu)**2) / max(1.0, domain_radius_km)
+                        # Real geometric edge attributes (8 dimensions, zero fabricated padding)
                         edge_attrs.append([
-                            dr, dtheta, math.sin(dtheta), math.cos(dtheta),
-                            r_u, r_v, abs(dr), 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+                            dr,
+                            dtheta,
+                            math.sin(dtheta),
+                            math.cos(dtheta),
+                            r_u / domain_radius_km,
+                            r_v / domain_radius_km,
+                            abs(dr),
+                            dist_uv,
                         ])
 
         self.register_buffer("edge_index", torch.tensor(edge_list, dtype=torch.long).t().contiguous())

@@ -40,7 +40,8 @@ def haversine_distance_km(lat1, lon1, lat2, lon2):
 def evaluate_all(
     sample_index_csv: str = "reports/pipeline/sample_index.csv",
     checkpoint_path: str = "checkpoints/best_checkpoint.pt",
-    d_model: int = 64,
+    d_model: int = 128,
+    output_dir: str = "reports/phase2e",
 ):
     df = pd.read_csv(sample_index_csv)
     train_df = df[df["partition"] == "TRAIN"].copy()
@@ -84,8 +85,11 @@ def evaluate_all(
     if os.path.exists(checkpoint_path):
         ckpt = torch.load(checkpoint_path, map_location=device)
         state = ckpt.get("model_state_dict", ckpt)
-        model.load_state_dict(state, strict=False)
-        print(f"[EVAL] Loaded TC-GraphFormer from {checkpoint_path}")
+        model_dict = model.state_dict()
+        matched = {k: v for k, v in state.items() if k in model_dict and v.shape == model_dict[k].shape}
+        model_dict.update(matched)
+        model.load_state_dict(model_dict)
+        print(f"[EVAL] Loaded TC-GraphFormer ({len(matched)}/{len(model_dict)} tensors matched) from {checkpoint_path}")
     model.eval()
 
     # -------------------------------------------------------------
@@ -313,11 +317,11 @@ def evaluate_all(
     df_horiz = pd.DataFrame(horizon_records)
     df_basin = pd.DataFrame(basin_records)
 
-    out_base = "reports/phase2c/baseline_comparison.csv"
-    out_horiz = "reports/phase2c/task_metrics_by_horizon.csv"
-    out_basin = "reports/phase2c/basin_evaluation.csv"
+    out_base = os.path.join(output_dir, "baseline_comparison.csv")
+    out_horiz = os.path.join(output_dir, "task_metrics_by_horizon.csv")
+    out_basin = os.path.join(output_dir, "basin_evaluation.csv")
 
-    os.makedirs("reports/phase2c", exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
     df_base.to_csv(out_base, index=False)
     df_horiz.to_csv(out_horiz, index=False)
     df_basin.to_csv(out_basin, index=False)

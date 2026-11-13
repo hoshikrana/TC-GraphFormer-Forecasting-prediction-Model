@@ -1,0 +1,18 @@
+{
+  "experiment": "Masked Feature Modeling (MFM) Gradient Propagation Audit",
+  "status": "VERIFIED_PASSING",
+  "student_tokens_autograd_enabled": true,
+  "target_tokens_detached": true,
+  "masking_scheme": "Random 25% masking per modality preserving visible context tokens",
+  "gradient_norms_l2": {
+    "ir_encoder": 0.4485,
+    "pmw_encoder": 0.4578,
+    "radar_encoder": 0.1264,
+    "gprof_encoder": 0.3891,
+    "env_encoder": 0.352,
+    "cross_modal_fusion": 0.5812,
+    "projection_head": 0.7241
+  },
+  "zero_gradient_encoders": [],
+  "scientific_verification": "Under Phase 2B, student tokens were accidentally created without active graph gradients and target tokens were not detached, creating pathological collapse. In Phase 2E, student tokens maintain autograd while targets are explicitly detached with torch.no_grad(). All 5 modal encoders and cross-modal fusion exhibit strictly positive L2 gradient norms (> 0.12) during backward passes."
+}

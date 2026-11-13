@@ -1,0 +1,29 @@
+{
+  "experiment": "Self-Supervised Pretrained Backbone Weight Transfer to Supervised Multi-Task",
+  "status": "VERIFIED_PASSING",
+  "checkpoint_source": "checkpoints/phase2e_pilot_integration_test.pt",
+  "transfer_provenance": "Phase 2E Verified Integration Checkpoint",
+  "total_backbone_parameter_tensors": 254,
+  "matched_transferred_tensors": 254,
+  "transfer_efficiency_pct": 100.0,
+  "transferred_modules": [
+    "ir_encoder",
+    "pmw_encoder",
+    "gprof_encoder",
+    "radar_encoder",
+    "env_encoder",
+    "cross_modal_fusion",
+    "spatial_graph",
+    "temporal_transformer"
+  ],
+  "excluded_modules_initialized_fresh": [
+    "projection_head (pretraining MFM target projector)",
+    "task_heads.head_intensity",
+    "task_heads.head_pressure",
+    "task_heads.head_stage",
+    "task_heads.head_intensity_change",
+    "task_heads.head_ri",
+    "task_heads.head_track"
+  ],
+  "verification_test": "tests.test_phase2e_corrections.TestPhase2ECorrections.test_20_pretrained_weight_transfer_to_multitask"
+}

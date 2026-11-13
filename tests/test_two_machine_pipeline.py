@@ -89,7 +89,7 @@ class TestModelArchitecture(unittest.TestCase):
         preds = self.model(ir, pmw, gprof, radar, env, masks)
         self.assertEqual(preds["intensity"].shape, (B,))
         self.assertEqual(preds["pressure"].shape, (B,))
-        self.assertEqual(preds["stage_logits"].shape, (B, 6))
+        self.assertEqual(preds["stage_logits"].shape, (B, self.model.task_heads.num_stages))
         self.assertEqual(preds["intensity_change"].shape, (B, 4))
         self.assertEqual(preds["ri_logits"].shape, (B,))
         self.assertEqual(preds["track_delta"].shape, (B, 8))
@@ -114,7 +114,7 @@ class TestModelArchitecture(unittest.TestCase):
         preds = {
             "intensity": torch.tensor([45.0, 65.0]),
             "pressure": torch.tensor([990.0, 970.0]),
-            "stage_logits": torch.randn(2, 6),
+            "stage_logits": torch.randn(2, 5),
             "intensity_change": torch.tensor([[5.0, 10.0, 15.0, 20.0], [0.0, 0.0, 0.0, 0.0]]),
             "ri_logits": torch.tensor([-1.5, 2.1]),
         }

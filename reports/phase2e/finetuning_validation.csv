@@ -1,0 +1,9 @@
+task_mode,loss_weight_distribution,backbone_frozen,trainable_parameters,frozen_parameters,total_parameters,checkpoint_compatibility,supported_optimizer
+intensity,"intensity=1.0, all other heads=0.0",True,16641,1422784,1439425,Full (loads all encoder/fusion/graph/temporal weights),"AdamW (lr=1e-4 head, weight_decay=1e-2)"
+pressure,"pressure=1.0, all other heads=0.0",True,16641,1422784,1439425,Full (loads all encoder/fusion/graph/temporal weights),"AdamW (lr=1e-4 head, weight_decay=1e-2)"
+stage,"stage=1.0, all other heads=0.0",True,17157,1422784,1439941,"Full (5 canonical classes: TD, TS, TY, EX, DIST)","AdamW (lr=1e-4 head, weight_decay=1e-2)"
+intensity_change,"intensity_change=1.0, all other heads=0.0",True,17028,1422784,1439812,"Full (4 forecasting horizons: +6h, +12h, +18h, +24h)","AdamW (lr=1e-4 head, weight_decay=1e-2)"
+rapid_intensification,"rapid_intensification=1.0 (pos_weight=33.53), all others=0.0",True,16641,1422784,1439425,Full (calibrated probability thresholding),"AdamW (lr=1e-4 head, weight_decay=1e-2)"
+track,"track=1.0 (geodesic displacement km), all others=0.0",True,17544,1422784,1440328,Full (tangent-plane km delta prediction),"AdamW (lr=1e-4 head, weight_decay=1e-2)"
+multi_task,"intensity=1.0, pressure=0.5, stage=0.5, dv=1.0, ri=2.0, track=1.0",False,1439425,0,1439425,Full (end-to-end multi-task joint optimization),"AdamW (lr=1e-4 backbone, lr=3e-4 heads)"
+nio_adaptation,"intensity=1.0, pressure=0.5, stage=0.5, dv=1.0, ri=2.0, track=1.0",False,1439425,0,1439425,Full (regional fine-tuning strictly holding out IO031991 and IO032023),AdamW (lr=1e-5 low learning rate domain adaptation)
