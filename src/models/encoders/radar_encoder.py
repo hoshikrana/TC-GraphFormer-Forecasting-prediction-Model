@@ -6,6 +6,7 @@ with 3D convolutions and spatial pooling. Handles sparse availability cleanly.
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class RadarEncoder(nn.Module):
@@ -29,16 +30,30 @@ class RadarEncoder(nn.Module):
         self.pool = nn.AdaptiveAvgPool3d((1, 4, 4)) # collapse vertical depth to 1, spatial 4x4
         self.proj = nn.Linear(32, d_model)
 
-    def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        mask: torch.Tensor,
+        voxel_mask: torch.Tensor = None,
+    ) -> torch.Tensor:
         """
         x: (B, C, D, H, W)
         mask: (B,)
+        voxel_mask: (B, C, D, H, W) or (B, 1, D, H, W)
         Returns: (B, 16, d_model)
         """
         B = x.size(0)
+        if voxel_mask is not None:
+            # Enforce voxel-level masking: invalid voxels cannot contribute to features
+            x = x * voxel_mask
+            patch_validity = (F.adaptive_avg_pool3d(voxel_mask.float(), (1, 4, 4)) > 0.0).float()
+        else:
+            patch_validity = torch.ones((B, 1, 1, 4, 4), dtype=torch.float32, device=x.device)
+
         out = self.conv3d_1(x)
         out = self.conv3d_2(out)
         out = self.pool(out) # (B, 32, 1, 4, 4)
+        out = out * patch_validity
 
         tokens = out.squeeze(2).flatten(2).transpose(1, 2) # (B, 16, 32)
         tokens = self.proj(tokens) # (B, 16, d_model)

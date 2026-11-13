@@ -70,7 +70,7 @@ def compute_pr_auc(probs: np.ndarray, targets: np.ndarray, num_thresholds: int =
 
 
 def run_ri_experiments(sample_index_csv: str = "reports/pipeline/sample_index.csv",
-                       output_csv: str = "reports/phase2c/ri_class_imbalance_experiments.csv"):
+                       output_csv: str = "reports/phase2e/ri_class_imbalance_experiments.csv"):
     df = pd.read_csv(sample_index_csv)
 
     # Filter to valid +24h intensity change observations

@@ -3,7 +3,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![PyTorch 2.0+](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg)](https://pytorch.org/)
 [![Dataset](https://img.shields.io/badge/Dataset-NOAA%20TC%20PRIMED%20v01r01--final-0077b6.svg)](https://registry.opendata.aws/noaa-nesdis-tcprimed-pds/)
-[![Tests](https://img.shields.io/badge/Tests-107%20Passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-141%20Passed-brightgreen.svg)](tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 An enterprise-ready, scientifically validated deep learning and remote sensing data pipeline for tropical cyclone monitoring, intensity estimation, rapid intensification detection, and 6–24-hour track and intensity forecasting using the **NOAA Tropical Cyclone PRecipitation, Infrared, Microwave, and Environmental Dataset (TC PRIMED v01r01-final)**.
@@ -16,44 +16,44 @@ TC-GraphFormer models heterogeneous, asynchronous, multi-platform satellite swat
 
 ```mermaid
 flowchart TD
-    subgraph Inputs [Multimodal Sensor Swaths & Reanalysis]
-        IR["Infrared Window (IRWIN 4km)\n(B, 1, 64, 64)"]
-        PMW["Passive Microwave (85/89/166 GHz)\n(B, 4, 64, 64)"]
-        GP["GPROF Surface Precipitation\n(B, 1, 64, 64)"]
-        RAD["GPM DPR / TRMM PR Radar\n(B, 1, 64, 64)"]
-        ENV["ECMWF ERA5 Reanalysis & Shear\n(B, 6, 64, 64)"]
-        MASK["Modality Presence Masks\n(B, 5)"]
+    subgraph Inputs [Multimodal Sensor Swaths & Reanalysis Trajectory (B, T)]
+        IR["Infrared Window (IRWIN 4km)\n(B, T, 1, 64, 64)"]
+        PMW["Passive Microwave (Canonical 4 Ch: ~19V, ~19H, ~37V, ~85V)\n(B, T, 4, 64, 64)"]
+        GP["GPROF Hydrometeors (4 Ch: SurfRain, ConvRain, RWP, IWP)\n(B, T, 4, 64, 64)"]
+        RAD["GPM DPR / TRMM PR 3D Radar Volume (Ku)\n(B, T, 1, 16, 32, 32)"]
+        ENV["ECMWF ERA5 Synoptic Reanalysis (6 Ch: PW, SST, MSLP, T2m, u, v)\n(B, T, 6, 64, 64)"]
+        MASK["Sensor & Swath Validity Masks\n(B, T, 5)"]
     end
 
-    subgraph Encoders [Dedicated Modality Encoders]
-        E_IR["Conv2d Patch Encoder"]
-        E_PMW["Conv2d Patch Encoder"]
-        E_GP["Conv2d Patch Encoder"]
-        E_RAD["Conv2d Patch Encoder"]
-        E_ENV["Conv2d Patch Encoder"]
+    subgraph Encoders [Dedicated Modality Encoders (d=128)]
+        E_IR["Conv2d Patch Encoder -> (B*T, 16, 128)"]
+        E_PMW["Conv2d Patch Encoder + Ch Mask -> (B*T, 16, 128)"]
+        E_GP["Conv2d Patch Encoder -> (B*T, 16, 128)"]
+        E_RAD["Conv3d Volume Encoder -> (B*T, 16, 128)"]
+        E_ENV["Conv2d Patch Encoder -> (B*T, 16, 128)"]
     end
 
     subgraph Fusion [Mask-Aware Cross-Modal Attention]
-        FUSE["CrossModalFusion (2 Layers, 4 Heads)\n80 Multimodal Tokens (B, 80, 128)"]
+        FUSE["CrossModalFusion (2 Layers, 4 Heads)\nAttends across active modalities -> (B*T, 16, 128)"]
     end
 
-    subgraph Graph [Topological Spatial Graph (MPNN)]
-        PROJ["Spatial Aggregator (MLP)\nProjects 80 Tokens -> 16 Spatial Nodes"]
-        GNN["SpatialGraphEncoder (2 MPNN Layers)\nEyewall, Rainband & Synoptic Radial Shells"]
-        POOL["Attention Graph Readout -> (B, 128)"]
+    subgraph Graph [Polar Spatial Graph GNN]
+        POLAR["16 Polar Nodes [r in 0-500 km, theta in 0-2pi]"]
+        EDGES["8D Geometric Attributes [dr, dtheta, sin, cos, ru, rv, |dr|, dist]"]
+        GNN["SpatialGraphEncoder (EdgeConv, 2 Layers)\nEyewall, Rainband & Synoptic Radial Shells -> (B, T, 128)"]
     end
 
     subgraph Temporal [Continuous-Time Causal Transformer]
-        TEMP["CausalTemporalTransformer\nUpper-Triangular Mask + Elapsed Time Embedding (dt)"]
+        TEMP["CausalContinuousTimeTemporalTransformer\nUpper-Triangular Mask + Elapsed Time Embedding (dt)\nAnchor Token Gathered at t_anchor -> (B, 128)"]
     end
 
     subgraph Heads [Multi-Task Prediction Heads]
         H_V["Intensity Head: V_t0 (knots)"]
         H_P["Pressure Head: P_t0 (hPa)"]
-        H_S["Stage Head: WMO Class Logits (6 classes)"]
-        H_DV["Intensity Change Head: dV (+6h, +12h, +18h, +24h)"]
-        H_RI["Rapid Intensification Head: dV_24h >= 30 kt"]
-        H_TR["Track Head: Displacement (dlat, dlon across horizons)"]
+        H_S["Stage Head: 5 Canonical WMO Classes (TD, TS, TY, EX, DIST)"]
+        H_DV["Intensity Change Head: dV (+6h, +12h, +18h, +24h kt)"]
+        H_RI["Rapid Intensification Head: dV_24h >= 30 kt (pos_weight=33.53)"]
+        H_TR["Track Head: Tangent-Plane Geodesic Displacement (dx, dy in km)"]
     end
 
     IR --> E_IR
@@ -65,17 +65,19 @@ flowchart TD
     E_IR & E_PMW & E_GP & E_RAD & E_ENV --> FUSE
     MASK --> FUSE
 
-    FUSE --> PROJ --> GNN --> POOL
-    POOL --> TEMP
+    FUSE --> GNN
+    POLAR & EDGES --> GNN
+    GNN --> TEMP
     TEMP --> H_V & H_P & H_S & H_DV & H_RI & H_TR
 ```
 
-### Core Innovations:
-1. **Heterogeneous Modality Fusion**: Attends across 5 distinct remote sensing instruments while robustly handling severe sensor missingness (e.g. radar available in only ~3% of overpasses) without crashing or generating NaNs.
-2. **Topological Cyclone Graph (16 Nodes)**: Replaces naive spatial flattening with a cyclone-centric Graph Neural Network that structures the storm domain into 3 physical radial shells (Core/Eyewall: $r \sim 177\text{ km}$, Inner Rainbands: $r \sim 395\text{ km}$, Outer Rainbands: $r \sim 530\text{ km}$) and 4 azimuthal quadrants.
-3. **Continuous-Time Causal Transformer**: Accommodates irregular, asynchronous satellite revisits (median gap: 4.18 hours) via continuous elapsed time ($\Delta t$) encodings and lower-triangular causal attention masking.
-4. **Causal Data Pipeline**: Strictly guarantees temporal causality ($t_{\text{env}} \le t_{\text{overpass}}$), eliminating all temporal lookahead leakage.
-5. **Loss Reweighting for Rare Events**: Addresses extreme Rapid Intensification class imbalance (2.91% positive prevalence) using Class-Ratio Weighted BCE ($w = 33.3$) and Focal Loss, elevating RI recall from 0.0% to 73.08%.
+### Core Innovations & Physical Alignment:
+1. **Heterogeneous Modality Fusion with True Swath Masking**: Attends across 5 distinct remote sensing instruments while robustly handling severe sensor missingness (e.g. radar Ku volumes present in ~2.9% of overpasses) without crashing or statistical edge bleeding via binary pixel validity masks.
+2. **Canonical PMW Physical Mapping**: Resolves frequency heterogeneity across 9 radiometer constellations (SSMI, SSMIS, GMI, TMI, AMSR2, AMSRE, MHS, AMSUB, ATMS) by projecting observations to canonical frequencies (`~19V, ~19H, ~37V, ~85V`) with dynamic channel masking.
+3. **Polar Spatial Graph with 8D Geometric Edge Attributes**: Replaces naive spatial flattening with a cyclone-centric Graph Neural Network that structures the storm domain into 4 concentric radial rings ($0-500\text{ km}$) and 4 azimuthal quadrants, connected via 8 physical geometric edge metrics $[\Delta r, \Delta \theta, \sin(\Delta \theta), \cos(\Delta \theta), r_u, r_v, |\Delta r|, d_{uv}]$ and non-trainable metric coordinates ($[-353.5\text{ km}, +353.5\text{ km}]$).
+4. **Causal Trajectory Modeling (`TCPRIMEDSequenceDataset`)**: Formulates storm evolution over historical overpass sequences ($T \le 4$, lookback $\le 72\text{ hours}$) with continuous relative time ($\Delta t$) encodings, preserving zero cross-storm and cross-partition leakage.
+5. **Tangent-Plane Geodesic Track Displacement**: Forecasts metric storm movement in kilometers $(\Delta x_{\text{km}}, \Delta y_{\text{km}})$ rather than Euclidean degrees, eliminating latitude distortion and handling antimeridian ($180^\circ$) wrapping cleanly.
+6. **Class-Weighted Optimization for Rare Events**: Addresses extreme Rapid Intensification class imbalance (2.91% positive prevalence in TRAIN) using calibrated positive loss weighting ($\text{pos\_weight} = 33.53$), elevating RI recall from 0.0% to 73.08%.
 
 ---
 
@@ -243,19 +245,31 @@ python src/training/finetune_task.py --task nio_adaptation --epochs 3
 
 ## Evaluation & Benchmarks
 
-Benchmark TC-GraphFormer against standardized operational and statistical baselines (Persistence, Climatology, Linear Regression, Majority-Class):
+Benchmark TC-GraphFormer against standardized operational, climatological, and persistence baselines:
 ```bash
 python src/evaluation/evaluate_baselines.py
 ```
 
-### Benchmark Summary (Pilot Test Partition):
+### Benchmark Summary & Qualification (Pilot Test Partition):
 
-| Model | Task | Metric | Test Partition Performance | Notes |
+> [!NOTE]
+> **Scientific & Benchmarking Qualification:**  
+> 1. **Integration & Data-Flow Readiness (Phase 2E.1):** The data pipeline, mask preservation, coordinate-aware swath resampling, true polar spatial graph, and multi-task loss masking have been thoroughly verified with 141 automated regression tests and real pilot dataset execution.
+> 2. **Evaluation Qualification:** Results below reflect operational climatology (training split mean), linear regression, persistence (zero intensity change / stationary storm position), and initial TC-GraphFormer checkpoints evaluated on the 20 GB development pilot (80 storms, 2,599 samples).
+> 3. **Convergence & Forecast Skill Distinction:** Software integration and pipeline execution must not be conflated with meteorological convergence. Long-horizon multi-epoch training and operational forecasting accuracy will be executed on Machine B (remote GPU node) using the complete 2000–2025 dataset (~500 GB, ~1,500 storms).
+
+| Model / Baseline | Task | Metric | Test Performance | Operational Notes |
 | :--- | :--- | :---: | :---: | :--- |
-| **Persistence** | Current Intensity | MAE | 15.51 kt | Uses current wind as forecast |
-| **Climatology** | Central Pressure | MAE | 5.14 hPa | Uses training set mean pressure |
-| **Majority Class** | Development Stage | Accuracy | 22.45% | Predicts most frequent class (TS) |
-| **TC-GraphFormer** | Development Stage | Accuracy | **47.76%** | **Outperforms Majority Baseline (+25.3%)** |
+| **Climatology Baseline** | Current Intensity ($v_{\max}$) | MAE | 12.31 kt | Historical training partition mean (52.6 kt) |
+| **Linear Regression** | Current Intensity ($v_{\max}$) | MAE | 12.75 kt | Fit on storm translation speed ($R^2 \approx 0.04$) |
+| **Climatology Baseline** | Central Min Pressure ($p_{\min}$) | MAE | 7.11 hPa | Historical training partition mean (990.2 hPa) |
+| **Linear Pressure-Wind Fit**| Central Min Pressure ($p_{\min}$) | MAE | 2.87 hPa | Dvorak/Atkinson-Holliday wind-pressure empirical fit |
+| **Majority Class Baseline** | Development Stage | Accuracy | 22.45% | Predicts most frequent class (TS) |
+| **TC-GraphFormer** | Development Stage | Accuracy | **50.20%** | **Outperforms Majority Baseline (+27.75%)** |
+| **Persistence Baseline** | Intensity Change +6h | MAE | 2.80 kt | Assumes zero intensity change over 6 hours |
+| **Persistence Baseline** | Intensity Change +24h | MAE | 7.57 kt | Assumes zero intensity change over 24 hours |
+| **Persistence Baseline** | Track Displacement +6h | Geodesic MAE | 117.40 km | Stationary storm position |
+| **Persistence Baseline** | Track Displacement +24h | Geodesic MAE | 452.89 km | Stationary storm position |
 | **TC-GraphFormer (Class-Ratio BCE)** | Rapid Intensification | Recall | **73.08%** | **PR-AUC: 0.1873** (Elevates recall from 0.0%) |
 
 ---
@@ -278,14 +292,42 @@ Data staging generates bitwise cryptographic manifests (`staging/staging_manifes
 
 ---
 
-## Comprehensive Integrity Audit Deliverables
+## Research Integrity & Scientific Audit Deliverables
 
-All technical and scientific audit reports, empirical data distributions, and failure analyses generated during Phase 2C and Phase 2D are preserved in `reports/`:
-- [`phase2d_master_audit_report.md`](reports/phase2d_audit/phase2d_master_audit_report.md) — Comprehensive technical master report.
+All technical and scientific audit reports, empirical data distributions, and failure analyses generated throughout the project are preserved under `reports/`:
+
+### Phase 2E.1 Deliverables (Scientific Integrity, Geospatial Alignment & Data-Flow)
+- [`reports/phase2e1/phase2e1_master_integrity_report.md`](reports/phase2e1/phase2e1_master_integrity_report.md) — Master Phase 2E.1 scientific integrity report.
+- [`reports/phase2e1/geospatial_registration_validation.md`](reports/phase2e1/geospatial_registration_validation.md) — Storm-centered reference grid & KDTree distance masking.
+- [`reports/phase2e1/pixel_mask_dataflow_report.md`](reports/phase2e1/pixel_mask_dataflow_report.md) — End-to-end mask flow & mathematical invariance proof.
+- [`reports/phase2e1/pmw_sensor_mapping_validation.csv`](reports/phase2e1/pmw_sensor_mapping_validation.csv) — 9-sensor PMW channel mapping matrix.
+- [`reports/phase2e1/normalization_schema_audit.csv`](reports/phase2e1/normalization_schema_audit.csv) — Audit of all physical variables, units, sentinels, and ranges.
+- [`reports/phase2e1/radar_quality_control_report.md`](reports/phase2e1/radar_quality_control_report.md) — 3D Ku reflectivity QC & precipitation echo thresholding.
+- [`reports/phase2e1/graph_geometry_validation.md`](reports/phase2e1/graph_geometry_validation.md) — 16-node polar graph layout, 92 edges, and 8D geometric edge attributes.
+- [`reports/phase2e1/mfm_masking_and_transfer_report.md`](reports/phase2e1/mfm_masking_and_transfer_report.md) — Raw spatial patch masking & transfer provenance.
+- [`reports/phase2e1/nio_partition_isolation_report.md`](reports/phase2e1/nio_partition_isolation_report.md) — North Indian Ocean domain adaptation & zero-leakage holdout.
+- [`reports/phase2e1/split_provenance_reconciliation.md`](reports/phase2e1/split_provenance_reconciliation.md) — Reconciliation of 56/12/12 split & sequence end-padding.
+- [`reports/phase2e1/test_execution_report.md`](reports/phase2e1/test_execution_report.md) — Full 141-test suite execution and pilot integration test logs.
+- [`reports/phase2e1/remaining_scientific_risks.md`](reports/phase2e1/remaining_scientific_risks.md) — Software readiness vs. meteorological scaling risks.
+
+### Historical Phase 2E Deliverables
+- [`reports/phase2e/phase2e_implementation_report.md`](reports/phase2e/phase2e_implementation_report.md) — Master Phase 2E repair report.
+- [`reports/phase2e/verified_defects_fixed.csv`](reports/phase2e/verified_defects_fixed.csv) — Audit matrix of all 14 verified defects and fixes.
+- [`reports/phase2e/pilot_integration_test_report.md`](reports/phase2e/pilot_integration_test_report.md) — Pilot integration test execution log.
+- [`reports/phase2e/feature_schema_report.md`](reports/phase2e/feature_schema_report.md) — Canonical 5-modality feature schema & PMW mapping.
+- [`reports/phase2e/geospatial_alignment_report.md`](reports/phase2e/geospatial_alignment_report.md) — Tangent-plane geodesic track displacement derivation.
+- [`reports/phase2e/target_mask_validation.csv`](reports/phase2e/target_mask_validation.csv) — Target availability and validity masks across partitions.
+- [`reports/phase2e/sequence_construction_report.md`](reports/phase2e/sequence_construction_report.md) — Causal sequence dataset properties and revisit analysis.
+- [`reports/phase2e/model_tensor_flow_report.md`](reports/phase2e/model_tensor_flow_report.md) — Layer-by-layer tensor dimension tracing.
+- [`reports/phase2e/graph_coordinate_validation.md`](reports/phase2e/graph_coordinate_validation.md) — 16-node polar graph layout documentation.
+- [`reports/phase2e/remaining_known_issues.md`](reports/phase2e/remaining_known_issues.md) — Transparent catalog of known scientific & hardware limitations.
+
+### Historical Phase 2D Audit Deliverables
+- [`reports/phase2d_audit/phase2d_master_audit_report.md`](reports/phase2d_audit/phase2d_master_audit_report.md) — Phase 2D technical audit report.
 - [`risk_register.csv`](reports/phase2d_audit/risk_register.csv) — Prioritized 11-point engineering risk register.
 - [`source_execution_dependency_map.md`](reports/phase2d_audit/source_execution_dependency_map.md) — Module execution flow.
-- [`test_quality_assessment.csv`](reports/phase2d_audit/test_quality_assessment.csv) — Comprehensive breakdown of all 107 tests.
-- [`hardware_storage_audit.json`](reports/phase2d_audit/hardware_storage_audit.json) — Workstation storage audit and 608.6 GB budget.
+- [`test_quality_assessment.csv`](reports/phase2d_audit/test_quality_assessment.csv) — Breakdown of all tests.
+- [`hardware_storage_audit.json`](reports/phase2d_audit/hardware_storage_audit.json) — Workstation storage audit.
 
 ---
 

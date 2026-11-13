@@ -232,6 +232,19 @@ class StorageWriter:
                         v_sp[:] = sp
                         v_sp.units = "mm/hr"
 
+                        # Additional GPROF hydrometeor fields if available
+                        for g_field, g_name, g_unit in [
+                            ("convective_precip", "convectivePrecipitation", "mm/hr"),
+                            ("rain_water_path", "rainWaterPath", "kg/m^2"),
+                            ("ice_water_path", "iceWaterPath", "kg/m^2"),
+                        ]:
+                            f_data = gp.get(g_field)
+                            if f_data is not None and f_data.shape == (ny, nx):
+                                v_gf = g_gp.createVariable(g_name, "f4", ("gp_scan", "gp_pixel"),
+                                                          fill_value=-9999.0, zlib=do_zlib, complevel=comp_level)
+                                v_gf[:] = f_data
+                                v_gf.units = g_unit
+
                 # Modality: Radar
                 rad = obs.get("radar_data", {})
                 if rad and rad.get("is_available"):
@@ -248,6 +261,20 @@ class StorageWriter:
                         v_ku[:] = ku
                         v_ku.units = "dBZ"
 
+                    ka = rad.get("ka_reflectivity_profile")
+                    if ka is not None and len(ka.shape) == 3:
+                        n_range, n_scan, n_beam = ka.shape
+                        if "radar_range" not in g_rad.dimensions:
+                            g_rad.createDimension("radar_range", n_range)
+                        if "radar_scan" not in g_rad.dimensions:
+                            g_rad.createDimension("radar_scan", n_scan)
+                        if "radar_beam" not in g_rad.dimensions:
+                            g_rad.createDimension("radar_beam", n_beam)
+                        v_ka = g_rad.createVariable("correctedReflectFactor_Ka", "f4", ("radar_range", "radar_scan", "radar_beam"),
+                                                    fill_value=-9999.0, zlib=do_zlib, complevel=comp_level)
+                        v_ka[:] = ka
+                        v_ka.units = "dBZ"
+
                 # Modality: Environmental Reanalysis Slice
                 env_slice = obs.get("env_slice_data", {})
                 if env_slice and env_slice.get("is_available"):
@@ -256,15 +283,33 @@ class StorageWriter:
                     g_env.time_diff_hours = float(obs.get("env_time_diff_hours") or 0.0)
                     g_env.is_causal = int(obs.get("env_is_causal", True))
 
+                    grid_shape = env_slice.get("grid_shape")
+                    ny, nx = (None, None)
                     pw = env_slice.get("precipitable_water")
                     if pw is not None:
                         ny, nx = pw.shape
+                    elif grid_shape:
+                        ny, nx = grid_shape
+
+                    if ny is not None and nx is not None:
                         g_env.createDimension("env_ny", ny)
                         g_env.createDimension("env_nx", nx)
-                        v_pw = g_env.createVariable("precipitable_water", "f4", ("env_ny", "env_nx"),
-                                                    fill_value=-9999.0, zlib=do_zlib, complevel=comp_level)
-                        v_pw[:] = pw
-                        v_pw.units = "kg/m^2"
+
+                        env_vars_to_write = [
+                            ("precipitable_water", "precipitable_water", "kg/m^2"),
+                            ("sst", "sst", "K"),
+                            ("pressure_msl", "pressure_msl", "hPa"),
+                            ("temperature_2m", "temperature_2m", "K"),
+                            ("u_10m", "u_10m", "m/s"),
+                            ("v_10m", "v_10m", "m/s"),
+                        ]
+                        for env_key, env_name, env_unit in env_vars_to_write:
+                            arr = env_slice.get(env_key)
+                            if arr is not None and arr.shape == (ny, nx):
+                                v_e = g_env.createVariable(env_name, "f4", ("env_ny", "env_nx"),
+                                                          fill_value=-9999.0, zlib=do_zlib, complevel=comp_level)
+                                v_e[:] = arr
+                                v_e.units = env_unit
 
         # Atomically rename tmp to final path
         if os.path.exists(final_path):

@@ -50,6 +50,8 @@ class SampleBuilder:
             "instrument": overpass_meta.get("instrument", ""),
             "platform": overpass_meta.get("platform", ""),
             # Current state targets
+            "storm_latitude": targets.get("storm_latitude"),
+            "storm_longitude": targets.get("storm_longitude"),
             "intensity_vmax_kt": targets.get("intensity_vmax_kt"),
             "central_min_pressure_hpa": targets.get("central_min_pressure_hpa"),
             "development_stage_raw": targets.get("development_stage_raw", "UNKNOWN"),

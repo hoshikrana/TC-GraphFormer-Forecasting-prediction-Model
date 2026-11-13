@@ -1,0 +1,33 @@
+partition,task,model_or_baseline,n_samples,primary_metric,metric_value,secondary_metric,secondary_value,bias,units,notes
+VAL,Current Intensity (v_max),Climatology (Mean),612,MAE,15.73,RMSE,22.76,-2.17,kt,kt units
+VAL,Current Intensity (v_max),Linear Regression,612,MAE,15.53,RMSE,22.64,-2.96,kt,kt units
+VAL,Current Intensity (v_max),TC-GraphFormer,612,MAE,40.35,RMSE,46.27,-40.35,kt,kt units
+VAL,Central Pressure (p_min),Climatology (Mean),476,MAE,9.11,RMSE,11.45,1.12,hPa,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+VAL,Central Pressure (p_min),Linear Pressure-Wind Fit,476,MAE,5.1,RMSE,6.52,1.1,hPa,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+VAL,Central Pressure (p_min),TC-GraphFormer,476,MAE,996.34,RMSE,996.4,-996.34,hPa,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+VAL,Development Stage,Majority Class (TS),612,MAE,57.52,RMSE,0.0,0.0,%,Accuracy: 42.48%
+VAL,Development Stage,TC-GraphFormer,612,MAE,68.79,RMSE,0.0,0.0,%,Accuracy: 31.21%
+TEST,Current Intensity (v_max),Climatology (Mean),245,MAE,12.31,RMSE,17.08,6.02,kt,kt units
+TEST,Current Intensity (v_max),Linear Regression,245,MAE,12.75,RMSE,18.81,4.97,kt,kt units
+TEST,Current Intensity (v_max),TC-GraphFormer,245,MAE,32.15,RMSE,35.9,-32.15,kt,kt units
+TEST,Central Pressure (p_min),Climatology (Mean),172,MAE,7.11,RMSE,7.48,-5.79,hPa,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+TEST,Central Pressure (p_min),Linear Pressure-Wind Fit,172,MAE,2.87,RMSE,3.84,0.3,hPa,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+TEST,Central Pressure (p_min),TC-GraphFormer,172,MAE,1003.25,RMSE,1003.26,-1003.25,hPa,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+TEST,Development Stage,Majority Class (TS),245,MAE,77.55,RMSE,0.0,0.0,%,Accuracy: 22.45%
+TEST,Development Stage,TC-GraphFormer,245,MAE,49.8,RMSE,0.0,0.0,%,Accuracy: 50.20%
+VAL,Intensity Change +6h,Persistence Baseline,538,MAE,4.21,RMSE,6.47,0.0,kt,Verified persistence (zero intensity change / stationary position)
+VAL,Intensity Change +12h,Persistence Baseline,503,MAE,7.91,RMSE,11.48,0.0,kt,Verified persistence (zero intensity change / stationary position)
+VAL,Intensity Change +18h,Persistence Baseline,464,MAE,11.02,RMSE,15.18,0.0,kt,Verified persistence (zero intensity change / stationary position)
+VAL,Intensity Change +24h,Persistence Baseline,428,MAE,14.05,RMSE,18.7,0.0,kt,Verified persistence (zero intensity change / stationary position)
+VAL,Track Displacement Track_6h,Persistence Baseline,91,MAE,120.06,RMSE,109.55,0.0,km,Verified persistence (zero intensity change / stationary position)
+VAL,Track Displacement Track_12h,Persistence Baseline,86,MAE,230.54,RMSE,205.45,0.0,km,Verified persistence (zero intensity change / stationary position)
+VAL,Track Displacement Track_18h,Persistence Baseline,82,MAE,343.8,RMSE,286.96,0.0,km,Verified persistence (zero intensity change / stationary position)
+VAL,Track Displacement Track_24h,Persistence Baseline,72,MAE,416.66,RMSE,365.4,0.0,km,Verified persistence (zero intensity change / stationary position)
+TEST,Intensity Change +6h,Persistence Baseline,187,MAE,2.8,RMSE,3.69,0.0,kt,Verified persistence (zero intensity change / stationary position)
+TEST,Intensity Change +12h,Persistence Baseline,163,MAE,4.64,RMSE,6.01,0.0,kt,Verified persistence (zero intensity change / stationary position)
+TEST,Intensity Change +18h,Persistence Baseline,136,MAE,5.95,RMSE,7.94,0.0,kt,Verified persistence (zero intensity change / stationary position)
+TEST,Intensity Change +24h,Persistence Baseline,113,MAE,7.57,RMSE,10.24,0.0,kt,Verified persistence (zero intensity change / stationary position)
+TEST,Track Displacement Track_6h,Persistence Baseline,43,MAE,117.4,RMSE,100.67,0.0,km,Verified persistence (zero intensity change / stationary position)
+TEST,Track Displacement Track_12h,Persistence Baseline,39,MAE,239.06,RMSE,210.31,0.0,km,Verified persistence (zero intensity change / stationary position)
+TEST,Track Displacement Track_18h,Persistence Baseline,32,MAE,335.0,RMSE,302.97,0.0,km,Verified persistence (zero intensity change / stationary position)
+TEST,Track Displacement Track_24h,Persistence Baseline,28,MAE,452.89,RMSE,426.97,0.0,km,Verified persistence (zero intensity change / stationary position)

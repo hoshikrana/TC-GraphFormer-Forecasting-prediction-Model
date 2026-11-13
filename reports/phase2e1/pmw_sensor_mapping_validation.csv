@@ -1,0 +1,10 @@
+sensor,ch0_19V,ch1_19H,ch2_37V,ch3_85_91V,total_channels_available,notes
+SSMI,S1/TB_19.35V,S1/TB_19.35H,S1/TB_37.0V,S2/TB_85.5V,4,All 4 canonical window imaging channels verified present in raw and processed pilot containers.
+SSMIS,S1/TB_19.35V,S1/TB_19.35H,S2/TB_37.0V,None,3,Channels 0-2 present. 91.65 GHz (raw S4) omitted in processed pilot container; mask correctly set to 0.
+GMI,S1/TB_18.7V,S1/TB_18.7H,S1/TB_36.64V,S1/TB_89.0V,4,All 4 canonical imaging channels verified present in raw and processed pilot containers.
+TMI,S2/TB_19.35V,S2/TB_19.35H,S2/TB_37.0V,None,3,Channels 0-2 present in S2. 85.5 GHz (raw S3) omitted in processed pilot container; mask correctly set to 0.
+AMSR2,S2/TB_18.7V,S2/TB_18.7H,None,None,2,Low-frequency channels 0-1 present in S2. Channels 2-3 omitted in processed pilot container; masks correctly set to 0.
+AMSRE,S2/TB_18.7V,S2/TB_18.7H,None,None,2,Low-frequency channels 0-1 present in S2. Channels 2-3 omitted in processed pilot container; masks correctly set to 0.
+MHS,None,None,None,S1/TB_89.0V,1,High-frequency scattering channel 3 present in S1. Channels 0-2 absent (sounding radiometer); masks correctly set to 0.
+AMSUB,None,None,None,S1/TB_89.0_0.9QV,1,High-frequency scattering channel 3 present in S1. Channels 0-2 absent (sounding radiometer); masks correctly set to 0.
+ATMS,None,None,None,None,0,Atmospheric temperature/humidity sounder (channels 23.8/31.4 GHz). Canonical window imaging channels absent; all masks correctly set to 0.

@@ -52,19 +52,34 @@ class IREncoder(nn.Module):
         self.pool = nn.AdaptiveAvgPool2d((4, 4)) # produces 16 spatial tokens
         self.token_proj = nn.Linear(d_model, d_model)
 
-    def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        mask: torch.Tensor,
+        pixel_mask: torch.Tensor = None,
+    ) -> torch.Tensor:
         """
         x: (B, 1, H, W)
         mask: (B,) binary mask where 1 = modality present, 0 = absent.
+        pixel_mask: (B, 1, H, W) binary valid pixel mask where 1 = valid, 0 = invalid.
         Returns: (B, num_tokens, d_model)
         """
         B = x.size(0)
+        if pixel_mask is not None:
+            # Enforce pixel-level masking: invalid pixels cannot contribute to features
+            x = x * pixel_mask
+            patch_validity = (F.adaptive_avg_pool2d(pixel_mask.float(), (4, 4)) > 0.0).float()
+        else:
+            patch_validity = torch.ones((B, 1, 4, 4), dtype=torch.float32, device=x.device)
+
         out = self.stem(x)
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
 
         pooled = self.pool(out) # (B, d_model, 4, 4)
+        pooled = pooled * patch_validity
+
         tokens = pooled.flatten(2).transpose(1, 2) # (B, 16, d_model)
         tokens = self.token_proj(tokens)
 

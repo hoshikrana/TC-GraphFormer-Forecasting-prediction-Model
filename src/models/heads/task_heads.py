@@ -19,9 +19,10 @@ class TaskPredictionHeads(nn.Module):
     Multi-task prediction heads operating on shared latent representation.
     """
 
-    def __init__(self, d_model: int = 128, num_stages: int = 6):
+    def __init__(self, d_model: int = 128, num_stages: int = 5):
         super().__init__()
         self.d_model = d_model
+        self.num_stages = num_stages
 
         # 1. Current Intensity Head (Wind Speed in knots)
         self.head_intensity = nn.Sequential(
