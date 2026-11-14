@@ -42,9 +42,10 @@ A comprehensive audit of raw pilot NetCDF files (`data/raw/pilot/`) and standard
   Where $(\phi_0, \lambda_0)$ is the storm center latitude and longitude, with dateline wrapping handled via $((\Delta \lambda + 180^\circ) \pmod{360^\circ}) - 180^\circ$.
 - **Processing in Phase 2E.1:** `source = "tangent_plane_geodetic_km"`.
 
-### 2.3 Nominal Fallback Regime
-- **Found in:** Pilot containers where coordinate variables were not copied during initial packaging (e.g. `environmental_synoptic`).
-- **Behavior:** Falls back safely to bilinear/nearest interpolation over the nominal $[-500, +500]\text{ km}$ domain, explicitly tagging metadata with `coord_source: "nominal_fallback"`.
+### 2.3 Nominal Fallback Regime & Provenance Tracking
+- **Found in:** Older containers or synthetic test cases where coordinate variables were not copied during packaging.
+- **Behavior:** Falls back safely to bilinear/nearest interpolation over the nominal $[-500, +500]\text{ km}$ domain, explicitly tagging metadata with `source = "nominal_fallback"`.
+- **Integrity Rule:** Nominal fallback is never described as verified geospatial alignment; it is tracked explicitly in sample metadata under `geospatial_provenance`.
 
 ---
 
@@ -61,6 +62,51 @@ In `src/data/dataset.py:TCPRIMEDDataset._resample_swath_with_coords`:
    $$\text{dist}_k, \, \text{idx}_k = \text{tree.query}(p_k, \, \text{distance\_upper\_bound} = 35.0\text{ km})$$
 4. If $\text{dist}_k \le 35.0\text{ km}$: The grid point receives the nearest valid observation value, and $\text{pixel\_mask}_k = 1.0$.
 5. If $\text{dist}_k > 35.0\text{ km}$: The grid point lies outside the satellite swath. Its value is set to $0.0$, and its $\text{pixel\_mask}_k = 0.0$.
+
+---
+
+## 4. Critical 2 Resolution: Complete Geospatial Registration & Radar Beam Mapping
+
+### 4.1 Root Cause of Critical 2
+A significant gap previously separated the dataset coordinate loader from the container writer:
+1. `StorageWriter` previously saved coordinates only for PMW swaths, omitting coordinates for Infrared, GPROF, Radar, and ERA5.
+2. The ERA5 synoptic slice extracted 1D `latitude` ($121,$) and `longitude` ($121,$) axes, while `_resample_swath_with_coords` strictly expected 2D arrays of the same shape as the data, causing ERA5 to trigger `nominal_fallback`.
+3. 3D volumetric radar profiles (Ku band) used naive trilinear interpolation across scan, beam, and range dimensions, stretching a $\sim 245\text{ km}$ wide GPM DPR swath across the entire $1,000\text{ km} \times 1,000\text{ km}$ domain and hallucinating radar echo in unobserved sectors.
+
+### 4.2 Comprehensive Corrections Applied
+1. **Container Coordinate Preservation (`tcprimed_pipeline/storage_writer.py`):**
+   - **Infrared:** Saves `latitude`, `longitude` (`degrees_north`, `degrees_east`) and `x`, `y` (`km`) onto `("ir_y", "ir_x")`.
+   - **GPROF:** Saves `latitude`, `longitude` and `x`, `y` onto `("gp_scan", "gp_pixel")`.
+   - **Radar:** Saves beam geolocation `latitude`, `longitude`, `x`, `y` onto `("radar_scan", "radar_beam")`, and vertical range gate metadata `binHeight` onto `("radar_range", "radar_scan", "radar_beam")`.
+   - **Environmental:** Saves 1D coordinate axes `latitude` on `("env_ny",)` and `longitude` on `("env_nx",)`.
+   - **Modality Processor:** Expanded candidate radar group scanning to `["KuKaGMI", "KuGMI", "KuTMI"]` ensuring full TRMM DPR compatibility.
+
+2. **1D Coordinate Axis Meshing (`src/data/dataset.py:_resample_swath_with_coords`):**
+   - Detects 1D latitude and longitude axes matching 2D field dimensions $(n_y, n_x)$.
+   - Constructs exact 2D geographic meshgrid using `np.meshgrid(lat_raw, lon_raw, indexing="ij")`.
+   - Maps 2D coordinates to storm-centered tangent plane via equirectangular projection, yielding `source = "tangent_plane_geodetic_km"`.
+
+3. **Volumetric Radar Beam Geospatial Registration (`src/data/dataset.py:_load_radar_volume`):**
+   - Extracts 2D horizontal beam coordinates from `(x, y)` in km or geodetic `(latitude, longitude)` relative to vortex center.
+   - Resamples vertical range gates to `target_depth = 16` levels using 1D/3D trilinear gate interpolation.
+   - Evaluates a 2D $k$-d tree over valid horizontal beam positions against the target grid $[-500, +500]\text{ km}$ ($32 \times 32$ spatial cells).
+   - Enforces `distance_upper_bound = max_dist_km` ($35.0\text{ km}$). Target cells outside the radar swath are strictly masked $0.0$ across all 16 depth layers, preventing spatial distortion.
+   - Real pilot DPR test verified that $\sim 27.5\%$ of cells inside the actual swath are populated with real vertical echo, while $72.5\%$ outside the swath remain strictly unobserved.
+   - Correctly marks `source = "radar_beam_geodetic_km"`.
+
+4. **Provenance Tracking (`src/data/dataset.py`, `src/data/collate.py`):**
+   - Returned sample dictionary includes `item["geospatial_provenance"]` tracking exact coordinate origin for each modality (`"tangent_plane_geodetic_km"`, `"utm_storm_centered_km"`, `"radar_beam_geodetic_km"`, or `"nominal_fallback"`).
+   - Fallback is never disguised as verified alignment.
+
+### 4.3 Verification Evidence
+- Unit test `test_12_geospatial_coordinate_preservation_and_registration` validates:
+  1. `StorageWriter` writes coordinates across all 4 modalities and verifies NetCDF structure.
+  2. 1D ERA5 axes resample to $(1, 64, 64)$ with `source == "tangent_plane_geodetic_km"`.
+  3. Radar beam coordinates resample to $(1, 16, 32, 32)$ with `source == "radar_beam_geodetic_km"`.
+  4. Radar cells outside the swath ($|x| > 200\text{ km}$) are strictly zeroed and masked $0.0$.
+  5. Missing coordinates fall back cleanly to `"nominal_fallback"`.
+- All **143 unit and integration tests** in the repository pass cleanly (100% OK).
+- Full pilot integration test (`scripts/run_pilot_integration_test.py`) executed end-to-end with verified finite gradients across all encoders.
 
 ### Verification Evidence
 - Unit test `test_04_coordinate_aware_swath_resampling_and_distance_masking` validates that a $200\text{ km} \times 200\text{ km}$ swath placed at the center produces valid pixels ($1.0$) in the core, while grid corners ($r \approx 500\text{ km}$) are strictly masked invalid ($0.0$) with zero data leakage.

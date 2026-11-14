@@ -251,16 +251,33 @@ class TCPRIMEDDataset(Dataset):
                 if "x" in grp.variables and "y" in grp.variables:
                     x_raw = np.ma.filled(grp.variables["x"][:], np.nan)
                     y_raw = np.ma.filled(grp.variables["y"][:], np.nan)
-                    if x_raw.ndim == 1 and y_raw.ndim == 1 and (len(y_raw), len(x_raw)) == arr.shape:
-                        x_2d, y_2d = np.meshgrid(x_raw, y_raw)
-                        source = "utm_storm_centered_km"
+                    if x_raw.ndim == 1 and y_raw.ndim == 1:
+                        if (len(y_raw), len(x_raw)) == arr.shape:
+                            x_2d, y_2d = np.meshgrid(x_raw, y_raw)
+                            source = "utm_storm_centered_km"
+                        elif (len(x_raw), len(y_raw)) == arr.shape:
+                            y_2d, x_2d = np.meshgrid(y_raw, x_raw)
+                            source = "utm_storm_centered_km"
                     elif x_raw.shape == arr.shape and y_raw.shape == arr.shape:
                         x_2d, y_2d = x_raw, y_raw
                         source = "utm_storm_centered_km"
                 elif "latitude" in grp.variables and "longitude" in grp.variables and storm_lat is not None and storm_lon is not None:
                     lat_raw = np.ma.filled(grp.variables["latitude"][:], np.nan)
                     lon_raw = np.ma.filled(grp.variables["longitude"][:], np.nan)
-                    if lat_raw.shape == arr.shape and lon_raw.shape == arr.shape:
+                    if lat_raw.ndim == 1 and lon_raw.ndim == 1:
+                        if (len(lat_raw), len(lon_raw)) == arr.shape:
+                            lat_2d, lon_2d = np.meshgrid(lat_raw, lon_raw, indexing="ij")
+                        elif (len(lon_raw), len(lat_raw)) == arr.shape:
+                            lon_2d, lat_2d = np.meshgrid(lon_raw, lat_raw, indexing="ij")
+                        else:
+                            lat_2d, lon_2d = None, None
+                        if lat_2d is not None and lon_2d is not None:
+                            cos_lat = max(1e-4, math.cos(math.radians(storm_lat)))
+                            d_lon = ((lon_2d - storm_lon + 180.0) % 360.0) - 180.0
+                            x_2d = d_lon * cos_lat * 111.32
+                            y_2d = (lat_2d - storm_lat) * 110.57
+                            source = "tangent_plane_geodetic_km"
+                    elif lat_raw.shape == arr.shape and lon_raw.shape == arr.shape:
                         cos_lat = max(1e-4, math.cos(math.radians(storm_lat)))
                         d_lon = ((lon_raw - storm_lon + 180.0) % 360.0) - 180.0
                         x_2d = d_lon * cos_lat * 111.32
@@ -300,34 +317,116 @@ class TCPRIMEDDataset(Dataset):
         return t_data, t_mask, "nominal_fallback"
 
     def _load_radar_volume(
-        self, radar_grp: nc.Group, target_grid: Tuple[int, int], target_depth: int = 16
-    ) -> Tuple[torch.Tensor, torch.Tensor, bool]:
+        self,
+        radar_grp: nc.Group,
+        target_grid: Tuple[int, int],
+        target_depth: int = 16,
+        storm_lat: Optional[float] = None,
+        storm_lon: Optional[float] = None,
+        domain_km: float = 500.0,
+        max_dist_km: float = 35.0,
+        return_source: bool = False,
+    ) -> Union[Tuple[torch.Tensor, torch.Tensor, bool], Tuple[torch.Tensor, torch.Tensor, bool, str]]:
         """
         Load 3D volumetric radar reflectivity (Ku band), interpolate depth to target_depth,
-        and spatial dimensions to (target_grid[0]//2, target_grid[1]//2).
-        Valid range: [-20, 100] dBZ. Normalization: [-20, 80] dBZ -> [0, 1].
-        Returns: (radar_tensor, radar_mask, is_valid)
+        and resample spatial dimensions to (target_grid[0]//2, target_grid[1]//2).
+        Uses geospatial beam coordinates (x, y or lat, lon) via 2D k-d tree projection onto
+        [-domain_km, +domain_km]. Cells outside the radar swath (> max_dist_km) are strictly masked 0.
+        Falls back cleanly to nominal grid interpolation if coordinates are missing.
+        Valid range: [-20, 100] dBZ. Physical normalization: [-20, 80] dBZ -> [0, 1].
         """
         H, W = target_grid[0] // 2, target_grid[1] // 2
         empty_tensor = torch.zeros((1, target_depth, H, W), dtype=torch.float32)
         empty_mask = torch.zeros((1, target_depth, H, W), dtype=torch.float32)
 
         if "correctedReflectFactor_Ku" not in radar_grp.variables:
-            return empty_tensor, empty_mask, False
+            return (empty_tensor, empty_mask, False, "empty") if return_source else (empty_tensor, empty_mask, False)
 
         raw_ku = np.ma.filled(radar_grp.variables["correctedReflectFactor_Ku"][:], np.nan)
         if raw_ku.ndim != 3:
-            return empty_tensor, empty_mask, False
+            return (empty_tensor, empty_mask, False, "invalid_shape") if return_source else (empty_tensor, empty_mask, False)
 
         # Ku band valid reflectivity range: [-20, 100] dBZ
         valid = (~np.isnan(raw_ku)) & (raw_ku > -9000.0) & (raw_ku >= -20.0) & (raw_ku <= 100.0)
         if not np.any(valid):
-            return empty_tensor, empty_mask, False
+            return (empty_tensor, empty_mask, False, "no_valid_data") if return_source else (empty_tensor, empty_mask, False)
+
+        n_range, n_scan, n_beam = raw_ku.shape
 
         # Physical normalization: dBZ [-20, 80] -> [0, 1]
         norm_ku = np.clip(np.where(valid, raw_ku, -20.0) - (-20.0), 0.0, 100.0) / 100.0
         mask_ku = valid.astype(np.float32)
 
+        x_2d, y_2d = None, None
+        source = "nominal_fallback"
+
+        # Attempt coordinate-aware geospatial registration
+        try:
+            if "x" in radar_grp.variables and "y" in radar_grp.variables:
+                x_raw = np.ma.filled(radar_grp.variables["x"][:], np.nan)
+                y_raw = np.ma.filled(radar_grp.variables["y"][:], np.nan)
+                if x_raw.shape == (n_scan, n_beam) and y_raw.shape == (n_scan, n_beam):
+                    x_2d, y_2d = x_raw, y_raw
+                    source = "radar_beam_geodetic_km"
+            elif "latitude" in radar_grp.variables and "longitude" in radar_grp.variables and storm_lat is not None and storm_lon is not None:
+                lat_raw = np.ma.filled(radar_grp.variables["latitude"][:], np.nan)
+                lon_raw = np.ma.filled(radar_grp.variables["longitude"][:], np.nan)
+                if lat_raw.shape == (n_scan, n_beam) and lon_raw.shape == (n_scan, n_beam):
+                    cos_lat = max(1e-4, math.cos(math.radians(storm_lat)))
+                    d_lon = ((lon_raw - storm_lon + 180.0) % 360.0) - 180.0
+                    x_2d = d_lon * cos_lat * 111.32
+                    y_2d = (lat_raw - storm_lat) * 110.57
+                    source = "radar_beam_geodetic_km"
+        except Exception:
+            x_2d, y_2d = None, None
+            source = "nominal_fallback"
+
+        if x_2d is not None and y_2d is not None and HAS_SCIPY:
+            coords = np.column_stack([x_2d.flatten(), y_2d.flatten()])
+            valid_coords = (~np.isnan(coords[:, 0])) & (~np.isnan(coords[:, 1]))
+            if np.any(valid_coords):
+                valid_indices_original = np.where(valid_coords)[0]
+                tree = cKDTree(coords[valid_coords])
+
+                # Interpolate vertical axis to target_depth (preserving n_scan, n_beam)
+                t_data = torch.from_numpy(norm_ku.astype(np.float32)).unsqueeze(0).unsqueeze(0)
+                t_mask = torch.from_numpy(mask_ku).unsqueeze(0).unsqueeze(0)
+
+                t_data_v = F.interpolate(
+                    t_data, size=(target_depth, n_scan, n_beam), mode="trilinear", align_corners=False
+                ).squeeze(0).squeeze(0)  # (target_depth, n_scan, n_beam)
+
+                t_mask_v = F.interpolate(
+                    t_mask, size=(target_depth, n_scan, n_beam), mode="nearest"
+                ).squeeze(0).squeeze(0)  # (target_depth, n_scan, n_beam)
+
+                gx = np.linspace(-domain_km, domain_km, W)
+                gy = np.linspace(domain_km, -domain_km, H)  # North positive
+                grid_x, grid_y = np.meshgrid(gx, gy)
+                query_pts = np.column_stack([grid_x.flatten(), grid_y.flatten()])
+
+                dists, sub_indices = tree.query(query_pts, distance_upper_bound=max_dist_km)
+                is_valid_horiz = dists <= max_dist_km
+
+                grid_data = torch.zeros((target_depth, H * W), dtype=torch.float32)
+                grid_mask = torch.zeros((target_depth, H * W), dtype=torch.float32)
+
+                if np.any(is_valid_horiz):
+                    matched_sub = sub_indices[is_valid_horiz]
+                    orig_flat_idx = valid_indices_original[matched_sub]
+                    scan_idx, beam_idx = np.unravel_index(orig_flat_idx, (n_scan, n_beam))
+
+                    grid_data[:, is_valid_horiz] = t_data_v[:, scan_idx, beam_idx]
+                    grid_mask[:, is_valid_horiz] = t_mask_v[:, scan_idx, beam_idx]
+
+                data_clean = (grid_data * grid_mask).view(1, target_depth, H, W)
+                mask_clean = grid_mask.view(1, target_depth, H, W)
+                is_valid = bool(mask_clean.sum() > 0)
+                if return_source:
+                    return data_clean, mask_clean, is_valid, source
+                return data_clean, mask_clean, is_valid
+
+        # Clean fallback to nominal trilinear resizing
         t_data = torch.from_numpy(norm_ku.astype(np.float32)).unsqueeze(0).unsqueeze(0)
         t_mask = torch.from_numpy(mask_ku).unsqueeze(0).unsqueeze(0)
 
@@ -340,7 +439,10 @@ class TCPRIMEDDataset(Dataset):
         ).squeeze(0)  # (1, D, H, W)
 
         data_clean = data_resized * mask_resized
-        return data_clean, mask_resized, True
+        is_valid = bool(mask_resized.sum() > 0)
+        if return_source:
+            return data_clean, mask_resized, is_valid, "nominal_fallback"
+        return data_clean, mask_resized, is_valid
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         row = self.df.iloc[idx]
@@ -381,6 +483,13 @@ class TCPRIMEDDataset(Dataset):
         has_gprof = bool(row.get("has_gprof", False))
         has_radar = bool(row.get("has_radar", False))
         has_env = bool(row.get("has_causal_env", False))
+
+        # Geospatial provenance tracking
+        ir_src = "none"
+        pmw_srcs = []
+        gp_srcs = []
+        rad_src = "none"
+        env_srcs = []
 
         # Targets from container if available
         storm_lat_from_nc = None
@@ -444,13 +553,14 @@ class TCPRIMEDDataset(Dataset):
                                             # Raw valid range check: [50, 360] K before arithmetic
                                             valid_tb = (~np.isnan(raw_tb)) & (raw_tb > -9000.0) & (raw_tb > 50.0) & (raw_tb < 360.0)
                                             norm_tb = np.where(valid_tb, np.clip((raw_tb - 100.0) / 220.0, 0.0, 1.0), np.nan)
-                                            t_ch, m_ch, _ = self._resample_swath_with_coords(
+                                            t_ch, m_ch, ch_src = self._resample_swath_with_coords(
                                                 norm_tb, sw_grp, storm_lat, storm_lon, (H, W)
                                             )
                                             if m_ch.sum() > 0:
                                                 pmw_tensor[ch_idx] = t_ch.squeeze(0)
                                                 pmw_pixel_mask[ch_idx] = m_ch.squeeze(0)
                                                 pmw_channel_mask[ch_idx] = 1.0
+                                                pmw_srcs.append(ch_src)
 
                                 if pmw_channel_mask.sum() == 0:
                                     has_pmw = False
@@ -474,13 +584,14 @@ class TCPRIMEDDataset(Dataset):
                                         # Detect raw invalid sentinels BEFORE any arithmetic or log1p
                                         valid_f = (~np.isnan(raw_f)) & (raw_f > -9000.0) & (raw_f >= 0.0)
                                         norm_f = np.where(valid_f, np.log1p(np.maximum(raw_f, 0.0)) / norm_scale, np.nan)
-                                        t_f, m_f, _ = self._resample_swath_with_coords(
+                                        t_f, m_f, f_src = self._resample_swath_with_coords(
                                             norm_f, gp_grp, storm_lat, storm_lon, (H, W)
                                         )
                                         if m_f.sum() > 0:
                                             gprof_tensor[fidx] = t_f.squeeze(0)
                                             gprof_pixel_mask[fidx] = m_f.squeeze(0)
                                             gprof_channel_mask[fidx] = 1.0
+                                            gp_srcs.append(f_src)
 
                                 if gprof_channel_mask.sum() == 0:
                                     has_gprof = False
@@ -492,7 +603,11 @@ class TCPRIMEDDataset(Dataset):
                         if has_radar and "radar_radiometer" in curr_grp.groups:
                             try:
                                 rad_grp = curr_grp.groups["radar_radiometer"]
-                                r_tensor, r_mask, r_valid = self._load_radar_volume(rad_grp, (H, W), target_depth=16)
+                                r_tensor, r_mask, r_valid, rad_src = self._load_radar_volume(
+                                    rad_grp, (H, W), target_depth=16,
+                                    storm_lat=storm_lat, storm_lon=storm_lon,
+                                    return_source=True,
+                                )
                                 if r_valid:
                                     radar_tensor = r_tensor
                                     radar_voxel_mask = r_mask
@@ -523,13 +638,14 @@ class TCPRIMEDDataset(Dataset):
                                         # Raw invalid detection: _FillValue = -32768 or <= -9000
                                         valid_e = (~np.isnan(raw_e)) & (raw_e > -9000.0) & (raw_e != -32768)
                                         norm_e = np.where(valid_e, (raw_e - foffset) / fscale, np.nan)
-                                        t_e, m_e, _ = self._resample_swath_with_coords(
+                                        t_e, m_e, e_src = self._resample_swath_with_coords(
                                             norm_e, env_grp, storm_lat, storm_lon, (H, W)
                                         )
                                         if m_e.sum() > 0:
                                             env_tensor[fidx] = t_e.squeeze(0)
                                             env_pixel_mask[fidx] = m_e.squeeze(0)
                                             env_channel_mask[fidx] = 1.0
+                                            env_srcs.append(e_src)
 
                                 if env_channel_mask.sum() == 0:
                                     has_env = False
@@ -671,6 +787,13 @@ class TCPRIMEDDataset(Dataset):
                 "ri_mask": torch.tensor(ri_mask, dtype=torch.float32),
                 "track_displacement": torch.tensor(track_displacements, dtype=torch.float32), # (4, 2)
                 "track_mask": torch.tensor(track_masks, dtype=torch.float32), # (4,)
+            },
+            "geospatial_provenance": {
+                "infrared": ir_src if has_ir else "none",
+                "passive_microwave": pmw_srcs[0] if has_pmw and pmw_srcs else "none",
+                "gprof": gp_srcs[0] if has_gprof and gp_srcs else "none",
+                "radar": rad_src if has_radar else "none",
+                "environmental": env_srcs[0] if has_env and env_srcs else "none",
             },
         }
         return sample

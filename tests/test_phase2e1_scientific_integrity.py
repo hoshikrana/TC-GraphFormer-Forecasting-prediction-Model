@@ -15,12 +15,16 @@ Validates:
 
 import os
 import math
+import tempfile
 import unittest
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
+import netCDF4 as nc
 
+from tcprimed_pipeline.config import OutputConfig
+from tcprimed_pipeline.storage_writer import StorageWriter
 from src.data.dataset import TCPRIMEDDataset, TCPRIMEDSequenceDataset, SENSOR_PMW_CHANNEL_MAP
 from src.data.collate import collate_multimodal_batch, collate_sequence_batch
 from src.models.tc_graphformer import TCGraphFormer
@@ -431,6 +435,173 @@ class TestPhase2E1ScientificIntegrity(unittest.TestCase):
         t_masked, _ = model.polar_pool(f_masked, pixel_mask=pix_mask)
         diff_masked = (t_masked - t_base).abs().sum(dim=-1)[0]
         self.assertAlmostEqual(diff_masked[0].item(), 0.0, places=4, msg="Invalid masked pixel leaked into Sector 0!")
+
+    # 12. Geospatial Coordinate Preservation, Axis Meshing & Radar Swath Registration
+    def test_12_geospatial_coordinate_preservation_and_registration(self):
+        # 1. Verify StorageWriter preserves coordinates for IR, GPROF, Radar, and ERA5
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            writer = StorageWriter(OutputConfig(root=tmp_dir, compression_level=1))
+            H_in, W_in = 64, 64
+            obs = {
+                "observation_id": "TEST_OBS_01",
+                "sample_id": "TEST_GEO_01",
+                "timestamp_str": "20200913_160000",
+                "timestamp_epoch": 1600000000,
+                "timestamp_utc": "20200913_160000",
+                "instrument": "GMI_GPM",
+                "storm_latitude": 20.0,
+                "storm_longitude": -60.0,
+                "intensity_knots": 65.0,
+                "pressure_hpa": 985.0,
+                "raw_stage": "H1",
+                "stage_class_id": 2,
+                "ir_data": {
+                    "is_available": True,
+                    "irwin_image": np.ones((H_in, W_in), dtype=np.float32) * 220.0,
+                    "latitude": np.ones((H_in, W_in), dtype=np.float32) * 20.0,
+                    "longitude": np.ones((H_in, W_in), dtype=np.float32) * -60.0,
+                    "x": np.ones((H_in, W_in), dtype=np.float32) * 10.0,
+                    "y": np.ones((H_in, W_in), dtype=np.float32) * 15.0,
+                },
+                "gprof_data": {
+                    "is_available": True,
+                    "surface_precip": np.ones((H_in, W_in), dtype=np.float32) * 12.0,
+                    "latitude": np.ones((H_in, W_in), dtype=np.float32) * 20.0,
+                    "longitude": np.ones((H_in, W_in), dtype=np.float32) * -60.0,
+                    "x": np.ones((H_in, W_in), dtype=np.float32) * 10.0,
+                    "y": np.ones((H_in, W_in), dtype=np.float32) * 15.0,
+                },
+                "radar_data": {
+                    "is_available": True,
+                    "radar_group": "KuGMI",
+                    "ku_reflectivity_profile": np.ones((88, 50, 49), dtype=np.float32) * 35.0,
+                    "latitude": np.ones((50, 49), dtype=np.float32) * 20.0,
+                    "longitude": np.ones((50, 49), dtype=np.float32) * -60.0,
+                    "x": np.ones((50, 49), dtype=np.float32) * 5.0,
+                    "y": np.ones((50, 49), dtype=np.float32) * 5.0,
+                    "bin_height": np.ones((88, 50, 49), dtype=np.float32) * 2.0,
+                },
+                "env_slice_data": {
+                    "is_available": True,
+                    "time_epoch": 1600000000,
+                    "precipitable_water": np.ones((121, 121), dtype=np.float32) * 50.0,
+                    "latitude": np.linspace(15.0, 25.0, 121, dtype=np.float32),
+                    "longitude": np.linspace(-65.0, -55.0, 121, dtype=np.float32),
+                },
+            }
+
+            container_path = writer.write_storm_container("TEST_GEO_STORM", 2020, "AL", "TRAIN", {}, [obs])
+            self.assertTrue(os.path.exists(container_path))
+
+            with nc.Dataset(container_path, "r") as ds:
+                g_ops = ds.groups["overpasses"]
+                g_obs = list(g_ops.groups.values())[0]
+                # IR variables
+                g_ir = g_obs.groups["infrared"]
+                self.assertIn("latitude", g_ir.variables)
+                self.assertIn("longitude", g_ir.variables)
+                self.assertIn("x", g_ir.variables)
+                self.assertIn("y", g_ir.variables)
+
+                # GPROF variables
+                g_gp = g_obs.groups["GPROF"]
+                self.assertIn("latitude", g_gp.variables)
+                self.assertIn("longitude", g_gp.variables)
+                self.assertIn("x", g_gp.variables)
+                self.assertIn("y", g_gp.variables)
+
+                # Radar variables
+                g_rad = g_obs.groups["radar_radiometer"]
+                self.assertIn("latitude", g_rad.variables)
+                self.assertIn("longitude", g_rad.variables)
+                self.assertIn("x", g_rad.variables)
+                self.assertIn("y", g_rad.variables)
+                self.assertIn("binHeight", g_rad.variables)
+
+                # Environmental variables
+                g_env = g_obs.groups["environmental_synoptic"]
+                self.assertIn("latitude", g_env.variables)
+                self.assertIn("longitude", g_env.variables)
+                self.assertEqual(g_env.variables["latitude"].shape, (121,))
+                self.assertEqual(g_env.variables["longitude"].shape, (121,))
+
+        # 2. Verify 1D ERA5 Axis Meshing & Tangent-Plane Geodetic Resampling
+        dataset = TCPRIMEDDataset.__new__(TCPRIMEDDataset)
+        dataset.strict_mode = False
+        dataset.processing_errors = []
+
+        class Mock1DAxisGroup:
+            variables = {
+                "latitude": np.linspace(18.0, 22.0, 121, dtype=np.float32),
+                "longitude": np.linspace(-62.0, -58.0, 121, dtype=np.float32),
+            }
+
+        env_field_121 = np.ones((121, 121), dtype=np.float32) * 45.0
+        t_env, m_env, src_env = dataset._resample_swath_with_coords(
+            env_field_121,
+            Mock1DAxisGroup(),
+            storm_lat=20.0,
+            storm_lon=-60.0,
+            target_shape=(64, 64),
+            domain_km=500.0,
+        )
+        self.assertEqual(src_env, "tangent_plane_geodetic_km")
+        self.assertEqual(t_env.shape, (1, 64, 64))
+        self.assertEqual(m_env.shape, (1, 64, 64))
+        self.assertGreater(m_env.sum().item(), 0.0)
+
+        # 3. Verify Radar Beam Coordinate Resampling and Outside-Swath Masking
+        # Narrow radar swath: 100 scans, 49 beams covering [-100, 100] km x [-100, 100] km
+        rad_x = np.linspace(-100.0, 100.0, 49, dtype=np.float32)
+        rad_y = np.linspace(-100.0, 100.0, 100, dtype=np.float32)
+        rad_x_2d, rad_y_2d = np.meshgrid(rad_x, rad_y)
+        rad_ku_3d = np.ones((88, 100, 49), dtype=np.float32) * 30.0  # 30 dBZ
+
+        class MockRadarBeamGroup:
+            variables = {
+                "correctedReflectFactor_Ku": rad_ku_3d,
+                "x": rad_x_2d,
+                "y": rad_y_2d,
+            }
+
+        r_tensor, r_mask, r_valid, r_src = dataset._load_radar_volume(
+            MockRadarBeamGroup(),
+            target_grid=(64, 64),
+            target_depth=16,
+            domain_km=500.0,
+            max_dist_km=35.0,
+            return_source=True,
+        )
+        self.assertTrue(r_valid)
+        self.assertEqual(r_src, "radar_beam_geodetic_km")
+        self.assertEqual(r_tensor.shape, (1, 16, 32, 32))
+        self.assertEqual(r_mask.shape, (1, 16, 32, 32))
+
+        # Check outside-swath masking:
+        # Target grid runs from -500 to +500 km across 32 pixels (~32 km / pixel).
+        # Inner center (row 15, col 15) is at ~0 km -> MUST be valid (mask == 1.0)
+        # Outer edge (row 0, col 0, dist ~700 km) -> MUST be strictly unobserved (mask == 0.0)
+        center_mask = r_mask[0, :, 15, 15]
+        self.assertEqual(center_mask.sum().item(), 16.0, "Center cells inside swath must have valid mask!")
+
+        edge_mask = r_mask[0, :, 0, 0]
+        self.assertEqual(edge_mask.sum().item(), 0.0, "Outer cells beyond swath must be strictly masked 0!")
+        self.assertEqual(r_tensor[0, :, 0, 0].sum().item(), 0.0, "Outer cells must be strictly zero data!")
+
+        # 4. Fallback Path Integrity: Missing Coordinates Marked as nominal_fallback
+        class MockEmptyRadarGroup:
+            variables = {
+                "correctedReflectFactor_Ku": rad_ku_3d,
+            }
+
+        _, _, fallback_valid, fallback_src = dataset._load_radar_volume(
+            MockEmptyRadarGroup(),
+            target_grid=(64, 64),
+            target_depth=16,
+            return_source=True,
+        )
+        self.assertTrue(fallback_valid)
+        self.assertEqual(fallback_src, "nominal_fallback", "Missing coordinates must be tracked as nominal_fallback!")
 
 
 if __name__ == "__main__":

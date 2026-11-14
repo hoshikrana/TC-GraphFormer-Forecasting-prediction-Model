@@ -146,6 +146,10 @@ class ModalityProcessors:
 
                 out["latitude"], _ = NetCDFReader.read_variable_2d(irg, "latitude")
                 out["longitude"], _ = NetCDFReader.read_variable_2d(irg, "longitude")
+                if "x" in irg.variables:
+                    out["x"], _ = NetCDFReader.read_variable_2d(irg, "x")
+                if "y" in irg.variables:
+                    out["y"], _ = NetCDFReader.read_variable_2d(irg, "y")
 
         # 2. R5 Vortex Size Time-Series
         if r5_flag == 1 and "R5" in irg.variables:
@@ -196,6 +200,10 @@ class ModalityProcessors:
                 out["shape"] = sp.shape
                 out["latitude"], _ = NetCDFReader.read_variable_2d(gp, "latitude")
                 out["longitude"], _ = NetCDFReader.read_variable_2d(gp, "longitude")
+                if "x" in gp.variables:
+                    out["x"], _ = NetCDFReader.read_variable_2d(gp, "x")
+                if "y" in gp.variables:
+                    out["y"], _ = NetCDFReader.read_variable_2d(gp, "y")
 
                 if "convectivePrecipitation" in gp.variables:
                     out["convective_precip"], _ = NetCDFReader.read_variable_2d(gp, "convectivePrecipitation")
@@ -230,8 +238,8 @@ class ModalityProcessors:
         if rr is None:
             return out
 
-        # Check for KuGMI or KuKaGMI
-        for g_candidate in ["KuKaGMI", "KuGMI"]:
+        # Check for KuGMI, KuKaGMI, or KuTMI (TRMM)
+        for g_candidate in ["KuKaGMI", "KuGMI", "KuTMI"]:
             if g_candidate in rr.groups:
                 rg = rr.groups[g_candidate]
                 if "nearSurfPrecipTotRate" in rg.variables or "correctedReflectFactor_Ku" in rg.variables:
@@ -241,6 +249,14 @@ class ModalityProcessors:
                     out["longitude"], _ = NetCDFReader.read_variable_2d(rg, "longitude")
                     if out["latitude"] is not None:
                         out["scan_shape"] = out["latitude"].shape
+
+                    if "x" in rg.variables:
+                        out["x"], _ = NetCDFReader.read_variable_2d(rg, "x")
+                    if "y" in rg.variables:
+                        out["y"], _ = NetCDFReader.read_variable_2d(rg, "y")
+                    if "binHeight" in rg.variables:
+                        bh_arr, _ = get_array_with_fill(rg.variables["binHeight"])
+                        out["bin_height"] = bh_arr
 
                     if "nearSurfPrecipTotRate" in rg.variables:
                         out["near_surf_precip_rate"], _ = NetCDFReader.read_variable_2d(rg, "nearSurfPrecipTotRate")

@@ -78,16 +78,16 @@ All modules received valid autograd signals without gradient saturation or vanis
 
 | Architecture Component | L2 Gradient Norm | Training Status |
 | :--- | :--- | :--- |
-| `ir_encoder` | `1.408339` | Updated |
-| `pmw_encoder` | `2.122096` | Updated |
-| `gprof_encoder` | `1.310874` | Updated |
-| `radar_encoder` | `1.127723` | Updated |
-| `env_encoder` | `1.430743` | Updated |
-| `cross_modal_fusion` | `3.240478` | Updated |
-| `spatial_aggregator` | `12.054977` | Updated |
-| `spatial_graph_mpnn` | `1.504283` | Updated |
-| `temporal_transformer` | `3.773547` | Updated |
-| `task_prediction_heads` | `5.241329` | Updated |
+| `ir_encoder` | `1.596408` | Updated |
+| `pmw_encoder` | `1.965507` | Updated |
+| `gprof_encoder` | `1.390187` | Updated |
+| `radar_encoder` | `1.20717` | Updated |
+| `env_encoder` | `1.524041` | Updated |
+| `cross_modal_fusion` | `3.558749` | Updated |
+| `spatial_aggregator` | `12.984593` | Updated |
+| `spatial_graph_mpnn` | `1.744154` | Updated |
+| `temporal_transformer` | `3.946785` | Updated |
+| `task_prediction_heads` | `4.809336` | Updated |
 
 ---
 

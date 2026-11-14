@@ -90,6 +90,7 @@ def collate_multimodal_batch(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
             "track_displacement": track_batch,
             "track_mask": track_mask_batch,
         },
+        "geospatial_provenance": [item.get("geospatial_provenance", {}) for item in batch],
     }
 
 
@@ -192,4 +193,5 @@ def collate_sequence_batch(batch: List[List[Dict[str, Any]]]) -> Dict[str, Any]:
             "env": env_pixel_seq,
         },
         "targets": anchor_collate["targets"],
+        "geospatial_provenance": [[obs.get("geospatial_provenance", {}) for obs in seq] for seq in batch],
     }

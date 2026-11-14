@@ -191,6 +191,27 @@ class StorageWriter:
                         v_ir.units = "K"
                         v_ir.long_name = ir.get("wavelength_descriptor", "IR Window Brightness Temperature")
 
+                        # Write geospatial coordinates
+                        lat = ir.get("latitude")
+                        lon = ir.get("longitude")
+                        if lat is not None and lon is not None and lat.shape == (ny, nx):
+                            v_lat = g_ir.createVariable("latitude", "f4", ("ir_y", "ir_x"), zlib=do_zlib, complevel=comp_level)
+                            v_lat[:] = lat
+                            v_lat.units = "degrees_north"
+                            v_lon = g_ir.createVariable("longitude", "f4", ("ir_y", "ir_x"), zlib=do_zlib, complevel=comp_level)
+                            v_lon[:] = lon
+                            v_lon.units = "degrees_east"
+
+                        x_arr = ir.get("x")
+                        y_arr = ir.get("y")
+                        if x_arr is not None and y_arr is not None and x_arr.shape == (ny, nx):
+                            v_x = g_ir.createVariable("x", "f4", ("ir_y", "ir_x"), zlib=do_zlib, complevel=comp_level)
+                            v_x[:] = x_arr
+                            v_x.units = "km"
+                            v_y = g_ir.createVariable("y", "f4", ("ir_y", "ir_x"), zlib=do_zlib, complevel=comp_level)
+                            v_y[:] = y_arr
+                            v_y.units = "km"
+
                     # R5 vortex size time series (degrees latitude along R5_time)
                     if ir.get("r5_available") and ir.get("r5_values") is not None:
                         r5_vals = ir["r5_values"]
@@ -231,6 +252,27 @@ class StorageWriter:
                                                    fill_value=-9999.0, zlib=do_zlib, complevel=comp_level)
                         v_sp[:] = sp
                         v_sp.units = "mm/hr"
+
+                        # Write geospatial coordinates
+                        lat = gp.get("latitude")
+                        lon = gp.get("longitude")
+                        if lat is not None and lon is not None and lat.shape == (ny, nx):
+                            v_lat = g_gp.createVariable("latitude", "f4", ("gp_scan", "gp_pixel"), zlib=do_zlib, complevel=comp_level)
+                            v_lat[:] = lat
+                            v_lat.units = "degrees_north"
+                            v_lon = g_gp.createVariable("longitude", "f4", ("gp_scan", "gp_pixel"), zlib=do_zlib, complevel=comp_level)
+                            v_lon[:] = lon
+                            v_lon.units = "degrees_east"
+
+                        x_arr = gp.get("x")
+                        y_arr = gp.get("y")
+                        if x_arr is not None and y_arr is not None and x_arr.shape == (ny, nx):
+                            v_x = g_gp.createVariable("x", "f4", ("gp_scan", "gp_pixel"), zlib=do_zlib, complevel=comp_level)
+                            v_x[:] = x_arr
+                            v_x.units = "km"
+                            v_y = g_gp.createVariable("y", "f4", ("gp_scan", "gp_pixel"), zlib=do_zlib, complevel=comp_level)
+                            v_y[:] = y_arr
+                            v_y.units = "km"
 
                         # Additional GPROF hydrometeor fields if available
                         for g_field, g_name, g_unit in [
@@ -275,6 +317,56 @@ class StorageWriter:
                         v_ka[:] = ka
                         v_ka.units = "dBZ"
 
+                    # Write Radar geospatial beam coordinates and vertical range metadata
+                    lat = rad.get("latitude")
+                    lon = rad.get("longitude")
+                    if lat is not None and lon is not None and len(lat.shape) == 2:
+                        ns, nb = lat.shape
+                        if "radar_scan" not in g_rad.dimensions:
+                            g_rad.createDimension("radar_scan", ns)
+                        if "radar_beam" not in g_rad.dimensions:
+                            g_rad.createDimension("radar_beam", nb)
+                        if "latitude" not in g_rad.variables:
+                            v_lat = g_rad.createVariable("latitude", "f4", ("radar_scan", "radar_beam"), zlib=do_zlib, complevel=comp_level)
+                            v_lat[:] = lat
+                            v_lat.units = "degrees_north"
+                        if "longitude" not in g_rad.variables:
+                            v_lon = g_rad.createVariable("longitude", "f4", ("radar_scan", "radar_beam"), zlib=do_zlib, complevel=comp_level)
+                            v_lon[:] = lon
+                            v_lon.units = "degrees_east"
+
+                    x_arr = rad.get("x")
+                    y_arr = rad.get("y")
+                    if x_arr is not None and y_arr is not None and len(x_arr.shape) == 2:
+                        ns, nb = x_arr.shape
+                        if "radar_scan" not in g_rad.dimensions:
+                            g_rad.createDimension("radar_scan", ns)
+                        if "radar_beam" not in g_rad.dimensions:
+                            g_rad.createDimension("radar_beam", nb)
+                        if "x" not in g_rad.variables:
+                            v_x = g_rad.createVariable("x", "f4", ("radar_scan", "radar_beam"), zlib=do_zlib, complevel=comp_level)
+                            v_x[:] = x_arr
+                            v_x.units = "km"
+                        if "y" not in g_rad.variables:
+                            v_y = g_rad.createVariable("y", "f4", ("radar_scan", "radar_beam"), zlib=do_zlib, complevel=comp_level)
+                            v_y[:] = y_arr
+                            v_y.units = "km"
+
+                    bin_h = rad.get("bin_height")
+                    if bin_h is not None and len(bin_h.shape) == 3:
+                        nr, ns, nb = bin_h.shape
+                        if "radar_range" not in g_rad.dimensions:
+                            g_rad.createDimension("radar_range", nr)
+                        if "radar_scan" not in g_rad.dimensions:
+                            g_rad.createDimension("radar_scan", ns)
+                        if "radar_beam" not in g_rad.dimensions:
+                            g_rad.createDimension("radar_beam", nb)
+                        if "binHeight" not in g_rad.variables:
+                            v_bh = g_rad.createVariable("binHeight", "f4", ("radar_range", "radar_scan", "radar_beam"),
+                                                        fill_value=-9999.0, zlib=do_zlib, complevel=comp_level)
+                            v_bh[:] = bin_h
+                            v_bh.units = "km"
+
                 # Modality: Environmental Reanalysis Slice
                 env_slice = obs.get("env_slice_data", {})
                 if env_slice and env_slice.get("is_available"):
@@ -294,6 +386,47 @@ class StorageWriter:
                     if ny is not None and nx is not None:
                         g_env.createDimension("env_ny", ny)
                         g_env.createDimension("env_nx", nx)
+
+                        # Write 1D or 2D geographic coordinates
+                        lat = env_slice.get("latitude")
+                        if lat is not None:
+                            if lat.ndim == 1 and lat.shape[0] == ny:
+                                v_lat = g_env.createVariable("latitude", "f4", ("env_ny",), zlib=do_zlib, complevel=comp_level)
+                                v_lat[:] = lat
+                                v_lat.units = "degrees_north"
+                            elif lat.ndim == 2 and lat.shape == (ny, nx):
+                                v_lat = g_env.createVariable("latitude", "f4", ("env_ny", "env_nx"), zlib=do_zlib, complevel=comp_level)
+                                v_lat[:] = lat
+                                v_lat.units = "degrees_north"
+
+                        lon = env_slice.get("longitude")
+                        if lon is not None:
+                            if lon.ndim == 1 and lon.shape[0] == nx:
+                                v_lon = g_env.createVariable("longitude", "f4", ("env_nx",), zlib=do_zlib, complevel=comp_level)
+                                v_lon[:] = lon
+                                v_lon.units = "degrees_east"
+                            elif lon.ndim == 2 and lon.shape == (ny, nx):
+                                v_lon = g_env.createVariable("longitude", "f4", ("env_ny", "env_nx"), zlib=do_zlib, complevel=comp_level)
+                                v_lon[:] = lon
+                                v_lon.units = "degrees_east"
+
+                        x_arr = env_slice.get("x")
+                        y_arr = env_slice.get("y")
+                        if x_arr is not None and y_arr is not None:
+                            if x_arr.ndim == 1 and x_arr.shape[0] == nx and y_arr.ndim == 1 and y_arr.shape[0] == ny:
+                                v_x = g_env.createVariable("x", "f4", ("env_nx",), zlib=do_zlib, complevel=comp_level)
+                                v_x[:] = x_arr
+                                v_x.units = "km"
+                                v_y = g_env.createVariable("y", "f4", ("env_ny",), zlib=do_zlib, complevel=comp_level)
+                                v_y[:] = y_arr
+                                v_y.units = "km"
+                            elif x_arr.ndim == 2 and x_arr.shape == (ny, nx) and y_arr.ndim == 2 and y_arr.shape == (ny, nx):
+                                v_x = g_env.createVariable("x", "f4", ("env_ny", "env_nx"), zlib=do_zlib, complevel=comp_level)
+                                v_x[:] = x_arr
+                                v_x.units = "km"
+                                v_y = g_env.createVariable("y", "f4", ("env_ny", "env_nx"), zlib=do_zlib, complevel=comp_level)
+                                v_y[:] = y_arr
+                                v_y.units = "km"
 
                         env_vars_to_write = [
                             ("precipitable_water", "precipitable_water", "kg/m^2"),
