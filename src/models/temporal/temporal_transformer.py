@@ -59,7 +59,7 @@ class CausalTemporalTransformer(nn.Module):
             batch_first=True,
             norm_first=True,
         )
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers, enable_nested_tensor=False)
         self.norm = nn.LayerNorm(d_model)
 
     def forward(

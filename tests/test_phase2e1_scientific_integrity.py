@@ -603,6 +603,148 @@ class TestPhase2E1ScientificIntegrity(unittest.TestCase):
         self.assertTrue(fallback_valid)
         self.assertEqual(fallback_src, "nominal_fallback", "Missing coordinates must be tracked as nominal_fallback!")
 
+    # 13. Fusion Per-Token Validity & Attention Protection (Critical 3)
+    def test_13_fusion_token_level_validity_masking(self):
+        torch.manual_seed(42)
+        model = TCGraphFormer(d_model=64)
+        model.eval()
+
+        B = 2
+        H, W = 64, 64
+        ir = torch.randn(B, 1, H, W)
+        pmw = torch.randn(B, 4, H, W)
+        gprof = torch.randn(B, 4, H, W)
+        radar = torch.randn(B, 1, 16, H // 2, W // 2)
+        env = torch.randn(B, 6, H, W)
+
+        # 1. Verify all 5 encoders return both features and token-level validity
+        mask_ones = torch.ones(B)
+        t_ir, val_ir = model.ir_encoder(ir, mask_ones, return_validity=True)
+        t_pmw, val_pmw = model.pmw_encoder(pmw, mask_ones, return_validity=True)
+        t_gp, val_gp = model.gprof_encoder(gprof, mask_ones, return_validity=True)
+        t_rad, val_rad = model.radar_encoder(radar, mask_ones, return_validity=True)
+        t_env, val_env = model.env_encoder(env, mask_ones, return_validity=True)
+
+        self.assertEqual(t_ir.shape, (B, 16, 64))
+        self.assertEqual(val_ir.shape, (B, 16))
+        self.assertEqual(val_pmw.shape, (B, 16))
+        self.assertEqual(val_gp.shape, (B, 16))
+        self.assertEqual(val_rad.shape, (B, 16))
+        self.assertEqual(val_env.shape, (B, 16))
+
+        # 2. Token Projection Bias Suppression: Completely invalid patch must yield identically 0.0 tokens
+        pix_ir_part = torch.ones(B, 1, H, W)
+        # Invalidate sectors 1..15, keeping only sector 0 (Inner Core NE)
+        reg_masks = model.polar_pool._get_region_masks(H, W, ir.device)
+        sec_0_mask = reg_masks[0] > 0.0
+        pix_ir_part[:, :, ~sec_0_mask] = 0.0  # Zero out all pixels outside sector 0
+
+        t_ir_masked, val_ir_masked = model.ir_encoder(ir, mask_ones, pixel_mask=pix_ir_part, return_validity=True)
+        # Sectors 1..15 must be strictly zero in token validity
+        self.assertEqual(val_ir_masked[:, 1:].sum().item(), 0.0)
+        # Tokens 1..15 must be identically 0.0 (no bias leakage)
+        self.assertEqual(t_ir_masked[:, 1:, :].abs().sum().item(), 0.0)
+
+        # 3. Cross-Modal Attention Protection:
+        # Cross-modal attention must NEVER attend to invalid tokens.
+        # Mutating invalid tokens in Radar must NOT change the fused tokens of IR or valid Radar tokens!
+        mod_tokens_clean = [t_ir.clone(), t_pmw.clone(), t_gp.clone(), t_rad.clone(), t_env.clone()]
+        mod_masks = torch.ones(B, 5)
+
+        # Radar has valid data ONLY in Sector 0, sectors 1..15 are invalid
+        tok_validity_masks = [
+            torch.ones(B, 16),  # IR all valid
+            torch.ones(B, 16),  # PMW all valid
+            torch.ones(B, 16),  # GPROF all valid
+            torch.zeros(B, 16), # Radar: only sector 0 valid
+            torch.ones(B, 16),  # Env all valid
+        ]
+        tok_validity_masks[3][:, 0] = 1.0  # Radar sector 0 valid
+
+        # Zero out invalid radar tokens as expected from encoder
+        mod_tokens_clean[3][:, 1:, :] = 0.0
+
+        with torch.no_grad():
+            fused_clean = model.fusion(
+                mod_tokens_clean,
+                modality_masks=mod_masks,
+                token_masks=tok_validity_masks,
+            )
+
+        # Now mutate the invalid radar tokens (sectors 1..15) with arbitrary garbage
+        mod_tokens_corrupted = [t.clone() for t in mod_tokens_clean]
+        mod_tokens_corrupted[3][:, 1:, :] = torch.randn(B, 15, 64) * 999.0 + 500.0
+
+        with torch.no_grad():
+            fused_corrupted = model.fusion(
+                mod_tokens_corrupted,
+                modality_masks=mod_masks,
+                token_masks=tok_validity_masks,
+            )
+
+        # Key verification:
+        # Fused tokens for IR (tokens 0..15) and valid Radar token (token 48 = Radar sector 0)
+        # must be IDENTICAL with 0.000000 difference because attention strictly ignored the invalid tokens!
+        ir_diff = (fused_corrupted[:, :16, :] - fused_clean[:, :16, :]).abs().max().item()
+        self.assertAlmostEqual(ir_diff, 0.0, places=5, msg="IR fused tokens changed when invalid radar tokens were mutated!")
+
+        radar_sec0_diff = (fused_corrupted[:, 48, :] - fused_clean[:, 48, :]).abs().max().item()
+        self.assertAlmostEqual(radar_sec0_diff, 0.0, places=5, msg="Radar valid sector 0 changed when invalid radar tokens were mutated!")
+
+        # Invalid radar tokens in output must be strictly zeroed out
+        self.assertEqual(fused_clean[:, 49:64, :].abs().sum().item(), 0.0)
+        self.assertEqual(fused_corrupted[:, 49:64, :].abs().sum().item(), 0.0)
+
+        # 4. End-to-End Model Invariance with Narrow Radar Swath
+        # When radar has valid data only in sector 0, mutating unobserved radar voxels
+        # must produce identically zero change in all model prediction heads
+        pix_radar_swath = torch.zeros(B, 1, 16, H // 2, W // 2)
+        # Make only inner core valid in radar voxel mask
+        pix_radar_swath[:, :, :, 14:18, 14:18] = 1.0
+
+        radar_clean = radar.clone() * pix_radar_swath
+        radar_mutated = radar_clean.clone()
+        radar_mutated[:, :, :, :10, :10] = 99999.0  # Mutate unobserved voxels
+
+        pixel_masks_clean = {"radar": pix_radar_swath.unsqueeze(1)}
+        pixel_masks_mutated = {"radar": pix_radar_swath.unsqueeze(1)}
+
+        delta_t = torch.zeros(B, 1)
+        pad_m = torch.zeros(B, 1, dtype=torch.bool)
+
+        with torch.no_grad():
+            preds_clean = model(
+                ir.unsqueeze(1),
+                pmw.unsqueeze(1),
+                gprof.unsqueeze(1),
+                radar_clean.unsqueeze(1),
+                env.unsqueeze(1),
+                mod_masks.unsqueeze(1),
+                delta_t,
+                pad_m,
+                pixel_masks=pixel_masks_clean,
+            )
+
+            preds_mutated = model(
+                ir.unsqueeze(1),
+                pmw.unsqueeze(1),
+                gprof.unsqueeze(1),
+                radar_mutated.unsqueeze(1),
+                env.unsqueeze(1),
+                mod_masks.unsqueeze(1),
+                delta_t,
+                pad_m,
+                pixel_masks=pixel_masks_mutated,
+            )
+
+        int_diff = (preds_mutated["intensity"] - preds_clean["intensity"]).abs().max().item()
+        prs_diff = (preds_mutated["pressure"] - preds_clean["pressure"]).abs().max().item()
+        stg_diff = (preds_mutated["stage_logits"] - preds_clean["stage_logits"]).abs().max().item()
+
+        self.assertAlmostEqual(int_diff, 0.0, places=5, msg="Model intensity prediction leaked unobserved radar voxels!")
+        self.assertAlmostEqual(prs_diff, 0.0, places=5, msg="Model pressure prediction leaked unobserved radar voxels!")
+        self.assertAlmostEqual(stg_diff, 0.0, places=5, msg="Model stage prediction leaked unobserved radar voxels!")
+
 
 if __name__ == "__main__":
     unittest.main()

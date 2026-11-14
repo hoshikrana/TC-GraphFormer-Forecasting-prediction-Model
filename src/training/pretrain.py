@@ -136,22 +136,18 @@ def run_pretraining(
 
             # 1. Target representations: detached from gradient graph (unmasked forward pass with no_grad)
             with torch.no_grad():
-                t_ir_tgt = model.ir_encoder(ir, m_ir, pixel_mask=pix_ir).detach()
-                t_pmw_tgt = model.pmw_encoder(pmw, m_pmw, channel_mask=ch_masks.get("pmw"), pixel_mask=pix_pmw).detach()
-                t_gp_tgt = model.gprof_encoder(gprof, m_gp, channel_mask=ch_masks.get("gprof"), pixel_mask=pix_gp).detach()
-                t_rad_tgt = model.radar_encoder(radar, m_rad, voxel_mask=pix_rad).detach()
-                t_env_tgt = model.env_encoder(env, m_env, channel_mask=ch_masks.get("env"), pixel_mask=pix_env).detach()
-                all_targets = torch.cat([t_ir_tgt, t_pmw_tgt, t_gp_tgt, t_rad_tgt, t_env_tgt], dim=1)  # (B, 80, d_model)
+                t_ir_tgt, v_ir_tgt = model.ir_encoder(ir, m_ir, pixel_mask=pix_ir, return_validity=True)
+                t_pmw_tgt, v_pmw_tgt = model.pmw_encoder(pmw, m_pmw, channel_mask=ch_masks.get("pmw"), pixel_mask=pix_pmw, return_validity=True)
+                t_gp_tgt, v_gp_tgt = model.gprof_encoder(gprof, m_gp, channel_mask=ch_masks.get("gprof"), pixel_mask=pix_gp, return_validity=True)
+                t_rad_tgt, v_rad_tgt = model.radar_encoder(radar, m_rad, voxel_mask=pix_rad, return_validity=True)
+                t_env_tgt, v_env_tgt = model.env_encoder(env, m_env, channel_mask=ch_masks.get("env"), pixel_mask=pix_env, return_validity=True)
+                all_targets = torch.cat([t_ir_tgt, t_pmw_tgt, t_gp_tgt, t_rad_tgt, t_env_tgt], dim=1).detach()  # (B, 80, d_model)
 
             # 2. Construct token-level validity mask: (B, 80, 1)
-            # Only tokens belonging to genuinely present modalities can be masked or reconstructed
+            # Only tokens belonging to genuinely observed spatial regions can be masked or reconstructed
             valid_tok_mask = torch.cat([
-                m_ir.view(B, 1, 1).repeat(1, 16, 1),
-                m_pmw.view(B, 1, 1).repeat(1, 16, 1),
-                m_gp.view(B, 1, 1).repeat(1, 16, 1),
-                m_rad.view(B, 1, 1).repeat(1, 16, 1),
-                m_env.view(B, 1, 1).repeat(1, 16, 1),
-            ], dim=1)  # (B, 80, 1)
+                v_ir_tgt, v_pmw_tgt, v_gp_tgt, v_rad_tgt, v_env_tgt
+            ], dim=1).unsqueeze(-1)  # (B, 80, 1)
 
             # 3. Generate random mask strictly over valid tokens
             mask_to_recon = torch.zeros((B, 80, 1), dtype=torch.float32, device=device)
@@ -231,14 +227,18 @@ def run_pretraining(
                         pix_env_stud[b, :, sec_m] = 0.0
 
             # 5. Student forward pass with active autograd graph
-            s_ir = model.ir_encoder(ir_stud, m_ir, pixel_mask=pix_ir_stud)
-            s_pmw = model.pmw_encoder(pmw_stud, m_pmw, channel_mask=ch_masks.get("pmw"), pixel_mask=pix_pmw_stud)
-            s_gp = model.gprof_encoder(gp_stud, m_gp, channel_mask=ch_masks.get("gprof"), pixel_mask=pix_gp_stud)
-            s_rad = model.radar_encoder(rad_stud, m_rad, voxel_mask=pix_rad_stud)
-            s_env = model.env_encoder(env_stud, m_env, channel_mask=ch_masks.get("env"), pixel_mask=pix_env_stud)
+            s_ir, v_s_ir = model.ir_encoder(ir_stud, m_ir, pixel_mask=pix_ir_stud, return_validity=True)
+            s_pmw, v_s_pmw = model.pmw_encoder(pmw_stud, m_pmw, channel_mask=ch_masks.get("pmw"), pixel_mask=pix_pmw_stud, return_validity=True)
+            s_gp, v_s_gp = model.gprof_encoder(gp_stud, m_gp, channel_mask=ch_masks.get("gprof"), pixel_mask=pix_gp_stud, return_validity=True)
+            s_rad, v_s_rad = model.radar_encoder(rad_stud, m_rad, voxel_mask=pix_rad_stud, return_validity=True)
+            s_env, v_s_env = model.env_encoder(env_stud, m_env, channel_mask=ch_masks.get("env"), pixel_mask=pix_env_stud, return_validity=True)
 
-            # Cross-modal fusion and reconstruction head
-            fused = model.fusion([s_ir, s_pmw, s_gp, s_rad, s_env], masks)
+            # Cross-modal fusion with per-token validity masks and reconstruction head
+            fused = model.fusion(
+                [s_ir, s_pmw, s_gp, s_rad, s_env],
+                modality_masks=masks,
+                token_masks=[v_s_ir, v_s_pmw, v_s_gp, v_s_rad, v_s_env],
+            )
             recon = recon_head(fused)
 
             # 6. Loss computed ONLY on masked valid tokens

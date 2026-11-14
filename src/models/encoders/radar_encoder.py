@@ -47,6 +47,8 @@ class RadarEncoder(nn.Module):
         Returns: (B, d_model, H, W)
         """
         if voxel_mask is not None:
+            if voxel_mask.dim() == 4 and x.dim() == 5:
+                voxel_mask = voxel_mask.unsqueeze(1)
             x = x * voxel_mask
 
         out = self.conv3d_1(x)
@@ -73,13 +75,15 @@ class RadarEncoder(nn.Module):
         mask: torch.Tensor,
         voxel_mask: torch.Tensor = None,
         return_spatial_map: bool = False,
-    ) -> torch.Tensor:
+        return_validity: bool = False,
+    ):
         """
         x: (B, C, D, H, W)
         mask: (B,)
         voxel_mask: (B, C, D, H, W) or (B, 1, D, H, W)
         return_spatial_map: if True, returns 2D feature map; if False, returns 16 polar tokens.
-        Returns: (B, 16, d_model) or (B, d_model, H, W)
+        return_validity: if True, returns (tokens, token_validity) where token_validity is (B, 16).
+        Returns: (B, 16, d_model) or (B, d_model, H, W) or ((B, 16, d_model), (B, 16))
         """
         feat = self.extract_features(x, voxel_mask=voxel_mask)
         if return_spatial_map:
@@ -93,6 +97,10 @@ class RadarEncoder(nn.Module):
             else:
                 pix_mask_2d = voxel_mask
 
-        tokens, _ = self.polar_pool(feat, pixel_mask=pix_mask_2d)
+        tokens, token_validity = self.polar_pool(feat, pixel_mask=pix_mask_2d)
         mask_expanded = mask.view(x.size(0), 1, 1)
-        return tokens * mask_expanded
+        token_validity = token_validity * mask_expanded
+        tokens = tokens * token_validity
+        if return_validity:
+            return tokens, token_validity.squeeze(-1)
+        return tokens

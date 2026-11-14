@@ -126,41 +126,20 @@ class TCGraphFormer(nn.Module):
         pix_radar = pixel_masks.get("radar") if pixel_masks else None
         pix_env = pixel_masks.get("env") if pixel_masks else None
 
-        # 1. Modality Spatial Feature Extraction (2D feature representations)
-        f_ir = self.ir_encoder.extract_features(ir, pixel_mask=pix_ir)
-        f_pmw = self.pmw_encoder.extract_features(pmw, channel_mask=ch_pmw, pixel_mask=pix_pmw)
-        f_gprof = self.gprof_encoder.extract_features(gprof, channel_mask=ch_gprof, pixel_mask=pix_gprof)
-        f_radar = self.radar_encoder.extract_features(radar, voxel_mask=pix_radar)
-        f_env = self.env_encoder.extract_features(env, channel_mask=ch_env, pixel_mask=pix_env)
+        # 1. Modality Spatial Encoding & Polar Sector Pooling with Per-Token Validity
+        t_ir, val_ir = self.ir_encoder(ir, m_ir, pixel_mask=pix_ir, return_validity=True)
+        t_pmw, val_pmw = self.pmw_encoder(pmw, m_pmw, channel_mask=ch_pmw, pixel_mask=pix_pmw, return_validity=True)
+        t_gprof, val_gprof = self.gprof_encoder(gprof, m_gprof, channel_mask=ch_gprof, pixel_mask=pix_gprof, return_validity=True)
+        t_radar, val_radar = self.radar_encoder(radar, m_radar, voxel_mask=pix_radar, return_validity=True)
+        t_env, val_env = self.env_encoder(env, m_env, channel_mask=ch_env, pixel_mask=pix_env, return_validity=True)
 
-        # Convert 3D/5D radar voxel mask to 2D pixel mask for polar pooling if needed
-        pix_radar_2d = None
-        if pix_radar is not None:
-            if pix_radar.dim() == 5:
-                pix_radar_2d = (pix_radar.mean(dim=(1, 2)) > 0.0).float().unsqueeze(1)
-            elif pix_radar.dim() == 4:
-                pix_radar_2d = pix_radar
-            else:
-                pix_radar_2d = pix_radar.unsqueeze(1)
-
-        # 2. Polar Sector Pooling: Map 2D spatial feature maps and pixel validity masks
-        # to 16 physical polar cyclone sectors (4 concentric rings x 4 azimuthal quadrants)
-        t_ir, _ = self.polar_pool(f_ir, pixel_mask=pix_ir)
-        t_pmw, _ = self.polar_pool(f_pmw, pixel_mask=pix_pmw)
-        t_gprof, _ = self.polar_pool(f_gprof, pixel_mask=pix_gprof)
-        t_radar, _ = self.polar_pool(f_radar, pixel_mask=pix_radar_2d)
-        t_env, _ = self.polar_pool(f_env, pixel_mask=pix_env)
-
-        # Apply modality presence masks
-        t_ir = t_ir * m_ir.view(B, 1, 1)
-        t_pmw = t_pmw * m_pmw.view(B, 1, 1)
-        t_gprof = t_gprof * m_gprof.view(B, 1, 1)
-        t_radar = t_radar * m_radar.view(B, 1, 1)
-        t_env = t_env * m_env.view(B, 1, 1)
-
-        # 3. Mask-Aware Cross-Modal Fusion across 80 polar tokens (5 modalities x 16 polar sectors)
-        # fused_tokens: (B, 80, d_model)
-        fused = self.fusion([t_ir, t_pmw, t_gprof, t_radar, t_env], modality_masks)
+        # 2. Mask-Aware Cross-Modal Fusion across 80 polar tokens (5 modalities x 16 polar sectors)
+        # Passes per-token validity masks as attention padding masks
+        fused = self.fusion(
+            [t_ir, t_pmw, t_gprof, t_radar, t_env],
+            modality_masks=modality_masks,
+            token_masks=[val_ir, val_pmw, val_gprof, val_radar, val_env],
+        )
 
         # 4. Reshape and aggregate 5 modalities per polar sector into 16 polar graph nodes:
         # (B, 5, 16, d_model) -> (B, 16, 5 * d_model) -> (B, 16, d_model)

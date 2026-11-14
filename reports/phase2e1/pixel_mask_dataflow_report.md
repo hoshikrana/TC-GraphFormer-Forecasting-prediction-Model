@@ -106,3 +106,38 @@ A fundamental scientific test of mask integrity is **invariance**:
 
 The difference is identically zero across all heads, proving complete mathematical invariance.
 
+---
+
+## 4. Critical 3 Resolution: Per-Token Attention Masking & Cross-Modal Softmax Protection
+
+### 4.1 Defect Analysis: Projection Bias Leakage and False Attention Context
+While coarse modality presence masks protected entire missing sensors, two subtle failure modes existed prior to this fix:
+1. **Linear Projection Bias Leakage:** When spatial features were masked with `patch_validity`, unobserved sectors entered the linear token projection (`Linear(d_model, d_model)`). Because linear layers have an additive bias term $b \ne 0$, unobserved sectors emerged as non-zero token embeddings ($W \cdot 0 + b = b \ne 0$).
+2. **Cross-Modal Attention Contamination:** `CrossModalFusion` previously repeated the coarse modality presence mask across all 16 spatial tokens. In narrow satellite swaths (e.g. GPM DPR precipitation radar or conical PMW swaths covering only 25–40% of the storm disc), unobserved sectors had `pad_mask = False` and received modality and positional embeddings. Consequently, standard cross-modal self-attention actively attended to unobserved spatial sectors as if they were valid physical observations.
+
+### 4.2 Architectural Correction
+1. **Encoder Token Validity Return:** All five encoders (`IREncoder`, `PMWEncoder`, `GPROFEncoder`, `RadarEncoder`, `EnvEncoder`) now compute polar sector token validity and support `return_validity=True`, returning `(tokens, token_validity)` where `token_validity` is $(B, 16)$.
+2. **Post-Projection Gating:** In all encoders, token validity is strictly enforced **after** linear token projection:
+   ```python
+   token_validity = token_validity * mask_expanded
+   tokens = tokens * token_validity
+   ```
+   This strictly guarantees that unobserved sectors produce identically $0.0$ tokens without any additive bias leakage.
+3. **Per-Token Key Padding Masks in Fusion:** `CrossModalFusion.forward(modality_tokens, modality_masks, token_masks=None)` now constructs an 80-token boolean padding mask ($5 \times 16$):
+   ```python
+   tok_valid = is_present.unsqueeze(1) & (token_masks[m_idx] > 0.5)
+   pad_mask = ~tok_valid  # True = padded/ignored by softmax
+   ```
+   Unobserved tokens receive $-\infty$ attention logits prior to softmax, completely preventing other modalities and valid tokens from attending to unobserved spatial regions.
+4. **Output Zeroing:** Following the fusion transformer layers, all output tokens are gated against `valid_tok_mask`:
+   ```python
+   fused = fused * valid_tok_mask
+   ```
+   This guarantees that unobserved sectors contribute exactly $0.0$ to the downstream `SpatialAggregator` and `SpatialGraphEncoder`.
+
+### 4.3 Validation Results (`test_13_fusion_token_level_validity_masking`)
+In unit test `test_13`:
+- Mutating invalid radar tokens with extreme Gaussian noise ($999.0 \times \mathcal{N}(0, 1) + 500.0$) produced **$0.000000$ difference** on all valid IR and radar sector tokens.
+- Mutating unobserved radar voxels to $99,999.0$ in the raw input produced **$0.000000$ difference** across all end-to-end multi-task prediction heads (`intensity`, `pressure`, `stage_logits`).
+
+

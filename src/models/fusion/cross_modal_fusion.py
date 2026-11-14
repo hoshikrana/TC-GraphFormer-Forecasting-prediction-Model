@@ -6,7 +6,7 @@ using masked multi-head attention with modality-specific type embeddings.
 
 import torch
 import torch.nn as nn
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class CrossModalFusion(nn.Module):
@@ -38,13 +38,19 @@ class CrossModalFusion(nn.Module):
             batch_first=True,
             norm_first=True,
         )
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers, enable_nested_tensor=False)
         self.norm = nn.LayerNorm(d_model)
 
-    def forward(self, modality_tokens: List[torch.Tensor], modality_masks: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        modality_tokens: List[torch.Tensor],
+        modality_masks: torch.Tensor,
+        token_masks: Optional[List[torch.Tensor]] = None,
+    ) -> torch.Tensor:
         """
         modality_tokens: list of 5 tensors, each (B, 16, d_model)
         modality_masks: (B, 5) where 1.0 = present, 0.0 = absent
+        token_masks: optional list of 5 tensors, each (B, 16) where 1.0 = valid, 0.0 = invalid
         Returns:
             fused_tokens: (B, 5 * 16, d_model)
         """
@@ -60,16 +66,20 @@ class CrossModalFusion(nn.Module):
 
             # Mask: True means IGNORED / PADDED in PyTorch nn.MultiheadAttention
             is_present = modality_masks[:, m_idx] > 0.5 # (B,)
-            is_absent = ~is_present # (B,)
-            # Repeat mask across the 16 tokens of this modality
-            pad_mask = is_absent.unsqueeze(1).repeat(1, self.num_tokens_per_mod) # (B, 16)
+            if token_masks is not None and m_idx < len(token_masks) and token_masks[m_idx] is not None:
+                # Per-token validity: token is attended strictly if modality is present AND token is valid
+                tok_valid = is_present.unsqueeze(1) & (token_masks[m_idx] > 0.5) # (B, 16)
+                pad_mask = ~tok_valid # (B, 16)
+            else:
+                is_absent = ~is_present # (B,)
+                pad_mask = is_absent.unsqueeze(1).repeat(1, self.num_tokens_per_mod) # (B, 16)
             key_padding_mask_list.append(pad_mask)
 
         # Concatenate along sequence length dimension
         seq = torch.cat(embedded_tokens, dim=1) # (B, 80, d_model)
         key_padding_mask = torch.cat(key_padding_mask_list, dim=1) # (B, 80)
 
-        # If an entire sample has no modalities present (edge case), unmask first token to prevent NaN
+        # If an entire sample has no valid tokens (edge case), unmask first token to prevent NaN
         all_masked = key_padding_mask.all(dim=1)
         if all_masked.any():
             key_padding_mask[all_masked, 0] = False
@@ -77,5 +87,12 @@ class CrossModalFusion(nn.Module):
         # Apply Cross-Modal Transformer
         fused = self.transformer(seq, src_key_padding_mask=key_padding_mask)
         fused = self.norm(fused)
+
+        # Strictly zero out invalid/padded tokens so unobserved sectors never leak into spatial_aggregator
+        valid_tok_mask = (~key_padding_mask).unsqueeze(-1).float() # (B, 80, 1)
+        if all_masked.any():
+            valid_tok_mask[all_masked] = 0.0
+        fused = fused * valid_tok_mask
+
         return fused
 

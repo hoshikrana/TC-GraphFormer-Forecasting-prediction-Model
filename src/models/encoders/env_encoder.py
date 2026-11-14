@@ -78,18 +78,24 @@ class EnvEncoder(nn.Module):
         channel_mask: torch.Tensor = None,
         pixel_mask: torch.Tensor = None,
         return_spatial_map: bool = False,
-    ) -> torch.Tensor:
+        return_validity: bool = False,
+    ):
         """
         x: (B, C, H, W)
         mask: (B,)
         channel_mask: (B, C) optional channel-level validity mask
         pixel_mask: (B, C, H, W) or (B, 1, H, W) pixel validity mask
         return_spatial_map: if True, returns 2D feature map; if False, returns 16 polar tokens.
-        Returns: (B, 16, d_model) or (B, d_model, H/2, W/2)
+        return_validity: if True, returns (tokens, token_validity) where token_validity is (B, 16).
+        Returns: (B, 16, d_model) or (B, d_model, H/2, W/2) or ((B, 16, d_model), (B, 16))
         """
         feat = self.extract_features(x, channel_mask=channel_mask, pixel_mask=pixel_mask)
         if return_spatial_map:
             return feat
-        tokens, _ = self.polar_pool(feat, pixel_mask=pixel_mask)
+        tokens, token_validity = self.polar_pool(feat, pixel_mask=pixel_mask)
         mask_expanded = mask.view(x.size(0), 1, 1)
-        return tokens * mask_expanded
+        token_validity = token_validity * mask_expanded
+        tokens = tokens * token_validity
+        if return_validity:
+            return tokens, token_validity.squeeze(-1)
+        return tokens
