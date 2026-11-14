@@ -231,28 +231,73 @@ class TestPhase2E1ScientificIntegrity(unittest.TestCase):
         self.assertIsNone(SENSOR_PMW_CHANNEL_MAP["ATMS"][0])
         self.assertIsNone(SENSOR_PMW_CHANNEL_MAP["ATMS"][3])
 
-    # 7. Radar Ku Validity & Reflectivity Scaling
+    # 7. Radar Ku Validity, Echo Classification & Reflectivity Scaling (Critical 4)
     def test_07_radar_ku_validity_and_reflectivity_scaling(self):
         dataset = TCPRIMEDDataset.__new__(TCPRIMEDDataset)
+        dataset.raw_data_dir = "data/raw/pilot"
+        dataset._raw_radar_coord_cache = {}
 
-        # Create dummy group with Ku reflectivity spanning [-25, 60] dBZ
+        # Create dummy group with Ku reflectivity spanning:
+        # 1. Fill sentinels (-9999.0)
+        # 2. Out of range below -20 dBZ (-25.0 dBZ)
+        # 3. Valid low-reflectivity measurement below 12 dBZ detection threshold (5.0 dBZ)
+        # 4. Precipitation detection threshold (12.0 dBZ)
+        # 5. Moderate precipitation echo (30.0 dBZ)
         raw_ku = np.zeros((88, 50, 49), dtype=np.float32)
         raw_ku[:, :, :] = -9999.0  # fill
-        raw_ku[10:30, 20:30, 20:30] = 30.0  # valid echo (30 dBZ)
-        raw_ku[0:5, 0:5, 0:5] = -25.0  # below valid Ku threshold (-20 dBZ)
+        raw_ku[0:5, 0:5, 0:5] = -25.0         # below valid Ku threshold (-20 dBZ)
+        raw_ku[10:20, 10:20, 10:20] = 5.0     # low-reflectivity: valid meas, NOT precip echo
+        raw_ku[20:30, 20:30, 20:30] = 12.0    # 12 dBZ MDS threshold: valid meas, YES precip echo
+        raw_ku[30:40, 30:40, 30:40] = 30.0    # 30 dBZ moderate rain: valid meas, YES precip echo
 
         class DummyRadarGroup:
             variables = {"correctedReflectFactor_Ku": raw_ku}
 
+        # Test standard 3-tuple return (backwards-compatible)
         tensor, mask, is_valid = dataset._load_radar_volume(DummyRadarGroup(), (64, 64), target_depth=16)
         self.assertTrue(is_valid)
         self.assertEqual(tensor.shape, (1, 16, 32, 32))
         self.assertEqual(mask.shape, (1, 16, 32, 32))
-        # 30 dBZ normalized: (30 - (-20)) / 100 = 0.50
-        self.assertGreater(tensor.max().item(), 0.40)
-        self.assertLessEqual(tensor.max().item(), 0.60)
-        # Below -20 dBZ should be masked out
-        self.assertEqual(tensor.min().item(), 0.0)
+
+        # Test 4-tuple return separating measurement validity from echo classification
+        tensor_e, mask_e, echo_e, is_valid_e = dataset._load_radar_volume(
+            DummyRadarGroup(), (64, 64), target_depth=16, echo_threshold_dbz=12.0, return_echo_mask=True
+        )
+        self.assertTrue(is_valid_e)
+        self.assertEqual(echo_e.shape, (1, 16, 32, 32))
+
+        # 1. Measurement validity includes low-reflectivity (5 dBZ), threshold (12 dBZ) and rain (30 dBZ)
+        # 2. Echo classification strictly requires Ku >= 12.0 dBZ
+        # Therefore, measurement valid mask sum MUST be strictly greater than echo mask sum!
+        self.assertGreater(mask_e.sum().item(), echo_e.sum().item(),
+                           "Measurement validity must include low-reflectivity measurements where echo is False!")
+        self.assertGreater(echo_e.sum().item(), 0.0, "Precipitation echo mask must capture >= 12 dBZ echoes!")
+
+        # 3. Normalized physical scaling verification:
+        # -20 dBZ -> 0.00
+        # +5 dBZ  -> (5 - (-20)) / 100 = 0.25
+        # +12 dBZ -> (12 - (-20)) / 100 = 0.32 (MDS threshold)
+        # +30 dBZ -> (30 - (-20)) / 100 = 0.50
+        # -25 dBZ -> masked out (0.00)
+        self.assertEqual(tensor_e.min().item(), 0.0)
+        self.assertAlmostEqual(tensor_e.max().item(), 0.50, places=2)
+
+        # 4. Real pilot container verification with coordinate-aware registration
+        pilot_csv = "reports/pipeline/sample_index.csv"
+        if os.path.exists(pilot_csv):
+            real_ds = TCPRIMEDDataset(sample_index_csv=pilot_csv, partition=None)
+            gmi_indices = [i for i, r in real_ds.df.iterrows() if "GMI" in str(r.get("instrument", "")) and r.get("has_radar")]
+            if len(gmi_indices) > 0:
+                sample = real_ds[gmi_indices[0]]
+                self.assertIn("radar_echo", sample["masks"], "radar_echo mask must be present in sample masks!")
+                self.assertEqual(sample["masks"]["radar_echo"].shape, (1, 16, 32, 32))
+                self.assertEqual(sample["masks"]["radar_voxel"].shape, (1, 16, 32, 32))
+                # Swath reality: voxel mask sum >= echo mask sum
+                self.assertGreater(sample["masks"]["radar_voxel"].sum().item(), 0.0)
+                self.assertGreaterEqual(sample["masks"]["radar_voxel"].sum().item(), sample["masks"]["radar_echo"].sum().item())
+                # Source must be verified radar_beam_geodetic_km from coordinates
+                prov = sample.get("geospatial_provenance", {}).get("radar")
+                self.assertEqual(prov, "radar_beam_geodetic_km", "Radar must use true beam coordinates!")
 
     # 8. MFM Student Mask Leakage Invariance
     def test_08_mfm_student_mask_leakage_invariance(self):

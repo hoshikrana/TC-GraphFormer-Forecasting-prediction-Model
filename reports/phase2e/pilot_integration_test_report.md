@@ -39,7 +39,7 @@ Standardized NetCDF Containers
 | **AMSUB** | SMP_AL022001_AMSUB_NOAA16_20010711162751 | AL022001 | [0.0, 0.0, 0.0, 1.0] | No | Yes | 2911.58 |
 | **MHS** | SMP_AL022021_MHS_METOPB_20210614013814 | AL022021 | [0.0, 0.0, 0.0, 1.0] | No | Yes | 2410.55 |
 
-- **Radar Radiometer Loading:** Verified on `SMP_AL022021_GMI_GPM_20210614123541`. Ku reflectivity profile `(88, 373, 49)` interpolated to `(1, 16, 32, 32)` with 685 valid voxels preserved and max normalized dBZ of `0.676`.
+- **Radar Radiometer Loading:** Verified on `SMP_AL022021_GMI_GPM_20210614123541`. Ku reflectivity profile `(88, 373, 49)` interpolated to `(1, 16, 32, 32)` with 685 valid voxels preserved and max normalized dBZ of `0.623`.
 - **Radar-Absent Verification:** Verified on no-radar overpasses; radar tensor is strictly zero and `modality_masks[3] == 0.0`.
 
 ---
@@ -78,16 +78,16 @@ All modules received valid autograd signals without gradient saturation or vanis
 
 | Architecture Component | L2 Gradient Norm | Training Status |
 | :--- | :--- | :--- |
-| `ir_encoder` | `1.391611` | Updated |
-| `pmw_encoder` | `1.775719` | Updated |
-| `gprof_encoder` | `1.223831` | Updated |
-| `radar_encoder` | `1.081596` | Updated |
-| `env_encoder` | `1.374194` | Updated |
-| `cross_modal_fusion` | `2.840058` | Updated |
-| `spatial_aggregator` | `10.846407` | Updated |
-| `spatial_graph_mpnn` | `1.485152` | Updated |
-| `temporal_transformer` | `3.160908` | Updated |
-| `task_prediction_heads` | `5.862654` | Updated |
+| `ir_encoder` | `0.831131` | Updated |
+| `pmw_encoder` | `1.140102` | Updated |
+| `gprof_encoder` | `0.843612` | Updated |
+| `radar_encoder` | `0.682997` | Updated |
+| `env_encoder` | `0.818895` | Updated |
+| `cross_modal_fusion` | `1.657384` | Updated |
+| `spatial_aggregator` | `6.284925` | Updated |
+| `spatial_graph_mpnn` | `1.154949` | Updated |
+| `temporal_transformer` | `2.802623` | Updated |
+| `task_prediction_heads` | `5.177658` | Updated |
 
 ---
 

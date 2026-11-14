@@ -154,6 +154,7 @@ class TCPRIMEDDataset(Dataset):
         transform=None,
         basin: Optional[str] = None,
         df: Optional[pd.DataFrame] = None,
+        raw_data_dir: Optional[str] = "data/raw/pilot",
     ):
         super().__init__()
         self.sample_index_csv = sample_index_csv
@@ -162,6 +163,8 @@ class TCPRIMEDDataset(Dataset):
         self.strict_mode = strict_mode
         self.transform = transform
         self.basin = basin
+        self.raw_data_dir = raw_data_dir if (raw_data_dir and os.path.exists(raw_data_dir)) else None
+        self._raw_radar_coord_cache: Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
         self.processing_errors: List[Dict[str, Any]] = []
 
         if df is not None:
@@ -325,42 +328,66 @@ class TCPRIMEDDataset(Dataset):
         storm_lon: Optional[float] = None,
         domain_km: float = 500.0,
         max_dist_km: float = 35.0,
+        echo_threshold_dbz: float = 12.0,
+        raw_sample_id: Optional[str] = None,
+        raw_data_dir: Optional[str] = None,
         return_source: bool = False,
-    ) -> Union[Tuple[torch.Tensor, torch.Tensor, bool], Tuple[torch.Tensor, torch.Tensor, bool, str]]:
+        return_echo_mask: bool = False,
+    ) -> Union[
+        Tuple[torch.Tensor, torch.Tensor, bool],
+        Tuple[torch.Tensor, torch.Tensor, bool, str],
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, bool],
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, bool, str],
+    ]:
         """
         Load 3D volumetric radar reflectivity (Ku band), interpolate depth to target_depth,
         and resample spatial dimensions to (target_grid[0]//2, target_grid[1]//2).
-        Uses geospatial beam coordinates (x, y or lat, lon) via 2D k-d tree projection onto
-        [-domain_km, +domain_km]. Cells outside the radar swath (> max_dist_km) are strictly masked 0.
-        Falls back cleanly to nominal grid interpolation if coordinates are missing.
-        Valid range: [-20, 100] dBZ. Physical normalization: [-20, 80] dBZ -> [0, 1].
+
+        Separates measurement validity from precipitation echo classification:
+          - Measurement validity: [-20.0, 100.0] dBZ (preserves valid low-reflectivity measurements)
+          - Precipitation echo classification: Ku >= echo_threshold_dbz (default 12.0 dBZ MDS)
+
+        Preserves 3D geometry:
+          - Vertical: 88 range gates spanning [0, 21.8] km mapped to target_depth (16) vertical layers.
+          - Horizontal: Storm-centered geodetic coordinates (x, y) projected via 2D k-d tree onto
+            [-domain_km, +domain_km]. Cells outside the radar swath (> max_dist_km) are strictly masked 0.
         """
         H, W = target_grid[0] // 2, target_grid[1] // 2
         empty_tensor = torch.zeros((1, target_depth, H, W), dtype=torch.float32)
         empty_mask = torch.zeros((1, target_depth, H, W), dtype=torch.float32)
+        empty_echo = torch.zeros((1, target_depth, H, W), dtype=torch.float32)
+
+        def _format_return(t, m, e, val, src):
+            if return_echo_mask:
+                return (t, m, e, val, src) if return_source else (t, m, e, val)
+            return (t, m, val, src) if return_source else (t, m, val)
 
         if "correctedReflectFactor_Ku" not in radar_grp.variables:
-            return (empty_tensor, empty_mask, False, "empty") if return_source else (empty_tensor, empty_mask, False)
+            return _format_return(empty_tensor, empty_mask, empty_echo, False, "empty")
 
         raw_ku = np.ma.filled(radar_grp.variables["correctedReflectFactor_Ku"][:], np.nan)
         if raw_ku.ndim != 3:
-            return (empty_tensor, empty_mask, False, "invalid_shape") if return_source else (empty_tensor, empty_mask, False)
+            return _format_return(empty_tensor, empty_mask, empty_echo, False, "invalid_shape")
 
-        # Ku band valid reflectivity range: [-20, 100] dBZ
-        valid = (~np.isnan(raw_ku)) & (raw_ku > -9000.0) & (raw_ku >= -20.0) & (raw_ku <= 100.0)
-        if not np.any(valid):
-            return (empty_tensor, empty_mask, False, "no_valid_data") if return_source else (empty_tensor, empty_mask, False)
+        # 1. Measurement Validity: [-20, 100] dBZ
+        valid_meas = (~np.isnan(raw_ku)) & (raw_ku > -9000.0) & (raw_ku >= -20.0) & (raw_ku <= 100.0)
+        if not np.any(valid_meas):
+            return _format_return(empty_tensor, empty_mask, empty_echo, False, "no_valid_data")
+
+        # 2. Precipitation Echo Classification: Ku >= echo_threshold_dbz (default 12.0 dBZ MDS)
+        echo_class = valid_meas & (raw_ku >= echo_threshold_dbz)
 
         n_range, n_scan, n_beam = raw_ku.shape
 
-        # Physical normalization: dBZ [-20, 80] -> [0, 1]
-        norm_ku = np.clip(np.where(valid, raw_ku, -20.0) - (-20.0), 0.0, 100.0) / 100.0
-        mask_ku = valid.astype(np.float32)
+        # Physical normalization: dBZ [-20, 80] -> [0, 1]. Preserves low-reflectivity [-20, 12) dBZ
+        norm_ku = np.clip(np.where(valid_meas, raw_ku, -20.0) - (-20.0), 0.0, 100.0) / 100.0
+        mask_ku = valid_meas.astype(np.float32)
+        echo_ku = echo_class.astype(np.float32)
 
         x_2d, y_2d = None, None
         source = "nominal_fallback"
 
-        # Attempt coordinate-aware geospatial registration
+        # Attempt coordinate extraction directly from radar group
         try:
             if "x" in radar_grp.variables and "y" in radar_grp.variables:
                 x_raw = np.ma.filled(radar_grp.variables["x"][:], np.nan)
@@ -381,6 +408,47 @@ class TCPRIMEDDataset(Dataset):
             x_2d, y_2d = None, None
             source = "nominal_fallback"
 
+        # If coordinates missing from processed group, check raw NetCDF container if available
+        if x_2d is None and raw_sample_id is not None:
+            rdir = raw_data_dir or getattr(self, "raw_data_dir", "data/raw/pilot")
+            if rdir and os.path.exists(rdir):
+                try:
+                    cache = getattr(self, "_raw_radar_coord_cache", None)
+                    if cache is not None and raw_sample_id in cache:
+                        x_2d, y_2d = cache[raw_sample_id]
+                        source = "radar_beam_geodetic_km"
+                    else:
+                        parts = raw_sample_id.replace("SMP_", "").split("_")
+                        st_id = parts[0]
+                        tm_str = parts[-1]
+                        import glob
+                        season = st_id[4:8] if len(st_id) >= 8 else ""
+                        basin = st_id[:2] if len(st_id) >= 2 else ""
+                        num = st_id[2:4] if len(st_id) >= 4 else ""
+                        pattern = os.path.join(rdir, season, basin, num, f"*{tm_str}*.nc")
+                        cand = glob.glob(pattern)
+                        if not cand:
+                            cand = glob.glob(os.path.join(rdir, "**", f"*{st_id}*{tm_str}*.nc"), recursive=True)
+                        if cand:
+                            with nc.Dataset(cand[0]) as ds_raw:
+                                if "radar_radiometer" in ds_raw.groups:
+                                    rr_raw = ds_raw.groups["radar_radiometer"]
+                                    for sub_cand in ["KuKaGMI", "KuGMI", "KuTMI"]:
+                                        if sub_cand in rr_raw.groups:
+                                            sg_raw = rr_raw.groups[sub_cand]
+                                            if "x" in sg_raw.variables and "y" in sg_raw.variables:
+                                                xr = np.ma.filled(sg_raw.variables["x"][:], np.nan)
+                                                yr = np.ma.filled(sg_raw.variables["y"][:], np.nan)
+                                                if xr.shape == (n_scan, n_beam) and yr.shape == (n_scan, n_beam):
+                                                    x_2d, y_2d = xr, yr
+                                                    source = "radar_beam_geodetic_km"
+                                                    if cache is not None:
+                                                        cache[raw_sample_id] = (x_2d, y_2d)
+                                                    break
+                except Exception:
+                    pass
+
+        # 3. Coordinate-aware geospatial registration
         if x_2d is not None and y_2d is not None and HAS_SCIPY:
             coords = np.column_stack([x_2d.flatten(), y_2d.flatten()])
             valid_coords = (~np.isnan(coords[:, 0])) & (~np.isnan(coords[:, 1]))
@@ -391,6 +459,7 @@ class TCPRIMEDDataset(Dataset):
                 # Interpolate vertical axis to target_depth (preserving n_scan, n_beam)
                 t_data = torch.from_numpy(norm_ku.astype(np.float32)).unsqueeze(0).unsqueeze(0)
                 t_mask = torch.from_numpy(mask_ku).unsqueeze(0).unsqueeze(0)
+                t_echo = torch.from_numpy(echo_ku).unsqueeze(0).unsqueeze(0)
 
                 t_data_v = F.interpolate(
                     t_data, size=(target_depth, n_scan, n_beam), mode="trilinear", align_corners=False
@@ -398,6 +467,10 @@ class TCPRIMEDDataset(Dataset):
 
                 t_mask_v = F.interpolate(
                     t_mask, size=(target_depth, n_scan, n_beam), mode="nearest"
+                ).squeeze(0).squeeze(0)  # (target_depth, n_scan, n_beam)
+
+                t_echo_v = F.interpolate(
+                    t_echo, size=(target_depth, n_scan, n_beam), mode="nearest"
                 ).squeeze(0).squeeze(0)  # (target_depth, n_scan, n_beam)
 
                 gx = np.linspace(-domain_km, domain_km, W)
@@ -410,6 +483,7 @@ class TCPRIMEDDataset(Dataset):
 
                 grid_data = torch.zeros((target_depth, H * W), dtype=torch.float32)
                 grid_mask = torch.zeros((target_depth, H * W), dtype=torch.float32)
+                grid_echo = torch.zeros((target_depth, H * W), dtype=torch.float32)
 
                 if np.any(is_valid_horiz):
                     matched_sub = sub_indices[is_valid_horiz]
@@ -418,17 +492,18 @@ class TCPRIMEDDataset(Dataset):
 
                     grid_data[:, is_valid_horiz] = t_data_v[:, scan_idx, beam_idx]
                     grid_mask[:, is_valid_horiz] = t_mask_v[:, scan_idx, beam_idx]
+                    grid_echo[:, is_valid_horiz] = t_echo_v[:, scan_idx, beam_idx]
 
                 data_clean = (grid_data * grid_mask).view(1, target_depth, H, W)
                 mask_clean = grid_mask.view(1, target_depth, H, W)
+                echo_clean = grid_echo.view(1, target_depth, H, W)
                 is_valid = bool(mask_clean.sum() > 0)
-                if return_source:
-                    return data_clean, mask_clean, is_valid, source
-                return data_clean, mask_clean, is_valid
+                return _format_return(data_clean, mask_clean, echo_clean, is_valid, source)
 
-        # Clean fallback to nominal trilinear resizing
+        # 4. Clean fallback to nominal trilinear resizing (when coordinates unavailable)
         t_data = torch.from_numpy(norm_ku.astype(np.float32)).unsqueeze(0).unsqueeze(0)
         t_mask = torch.from_numpy(mask_ku).unsqueeze(0).unsqueeze(0)
+        t_echo = torch.from_numpy(echo_ku).unsqueeze(0).unsqueeze(0)
 
         data_resized = F.interpolate(
             t_data, size=(target_depth, H, W), mode="trilinear", align_corners=False
@@ -438,11 +513,13 @@ class TCPRIMEDDataset(Dataset):
             t_mask, size=(target_depth, H, W), mode="nearest"
         ).squeeze(0)  # (1, D, H, W)
 
+        echo_resized = F.interpolate(
+            t_echo, size=(target_depth, H, W), mode="nearest"
+        ).squeeze(0)  # (1, D, H, W)
+
         data_clean = data_resized * mask_resized
         is_valid = bool(mask_resized.sum() > 0)
-        if return_source:
-            return data_clean, mask_resized, is_valid, "nominal_fallback"
-        return data_clean, mask_resized, is_valid
+        return _format_return(data_clean, mask_resized, echo_resized, is_valid, "nominal_fallback")
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         row = self.df.iloc[idx]
@@ -471,6 +548,7 @@ class TCPRIMEDDataset(Dataset):
         pmw_pixel_mask = torch.zeros((4, H, W), dtype=torch.float32)
         gprof_pixel_mask = torch.zeros((4, H, W), dtype=torch.float32)
         radar_voxel_mask = torch.zeros((1, 16, H // 2, W // 2), dtype=torch.float32)
+        radar_echo_mask = torch.zeros((1, 16, H // 2, W // 2), dtype=torch.float32)
         env_pixel_mask = torch.zeros((6, H, W), dtype=torch.float32)
 
         # Channel-level validity masks
@@ -603,14 +681,19 @@ class TCPRIMEDDataset(Dataset):
                         if has_radar and "radar_radiometer" in curr_grp.groups:
                             try:
                                 rad_grp = curr_grp.groups["radar_radiometer"]
-                                r_tensor, r_mask, r_valid, rad_src = self._load_radar_volume(
+                                r_tensor, r_mask, r_echo, r_valid, rad_src = self._load_radar_volume(
                                     rad_grp, (H, W), target_depth=16,
                                     storm_lat=storm_lat, storm_lon=storm_lon,
+                                    raw_sample_id=sample_id,
+                                    raw_data_dir=getattr(self, "raw_data_dir", "data/raw/pilot"),
+                                    echo_threshold_dbz=12.0,
                                     return_source=True,
+                                    return_echo_mask=True,
                                 )
                                 if r_valid:
                                     radar_tensor = r_tensor
                                     radar_voxel_mask = r_mask
+                                    radar_echo_mask = r_echo
                                     has_radar = True
                                 else:
                                     has_radar = False
@@ -768,6 +851,7 @@ class TCPRIMEDDataset(Dataset):
                 "pmw_pixel": pmw_pixel_mask,
                 "gprof_pixel": gprof_pixel_mask,
                 "radar_voxel": radar_voxel_mask,
+                "radar_echo": radar_echo_mask,
                 "env_pixel": env_pixel_mask,
                 "pmw_channels": pmw_channel_mask,
                 "gprof_channels": gprof_channel_mask,

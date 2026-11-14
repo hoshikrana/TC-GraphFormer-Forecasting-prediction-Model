@@ -33,6 +33,9 @@ def collate_multimodal_batch(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
     pmw_pixel_mask = torch.stack([item["masks"]["pmw_pixel"] for item in batch], dim=0)     # (B, 4, H, W)
     gprof_pixel_mask = torch.stack([item["masks"]["gprof_pixel"] for item in batch], dim=0) # (B, 4, H, W)
     radar_voxel_mask = torch.stack([item["masks"]["radar_voxel"] for item in batch], dim=0) # (B, 1, 16, H/2, W/2)
+    radar_echo_mask = None
+    if "radar_echo" in batch[0]["masks"]:
+        radar_echo_mask = torch.stack([item["masks"]["radar_echo"] for item in batch], dim=0)
     env_pixel_mask = torch.stack([item["masks"]["env_pixel"] for item in batch], dim=0)     # (B, 6, H, W)
 
     # Targets & Masks
@@ -74,6 +77,7 @@ def collate_multimodal_batch(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
             "pmw": pmw_pixel_mask,
             "gprof": gprof_pixel_mask,
             "radar": radar_voxel_mask,
+            "radar_echo": radar_echo_mask,
             "env": env_pixel_mask,
         },
         "targets": {
@@ -126,6 +130,7 @@ def collate_sequence_batch(batch: List[List[Dict[str, Any]]]) -> Dict[str, Any]:
     pmw_pixel_seq = torch.zeros((B, T_max, 4, H, W), dtype=torch.float32)
     gprof_pixel_seq = torch.zeros((B, T_max, 4, H, W), dtype=torch.float32)
     radar_voxel_seq = torch.zeros((B, T_max, 1, D_rad, H // 2, W // 2), dtype=torch.float32)
+    radar_echo_seq = torch.zeros((B, T_max, 1, D_rad, H // 2, W // 2), dtype=torch.float32)
     env_pixel_seq = torch.zeros((B, T_max, 6, H, W), dtype=torch.float32)
 
     delta_times_seq = torch.zeros((B, T_max), dtype=torch.float32)
@@ -155,6 +160,8 @@ def collate_sequence_batch(batch: List[List[Dict[str, Any]]]) -> Dict[str, Any]:
             pmw_pixel_seq[b, t] = obs["masks"]["pmw_pixel"]
             gprof_pixel_seq[b, t] = obs["masks"]["gprof_pixel"]
             radar_voxel_seq[b, t] = obs["masks"]["radar_voxel"]
+            if "radar_echo" in obs["masks"]:
+                radar_echo_seq[b, t] = obs["masks"]["radar_echo"]
             env_pixel_seq[b, t] = obs["masks"]["env_pixel"]
 
             # Time gap in hours relative to sequence start
@@ -190,6 +197,7 @@ def collate_sequence_batch(batch: List[List[Dict[str, Any]]]) -> Dict[str, Any]:
             "pmw": pmw_pixel_seq,
             "gprof": gprof_pixel_seq,
             "radar": radar_voxel_seq,
+            "radar_echo": radar_echo_seq,
             "env": env_pixel_seq,
         },
         "targets": anchor_collate["targets"],
