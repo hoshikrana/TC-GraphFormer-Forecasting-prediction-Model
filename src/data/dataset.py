@@ -319,6 +319,9 @@ class TCPRIMEDDataset(Dataset):
                 t_mask = torch.from_numpy(grid_mask.reshape(1, target_shape[0], target_shape[1]))
                 return t_data, t_mask, source
 
+        if getattr(self, "strict_mode", False):
+            raise ValueError(f"Strict scientific mode failure: missing coordinate metadata in group {getattr(grp, 'name', 'unnamed')}")
+
         t_data, t_mask = self._resize_to_grid_with_mask(arr, target_shape)
         return t_data, t_mask, "nominal_fallback"
 
@@ -507,6 +510,9 @@ class TCPRIMEDDataset(Dataset):
                 return _format_return(data_clean, mask_clean, echo_clean, is_valid, source)
 
         # 4. Clean fallback to nominal trilinear resizing (when coordinates unavailable)
+        if getattr(self, "strict_mode", False):
+            raise ValueError(f"Strict scientific mode failure: missing radar beam coordinate metadata in group {getattr(radar_grp, 'name', 'unnamed')}")
+
         t_data = torch.from_numpy(norm_ku.astype(np.float32)).unsqueeze(0).unsqueeze(0)
         t_mask = torch.from_numpy(mask_ku).unsqueeze(0).unsqueeze(0)
         t_echo = torch.from_numpy(echo_ku).unsqueeze(0).unsqueeze(0)
@@ -613,7 +619,7 @@ class TCPRIMEDDataset(Dataset):
                                     valid_ir = (~np.isnan(raw_ir)) & (raw_ir > -9000.0) & (raw_ir > 100.0) & (raw_ir < 360.0)
                                     norm_ir = np.where(valid_ir, np.clip((raw_ir - 170.0) / 150.0, 0.0, 1.0), np.nan)
                                     ir_tensor, ir_pixel_mask, ir_src = self._resample_swath_with_coords(
-                                        norm_ir, ir_grp, storm_lat, storm_lon, (H, W)
+                                        norm_ir, ir_grp, storm_lat, storm_lon, (H, W), max_dist_km=15.0
                                     )
                                     if ir_pixel_mask.sum() == 0:
                                         has_ir = False
@@ -638,7 +644,7 @@ class TCPRIMEDDataset(Dataset):
                                             valid_tb = (~np.isnan(raw_tb)) & (raw_tb > -9000.0) & (raw_tb > 50.0) & (raw_tb < 360.0)
                                             norm_tb = np.where(valid_tb, np.clip((raw_tb - 100.0) / 220.0, 0.0, 1.0), np.nan)
                                             t_ch, m_ch, ch_src = self._resample_swath_with_coords(
-                                                norm_tb, sw_grp, storm_lat, storm_lon, (H, W)
+                                                norm_tb, sw_grp, storm_lat, storm_lon, (H, W), max_dist_km=35.0
                                             )
                                             if m_ch.sum() > 0:
                                                 pmw_tensor[ch_idx] = t_ch.squeeze(0)
@@ -669,7 +675,7 @@ class TCPRIMEDDataset(Dataset):
                                         valid_f = (~np.isnan(raw_f)) & (raw_f > -9000.0) & (raw_f >= 0.0)
                                         norm_f = np.where(valid_f, np.log1p(np.maximum(raw_f, 0.0)) / norm_scale, np.nan)
                                         t_f, m_f, f_src = self._resample_swath_with_coords(
-                                            norm_f, gp_grp, storm_lat, storm_lon, (H, W)
+                                            norm_f, gp_grp, storm_lat, storm_lon, (H, W), max_dist_km=20.0
                                         )
                                         if m_f.sum() > 0:
                                             gprof_tensor[fidx] = t_f.squeeze(0)
@@ -690,6 +696,7 @@ class TCPRIMEDDataset(Dataset):
                                 r_tensor, r_mask, r_echo, r_valid, rad_src = self._load_radar_volume(
                                     rad_grp, (H, W), target_depth=16,
                                     storm_lat=storm_lat, storm_lon=storm_lon,
+                                    max_dist_km=15.0,
                                     raw_sample_id=sample_id,
                                     raw_data_dir=getattr(self, "raw_data_dir", "data/raw/pilot"),
                                     echo_threshold_dbz=12.0,
@@ -728,7 +735,7 @@ class TCPRIMEDDataset(Dataset):
                                         valid_e = (~np.isnan(raw_e)) & (raw_e > -9000.0) & (raw_e != -32768)
                                         norm_e = np.where(valid_e, (raw_e - foffset) / fscale, np.nan)
                                         t_e, m_e, e_src = self._resample_swath_with_coords(
-                                            norm_e, env_grp, storm_lat, storm_lon, (H, W)
+                                            norm_e, env_grp, storm_lat, storm_lon, (H, W), max_dist_km=40.0
                                         )
                                         if m_e.sum() > 0:
                                             env_tensor[fidx] = t_e.squeeze(0)

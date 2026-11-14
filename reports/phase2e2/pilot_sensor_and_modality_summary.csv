@@ -1,0 +1,10 @@
+sensor_family,total_observations,ir_present,pmw_present,gprof_present,radar_present,env_present,ir_provenance,pmw_provenance,radar_provenance,non_finite_tensors,shape_mismatches,nominal_fallbacks
+AMSR2,125,111,125,125,0,122,"{'nominal_fallback': np.int64(111), 'none': np.int64(14)}",{'tangent_plane_geodetic_km': np.int64(125)},{'none': np.int64(125)},0,0,111
+AMSRE,54,41,54,54,0,52,"{'nominal_fallback': np.int64(41), 'none': np.int64(13)}",{'tangent_plane_geodetic_km': np.int64(54)},{'none': np.int64(54)},0,0,41
+AMSUB,194,156,194,194,0,189,"{'nominal_fallback': np.int64(156), 'none': np.int64(38)}",{'tangent_plane_geodetic_km': np.int64(194)},{'none': np.int64(194)},0,0,156
+ATMS,348,315,0,348,0,335,"{'nominal_fallback': np.int64(315), 'none': np.int64(33)}",{'none': np.int64(348)},{'none': np.int64(348)},0,0,315
+GMI,76,72,76,76,75,71,"{'nominal_fallback': np.int64(72), 'none': np.int64(4)}",{'tangent_plane_geodetic_km': np.int64(76)},"{'radar_beam_geodetic_km': np.int64(74), 'nominal_fallback': np.int64(1), 'none': np.int64(1)}",0,0,72
+MHS,597,525,597,597,0,570,"{'nominal_fallback': np.int64(525), 'none': np.int64(72)}",{'tangent_plane_geodetic_km': np.int64(597)},{'none': np.int64(597)},0,0,525
+SSMI,659,563,655,655,0,647,"{'nominal_fallback': np.int64(563), 'none': np.int64(96)}","{'tangent_plane_geodetic_km': np.int64(655), 'none': np.int64(4)}",{'none': np.int64(659)},0,0,563
+SSMIS,415,366,415,415,0,408,"{'nominal_fallback': np.int64(366), 'none': np.int64(49)}",{'tangent_plane_geodetic_km': np.int64(415)},{'none': np.int64(415)},0,0,366
+TMI,131,113,131,131,0,127,"{'nominal_fallback': np.int64(113), 'none': np.int64(18)}",{'tangent_plane_geodetic_km': np.int64(131)},{'none': np.int64(131)},0,0,113

@@ -86,6 +86,8 @@ class RadarEncoder(nn.Module):
         Returns: (B, 16, d_model) or (B, d_model, H, W) or ((B, 16, d_model), (B, 16))
         """
         feat = self.extract_features(x, voxel_mask=voxel_mask)
+        if mask is not None:
+            feat = feat * mask.view(x.size(0), 1, 1, 1)
         if return_spatial_map:
             return feat
 

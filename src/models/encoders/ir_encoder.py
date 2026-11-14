@@ -89,6 +89,8 @@ class IREncoder(nn.Module):
         Returns: (B, 16, d_model) or (B, d_model, H/2, W/2) or ((B, 16, d_model), (B, 16))
         """
         feat = self.extract_features(x, pixel_mask=pixel_mask)
+        if mask is not None:
+            feat = feat * mask.view(x.size(0), 1, 1, 1)
         if return_spatial_map:
             return feat
         tokens, token_validity = self.polar_pool(feat, pixel_mask=pixel_mask)

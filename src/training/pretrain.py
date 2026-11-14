@@ -48,6 +48,15 @@ def compute_module_grad_norm(module: nn.Module) -> float:
     return total_norm_sq ** 0.5
 
 
+def compute_module_param_update_norm(module: nn.Module, old_tensors: List[torch.Tensor]) -> float:
+    """Compute L2 norm of parameter change across all parameters in a module after optimizer step."""
+    total_sq = 0.0
+    for p, old_p in zip(module.parameters(), old_tensors):
+        diff = p.data - old_p
+        total_sq += diff.norm(2).item() ** 2
+    return total_sq ** 0.5
+
+
 def run_pretraining(
     train_index: str = "reports/pipeline/sample_index.csv",
     epochs: int = 3,
@@ -265,8 +274,28 @@ def run_pretraining(
                 "recon_head": round(compute_module_grad_norm(recon_head), 6),
             }
 
+            # Snapshot weights prior to optimizer step to compute actual parameter updates
+            old_ir = [p.clone().detach() for p in model.ir_encoder.parameters()]
+            old_pmw = [p.clone().detach() for p in model.pmw_encoder.parameters()]
+            old_gp = [p.clone().detach() for p in model.gprof_encoder.parameters()]
+            old_rad = [p.clone().detach() for p in model.radar_encoder.parameters()]
+            old_env = [p.clone().detach() for p in model.env_encoder.parameters()]
+            old_fusion = [p.clone().detach() for p in model.fusion.parameters()]
+            old_head = [p.clone().detach() for p in recon_head.parameters()]
+
             torch.nn.utils.clip_grad_norm_(params, 1.0)
             optimizer.step()
+
+            # Record actual optimizer parameter update norms
+            latest_param_updates = {
+                "ir_encoder": round(compute_module_param_update_norm(model.ir_encoder, old_ir), 6),
+                "pmw_encoder": round(compute_module_param_update_norm(model.pmw_encoder, old_pmw), 6),
+                "gprof_encoder": round(compute_module_param_update_norm(model.gprof_encoder, old_gp), 6),
+                "radar_encoder": round(compute_module_param_update_norm(model.radar_encoder, old_rad), 6),
+                "env_encoder": round(compute_module_param_update_norm(model.env_encoder, old_env), 6),
+                "fusion": round(compute_module_param_update_norm(model.fusion, old_fusion), 6),
+                "recon_head": round(compute_module_param_update_norm(recon_head, old_head), 6),
+            }
 
             total_loss += loss.item()
             total_batches += 1
@@ -277,6 +306,7 @@ def run_pretraining(
             f"Valid Tokens: {total_valid_tokens} | Masked: {total_masked_tokens} | Visible: {total_visible_tokens}"
         )
         print(f"  Gradient Norms: {latest_grad_norms}")
+        print(f"  Parameter Update Norms: {latest_param_updates}")
 
         history.append({
             "epoch": epoch,
@@ -285,6 +315,7 @@ def run_pretraining(
             "masked_tokens": total_masked_tokens,
             "visible_tokens": total_visible_tokens,
             "gradient_norms": latest_grad_norms,
+            "parameter_update_norms": latest_param_updates,
         })
         gradient_logs.append(latest_grad_norms)
 
@@ -296,16 +327,18 @@ def run_pretraining(
         "d_model": d_model,
         "history": history,
         "latest_grad_norms": latest_grad_norms,
+        "latest_param_updates": latest_param_updates,
     }, pretrained_path)
 
     summary = {
-        "workflow": "Self-Supervised Masked Feature Pretraining (Phase 2E)",
+        "workflow": "Self-Supervised Masked Feature Pretraining (Phase 2E.2)",
         "epochs": epochs,
         "mask_ratio": mask_ratio,
         "final_loss_mse": round(history[-1]["loss_mse"], 5) if history else None,
         "checkpoint_path": pretrained_path,
         "history": history,
         "final_gradient_norms": latest_grad_norms,
+        "final_parameter_updates": latest_param_updates,
     }
 
     with open(output_report, "w", encoding="utf-8") as f:

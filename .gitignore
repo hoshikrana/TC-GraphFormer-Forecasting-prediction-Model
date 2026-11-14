@@ -32,6 +32,8 @@ wheels/
 .coverage
 htmlcov/
 .mypy_cache/
+checkpoints/test_*/
+reports/**/test_pretrain_unit_*
 
 # Large Datasets & Swath Archives (20 GB+ raw & processed files)
 data/raw/
