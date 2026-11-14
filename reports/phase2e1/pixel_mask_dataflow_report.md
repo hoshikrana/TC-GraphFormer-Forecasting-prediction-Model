@@ -105,3 +105,4 @@ A fundamental scientific test of mask integrity is **invariance**:
 | Track Delta (`track_delta`) | $\mathbf{0.000000}$ | **PASS** |
 
 The difference is identically zero across all heads, proving complete mathematical invariance.
+

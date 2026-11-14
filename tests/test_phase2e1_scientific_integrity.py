@@ -374,6 +374,64 @@ class TestPhase2E1ScientificIntegrity(unittest.TestCase):
         self.assertEqual(batch["modality_masks"][0, 2].sum().item(), 0.0)  # t=2 padded
         self.assertEqual(batch["pixel_masks"]["ir"][0, 1].sum().item(), 0.0)  # pixel mask padded
 
+    # 11. Critical 1 Fix: Polar Graph Connected to True Polar Spatial Features
+    def test_11_polar_graph_connected_to_polar_spatial_features(self):
+        model = TCGraphFormer(d_model=64)
+        model.eval()
+
+        # 1. Structural verification: TCGraphFormer imports and instantiates PolarSectorPooling
+        self.assertTrue(hasattr(model, "polar_pool"), "TCGraphFormer must instantiate polar_pool!")
+        self.assertIsInstance(model.polar_pool, PolarSectorPooling)
+        self.assertIs(model.ir_encoder.polar_pool, model.polar_pool)
+        self.assertIs(model.pmw_encoder.polar_pool, model.polar_pool)
+        self.assertIs(model.gprof_encoder.polar_pool, model.polar_pool)
+        self.assertIs(model.radar_encoder.polar_pool, model.polar_pool)
+        self.assertIs(model.env_encoder.polar_pool, model.polar_pool)
+
+        # 2. Polar Sector Grounding: Eye / Inner-Core NE sector localization
+        B = 1
+        ir_baseline = torch.zeros(B, 1, 64, 64)
+        ir_eye_ne = torch.zeros(B, 1, 64, 64)
+        # Point (row=30, col=33) on 64x64 grid is physically in Ring 0 (r ~ 33 km < 75 km), Quadrant 0 (NE: theta = 45 deg)
+        ir_eye_ne[0, 0, 30, 33] = 100.0
+
+        f_base = model.ir_encoder.extract_features(ir_baseline)
+        t_base, _ = model.polar_pool(f_base)
+
+        f_eye = model.ir_encoder.extract_features(ir_eye_ne)
+        t_eye, _ = model.polar_pool(f_eye)
+
+        diff = (t_eye - t_base).abs().sum(dim=-1)[0]  # (16,)
+        # Sector 0 represents Ring 0 (Eye) NE: must have the dominant response
+        self.assertGreater(diff[0].item(), 5.0, "Sector 0 (Eye NE) failed to activate strongly!")
+        self.assertGreater(diff[0].item(), diff[1].item() * 3.0, "Sector 0 must exceed Sector 1 (NW)!")
+        self.assertGreater(diff[0].item(), diff[4].item() * 5.0, "Sector 0 must exceed Sector 4 (Eyewall NE)!")
+        # Outer synoptic ring (Sectors 12..15) must be zero
+        for s in range(12, 16):
+            self.assertAlmostEqual(diff[s].item(), 0.0, places=4, msg=f"Outer sector {s} corrupted by eye convection!")
+
+        # 3. Synoptic Outflow SE sector localization (Ring 3 SE: r ~ 408 km, theta = 315 deg)
+        ir_outflow_se = torch.zeros(B, 1, 64, 64)
+        ir_outflow_se[0, 0, 50, 50] = 100.0
+
+        f_outflow = model.ir_encoder.extract_features(ir_outflow_se)
+        t_outflow, _ = model.polar_pool(f_outflow)
+        diff_outflow = (t_outflow - t_base).abs().sum(dim=-1)[0]
+
+        # Sector 15 represents Ring 3 (Synoptic Outflow) SE: must activate
+        self.assertGreater(diff_outflow[15].item(), 0.01, "Sector 15 (Outflow SE) failed to activate!")
+        # Sector 0 (Eye NE) must be strictly zero
+        self.assertAlmostEqual(diff_outflow[0].item(), 0.0, places=5, msg="Eye sector 0 corrupted by outer outflow!")
+
+        # 4. Pixel Validity Mask Invariance at Polar Sector Level
+        pix_mask = torch.ones(B, 1, 64, 64)
+        pix_mask[0, 0, 30, 33] = 0.0  # Mask out the convective pixel as invalid / unobserved
+
+        f_masked = model.ir_encoder.extract_features(ir_eye_ne, pixel_mask=pix_mask)
+        t_masked, _ = model.polar_pool(f_masked, pixel_mask=pix_mask)
+        diff_masked = (t_masked - t_base).abs().sum(dim=-1)[0]
+        self.assertAlmostEqual(diff_masked[0].item(), 0.0, places=4, msg="Invalid masked pixel leaked into Sector 0!")
+
 
 if __name__ == "__main__":
     unittest.main()

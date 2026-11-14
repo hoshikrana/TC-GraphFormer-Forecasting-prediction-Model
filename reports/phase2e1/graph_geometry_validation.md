@@ -106,3 +106,30 @@ To feed the 16 polar graph nodes directly from $2\text{D}$ convolutional feature
 3. Feature aggregation applies strict validity mask weighting:
    $$\mathbf{t}_{b, p} = \frac{\sum_{h, w} \mathbf{F}_{b, :, h, w} \odot \mathbf{M}_{b, 1, h, w} \odot \mathbf{R}_{p, h, w}}{\sum_{h, w} \mathbf{M}_{b, 1, h, w} \odot \mathbf{R}_{p, h, w} + \epsilon}$$
    Guaranteeing that invalid/unobserved pixels never bias polar sector representations.
+
+---
+
+## 6. Model Data-Path Integration & Verification (Critical 1 Resolution)
+
+### Architectural Correction
+In the prior implementation, encoders generated 16 tokens using a Cartesian $4 \times 4$ adaptive pooling grid (`nn.AdaptiveAvgPool2d((4, 4))`), which mapped the outer North-West synoptic corner (Cartesian row 0, col 0 at $r \approx 500\text{ km}$) to Token 0, while the actual eye inner core ($r < 75\text{ km}$) was divided among internal tokens 5, 6, 9, 10. `PolarSectorPooling` existed as a standalone helper in `spatial_graph.py` but was neither imported nor called in `tc_graphformer.py`.
+
+The forward path is now physically and topologically unified:
+1. **Encoders (`ir_encoder.py`, `pmw_encoder.py`, `gprof_encoder.py`, `radar_encoder.py`, `env_encoder.py`)**:
+   - Stride configurations preserve spatial feature resolution at $32 \times 32$ ($31.25\text{ km/cell}$), ensuring all 4 radial rings (including the $0-75\text{ km}$ inner core) contain multiple discrete grid points.
+   - Encoders implement `extract_features(x, ...)` returning 2D spatial feature representations $(B, d_{\text{model}}, H', W')$.
+2. **`TCGraphFormer` Forward Path (`tc_graphformer.py`)**:
+   - Imports and instantiates `self.polar_pool = PolarSectorPooling(in_channels=d_model, d_model=d_model, bias=False)`.
+   - Links `self.polar_pool` to all modality encoders (`self.ir_encoder.polar_pool = self.polar_pool`, etc.).
+   - In `extract_overpass_features`:
+     - Calls `self.polar_pool` on each modality's 2D spatial feature map and validity mask.
+     - Produces 16 polar sector tokens per modality matching the 16 polar sectors.
+     - Fuses tokens with `CrossModalFusion` (80 tokens = 5 modalities $\times$ 16 polar sectors).
+     - Aggregates the 5 fused modal tokens for polar sector $p$ via `spatial_aggregator` into node $p$ of `spatial_nodes`.
+     - Feeds `spatial_nodes` directly into `SpatialGraphEncoder`.
+3. **Physical Alignment Verification (`test_11_polar_graph_connected_to_polar_spatial_features`)**:
+   - **Eye Inner-Core NE Activation:** A convective signal placed at $(row=30, col=33)$ ($r \approx 33\text{ km} < 75\text{ km}, \theta = 45^\circ$) activates Sector 0 / Node 0 with $\Delta = 7.4678$, with adjacent sectors receiving smooth physical decay (Sector 1 NW = 1.3607, Sector 4 Eyewall NE = 0.4737), and outer synoptic sectors (Sectors 12..15) remaining strictly zero ($0.0000$).
+   - **Synoptic Outflow SE Activation:** A convective signal placed at $(row=50, col=50)$ ($r \approx 408\text{ km}, \theta = 315^\circ$) activates Sector 15 / Node 15, while Node 0 (Eye NE) remains strictly zero ($0.0000$).
+   - **Mask Invariance:** When the Eye NE pixel is masked out as invalid, Sector 0 / Node 0 perturbation drops to exactly zero ($0.0000$), verifying zero data leakage from unobserved pixels.
+
+

@@ -21,3 +21,4 @@ Target,development_stage_raw,category,UN / None,STAGE_MAPPING_CANONICAL,[0, 4],M
 Target,intensity_change_Xh_kt,kt,NaN,raw value (kt),[-100, 100],Masked by intensity_change_mask per horizon (+6h, +12h, +18h, +24h)
 Target,is_rapid_intensification_24h,binary,NaN,raw binary indicator,{0.0, 1.0},Masked by ri_mask (1.0 if valid, 0.0 if missing)
 Target,track_displacement_Xh,km,NaN,dx_km and dy_km via tangent plane,[-1000, 1000],Masked by track_mask per horizon (+6h, +12h, +18h, +24h)
+

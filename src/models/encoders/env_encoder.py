@@ -1,18 +1,19 @@
 """
 Environmental Synoptic Modality Encoder for TC-GraphFormer.
 Encodes ERA5 atmospheric fields (precipitable water, sst, msl, t2m, u10, v10)
-into spatial tokens aligned with the cyclone center, with channel-level validity masking.
+into spatial feature maps and 16 polar sector tokens aligned with cyclone circulation.
 """
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .ir_encoder import ConvBlock
+from ..graph.spatial_graph import PolarSectorPooling
 
 
 class EnvEncoder(nn.Module):
     """
-    Encodes synoptic environmental fields into spatial tokens.
+    Encodes synoptic environmental fields into spatial feature maps and 16 polar sector tokens.
     Canonical 6 channels:
       0: precipitable_water (kg/m^2)
       1: sea_surface_temperature (K)
@@ -27,29 +28,25 @@ class EnvEncoder(nn.Module):
         self.in_channels = in_channels
         self.d_model = d_model
         self.stem = nn.Sequential(
-            nn.Conv2d(in_channels, 32, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Conv2d(in_channels, 32, kernel_size=3, stride=2, padding=1, bias=False),  # (B, 32, H/2, W/2)
             nn.BatchNorm2d(32),
             nn.GELU(),
         )
-        self.layer1 = ConvBlock(32, 64, stride=2)
-        self.layer2 = ConvBlock(64, d_model, stride=2)
+        self.layer1 = ConvBlock(32, 64, stride=1)       # (B, 64, H/2, W/2)
+        self.layer2 = ConvBlock(64, d_model, stride=1)  # (B, d_model, H/2, W/2)
 
-        self.pool = nn.AdaptiveAvgPool2d((4, 4)) # 16 tokens
-        self.token_proj = nn.Linear(d_model, d_model)
+        # Polar Sector Pooling: maps 2D spatial feature map to 16 polar sectors
+        self.polar_pool = PolarSectorPooling(in_channels=d_model, d_model=d_model, bias=False)
 
-    def forward(
+    def extract_features(
         self,
         x: torch.Tensor,
-        mask: torch.Tensor,
         channel_mask: torch.Tensor = None,
         pixel_mask: torch.Tensor = None,
     ) -> torch.Tensor:
         """
-        x: (B, C, H, W)
-        mask: (B,)
-        channel_mask: (B, C) optional channel-level validity mask
-        pixel_mask: (B, C, H, W) or (B, 1, H, W) pixel validity mask
-        Returns: (B, 16, d_model)
+        Extracts 2D spatial feature map with channel and pixel masking.
+        Returns: (B, d_model, H/2, W/2)
         """
         B = x.size(0)
         # Support backwards-compatible single-channel input
@@ -62,23 +59,37 @@ class EnvEncoder(nn.Module):
             x = x * channel_mask.view(B, -1, 1, 1)
 
         if pixel_mask is not None:
-            # Enforce pixel-level masking: invalid pixels cannot contribute to features
             x = x * pixel_mask
-            pm_collapsed = pixel_mask.mean(dim=1, keepdim=True) if pixel_mask.size(1) > 1 else pixel_mask
-            patch_validity = (F.adaptive_avg_pool2d(pm_collapsed.float(), (4, 4)) > 0.0).float()
-        else:
-            patch_validity = torch.ones((B, 1, 4, 4), dtype=torch.float32, device=x.device)
 
         out = self.stem(x)
         out = self.layer1(out)
         out = self.layer2(out)
 
-        pooled = self.pool(out) # (B, d_model, 4, 4)
-        pooled = pooled * patch_validity
-        tokens = pooled.flatten(2).transpose(1, 2)
-        tokens = self.token_proj(tokens)
+        if pixel_mask is not None:
+            pm = pixel_mask.mean(dim=1, keepdim=True) if pixel_mask.size(1) > 1 else pixel_mask
+            pm_res = F.interpolate(pm.float(), size=out.shape[-2:], mode="nearest")
+            out = out * (pm_res > 0.0).float()
+        return out
 
-        mask_expanded = mask.view(B, 1, 1)
+    def forward(
+        self,
+        x: torch.Tensor,
+        mask: torch.Tensor,
+        channel_mask: torch.Tensor = None,
+        pixel_mask: torch.Tensor = None,
+        return_spatial_map: bool = False,
+    ) -> torch.Tensor:
+        """
+        x: (B, C, H, W)
+        mask: (B,)
+        channel_mask: (B, C) optional channel-level validity mask
+        pixel_mask: (B, C, H, W) or (B, 1, H, W) pixel validity mask
+        return_spatial_map: if True, returns 2D feature map; if False, returns 16 polar tokens.
+        Returns: (B, 16, d_model) or (B, d_model, H/2, W/2)
+        """
+        feat = self.extract_features(x, channel_mask=channel_mask, pixel_mask=pixel_mask)
+        if return_spatial_map:
+            return feat
+        tokens, _ = self.polar_pool(feat, pixel_mask=pixel_mask)
+        mask_expanded = mask.view(x.size(0), 1, 1)
         return tokens * mask_expanded
-
-

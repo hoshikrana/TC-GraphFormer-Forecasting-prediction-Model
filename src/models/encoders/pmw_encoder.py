@@ -8,27 +8,56 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .ir_encoder import ConvBlock
+from ..graph.spatial_graph import PolarSectorPooling
 
 
 class PMWEncoder(nn.Module):
     """
-    Encodes Passive Microwave (S1/S2 swaths) into spatial tokens.
+    Encodes Passive Microwave (S1/S2 swaths) into spatial feature maps and 16 polar sector tokens.
     """
 
     def __init__(self, in_channels: int = 4, d_model: int = 128):
         super().__init__()
         self.d_model = d_model
         self.stem = nn.Sequential(
-            nn.Conv2d(in_channels, 32, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Conv2d(in_channels, 32, kernel_size=3, stride=2, padding=1, bias=False),  # (B, 32, H/2, W/2)
             nn.BatchNorm2d(32),
             nn.GELU(),
         )
-        self.layer1 = ConvBlock(32, 64, stride=2)   # (B, 64, H/2, W/2)
-        self.layer2 = ConvBlock(64, 128, stride=2)  # (B, 128, H/4, W/4)
-        self.layer3 = ConvBlock(128, d_model, stride=2) # (B, d_model, H/8, W/8)
+        self.layer1 = ConvBlock(32, 64, stride=1)       # (B, 64, H/2, W/2)
+        self.layer2 = ConvBlock(64, 128, stride=1)      # (B, 128, H/2, W/2)
+        self.layer3 = ConvBlock(128, d_model, stride=1) # (B, d_model, H/2, W/2)
 
-        self.pool = nn.AdaptiveAvgPool2d((4, 4)) # 16 tokens
-        self.token_proj = nn.Linear(d_model, d_model)
+        # Polar Sector Pooling: maps 2D spatial feature map to 16 polar sectors
+        self.polar_pool = PolarSectorPooling(in_channels=d_model, d_model=d_model, bias=False)
+
+    def extract_features(
+        self,
+        x: torch.Tensor,
+        channel_mask: torch.Tensor = None,
+        pixel_mask: torch.Tensor = None,
+    ) -> torch.Tensor:
+        """
+        Extracts 2D spatial feature map with channel and pixel masking.
+        Returns: (B, d_model, H/2, W/2)
+        """
+        B = x.size(0)
+        if channel_mask is not None and channel_mask.dim() == 2:
+            x = x * channel_mask.view(B, -1, 1, 1)
+
+        if pixel_mask is not None:
+            x = x * pixel_mask
+
+        out = self.stem(x)
+        out = self.layer1(out)
+        out = self.layer2(out)
+        out = self.layer3(out)
+
+        if pixel_mask is not None:
+            pm = pixel_mask.mean(dim=1, keepdim=True) if pixel_mask.size(1) > 1 else pixel_mask
+            pm_res = F.interpolate(pm.float(), size=out.shape[-2:], mode="nearest")
+            out = out * (pm_res > 0.0).float()
+        return out
 
     def forward(
         self,
@@ -36,37 +65,19 @@ class PMWEncoder(nn.Module):
         mask: torch.Tensor,
         channel_mask: torch.Tensor = None,
         pixel_mask: torch.Tensor = None,
+        return_spatial_map: bool = False,
     ) -> torch.Tensor:
         """
         x: (B, 4, H, W)
         mask: (B,)
         channel_mask: (B, 4) optional channel-level validity mask
         pixel_mask: (B, 4, H, W) or (B, 1, H, W) pixel validity mask
-        Returns: (B, 16, d_model)
+        return_spatial_map: if True, returns 2D feature map; if False, returns 16 polar tokens.
+        Returns: (B, 16, d_model) or (B, d_model, H/2, W/2)
         """
-        B = x.size(0)
-        if channel_mask is not None and channel_mask.dim() == 2:
-            x = x * channel_mask.view(B, -1, 1, 1)
-
-        if pixel_mask is not None:
-            # Enforce pixel-level masking: invalid pixels cannot contribute to features
-            x = x * pixel_mask
-            pm_collapsed = pixel_mask.mean(dim=1, keepdim=True) if pixel_mask.size(1) > 1 else pixel_mask
-            patch_validity = (F.adaptive_avg_pool2d(pm_collapsed.float(), (4, 4)) > 0.0).float()
-        else:
-            patch_validity = torch.ones((B, 1, 4, 4), dtype=torch.float32, device=x.device)
-
-        out = self.stem(x)
-        out = self.layer1(out)
-        out = self.layer2(out)
-        out = self.layer3(out)
-
-        pooled = self.pool(out) # (B, d_model, 4, 4)
-        pooled = pooled * patch_validity
-
-        tokens = pooled.flatten(2).transpose(1, 2) # (B, 16, d_model)
-        tokens = self.token_proj(tokens)
-
-        mask_expanded = mask.view(B, 1, 1)
+        feat = self.extract_features(x, channel_mask=channel_mask, pixel_mask=pixel_mask)
+        if return_spatial_map:
+            return feat
+        tokens, _ = self.polar_pool(feat, pixel_mask=pixel_mask)
+        mask_expanded = mask.view(x.size(0), 1, 1)
         return tokens * mask_expanded
-

@@ -65,3 +65,4 @@ In `src/data/dataset.py:TCPRIMEDDataset._resample_swath_with_coords`:
 ### Verification Evidence
 - Unit test `test_04_coordinate_aware_swath_resampling_and_distance_masking` validates that a $200\text{ km} \times 200\text{ km}$ swath placed at the center produces valid pixels ($1.0$) in the core, while grid corners ($r \approx 500\text{ km}$) are strictly masked invalid ($0.0$) with zero data leakage.
 - Runtime benchmark confirms `cKDTree.query` across 4,096 points executes in **$1.33\text{ ms}$**, adding negligible computational overhead to data loading.
+

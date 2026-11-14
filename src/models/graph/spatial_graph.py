@@ -80,6 +80,7 @@ class PolarSectorPooling(nn.Module):
         domain_radius_km: float = 500.0,
         ring_bounds: Tuple[float, ...] = (0.0, 75.0, 175.0, 300.0, 500.0),
         sector_angles_deg: Tuple[float, ...] = (45.0, 135.0, 225.0, 315.0),
+        bias: bool = False,
     ):
         super().__init__()
         self.in_channels = in_channels
@@ -87,7 +88,7 @@ class PolarSectorPooling(nn.Module):
         self.domain_radius_km = domain_radius_km
         self.ring_bounds = ring_bounds
         self.sector_angles_deg = sector_angles_deg
-        self.proj = nn.Linear(in_channels, d_model)
+        self.proj = nn.Linear(in_channels, d_model, bias=bias)
         self._cached_masks: Dict[Tuple[int, int, str], torch.Tensor] = {}
 
     def _get_region_masks(self, H: int, W: int, device: torch.device) -> torch.Tensor:
@@ -146,6 +147,8 @@ class PolarSectorPooling(nn.Module):
                 pm = (pixel_mask.mean(dim=1, keepdim=True) > 0.0).float()
             else:
                 pm = pixel_mask.float()
+            if pm.shape[-2:] != (H, W):
+                pm = (F.interpolate(pm, size=(H, W), mode="nearest") > 0.0).float()
             # Enforce pixel-level invariance
             x = x * pm
             weights = region_masks.unsqueeze(0).unsqueeze(2) * pm.unsqueeze(1)  # (B, 16, 1, H, W)

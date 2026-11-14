@@ -63,3 +63,4 @@ To integrate the irregular volumetric radar swath with the storm-centered archit
 4. Cleaned volume tensor enforces:
    $$\mathbf{X}_{\text{radar}} = \mathbf{X}_{\text{resized}} \odot \mathbf{M}_{\text{voxel\_resized}}$$
 5. Downstream `RadarEncoder` applies 3D convolutions with voxel-mask gating, guaranteeing that unobserved radar regions contribute zero activation to multi-modal cross-attention.
+

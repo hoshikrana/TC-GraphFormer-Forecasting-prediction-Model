@@ -76,3 +76,4 @@ When fine-tuning on forecasting tasks (`run_finetuning`) or supervised training 
   - `TaskPredictionHeads`: Initialized fresh. (Linear heads for intensity, pressure, stage classification, intensity change, RI, and track).
 
 This separation is scientifically sound and eliminates any false claim that temporal or graph parameters were trained during single-overpass pretraining.
+

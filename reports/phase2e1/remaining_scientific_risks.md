@@ -50,3 +50,4 @@ However, **software integration must not be conflated with trained meteorologica
 - **Current State:** Multi-task targets predict intensity change and track displacement up to $+24\text{ hours}$ ($+6\text{h}, +12\text{h}, +18\text{h}, +24\text{h}$).
 - **Risk:** Beyond 24 hours, internal convective vortex structure becomes secondary to large-scale environmental steering (subtropical ridge positioning, upper-level trough interactions, baroclinic shear). Satellite imagery alone cannot sustain 48–72h track forecasts without continuous coupled numerical guidance.
 - **Mitigation:** Keep the model's primary forecasting horizon focused on the critical $0 - 24\text{ hour}$ short-term rapid intensification and eyewall structural evolution window, where satellite observations provide maximum physical value over NWP.
+

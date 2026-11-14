@@ -68,3 +68,4 @@ In `collate_sequence_batch`:
   2. A key padding mask ($K_{ij} = -\infty$ for $j \ge L$) preventing attention into padded end-timesteps.
 
 **Reconciliation Ruling:** `collate_sequence_batch` uses **end-padding** combined with causal attention masking. The erroneous "front padding" terminology in Phase 2E reports is formally superseded by this report.
+

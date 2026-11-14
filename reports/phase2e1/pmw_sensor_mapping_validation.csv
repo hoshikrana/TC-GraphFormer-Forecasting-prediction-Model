@@ -8,3 +8,4 @@ AMSRE,S2/TB_18.7V,S2/TB_18.7H,None,None,2,Low-frequency channels 0-1 present in 
 MHS,None,None,None,S1/TB_89.0V,1,High-frequency scattering channel 3 present in S1. Channels 0-2 absent (sounding radiometer); masks correctly set to 0.
 AMSUB,None,None,None,S1/TB_89.0_0.9QV,1,High-frequency scattering channel 3 present in S1. Channels 0-2 absent (sounding radiometer); masks correctly set to 0.
 ATMS,None,None,None,None,0,Atmospheric temperature/humidity sounder (channels 23.8/31.4 GHz). Canonical window imaging channels absent; all masks correctly set to 0.
+

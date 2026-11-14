@@ -176,7 +176,7 @@ def run_pretraining(
             total_masked_tokens += n_masked_batch
             total_visible_tokens += n_visible_batch
 
-            # 4. Student input masking: Zero out raw spatial patches so student encoder cannot see masked regions
+            # 4. Student input masking: Zero out physical polar sectors so student encoder cannot see masked regions
             ir_stud = ir.clone()
             pmw_stud = pmw.clone()
             gp_stud = gprof.clone()
@@ -189,52 +189,46 @@ def run_pretraining(
             pix_rad_stud = pix_rad.clone() if pix_rad is not None else torch.ones_like(radar)
             pix_env_stud = pix_env.clone() if pix_env is not None else torch.ones_like(env)
 
-            # Apply patch-level spatial masking on student inputs
+            # Get polar region masks for 2D grids (IR, PMW, GPROF, Env) and Radar (H, W)
+            reg_masks_64 = model.polar_pool._get_region_masks(ir.size(-2), ir.size(-1), ir.device)
+            reg_masks_rad = model.polar_pool._get_region_masks(radar.size(-2), radar.size(-1), radar.device)
+
+            # Apply polar-sector spatial masking on student inputs
             for b in range(B):
                 # IR: tokens 0..15
                 for p in range(16):
                     if mask_to_recon[b, p, 0] > 0.5:
-                        r_idx, c_idx = p // 4, p % 4
-                        h_s, h_e = r_idx * 16, (r_idx + 1) * 16
-                        w_s, w_e = c_idx * 16, (c_idx + 1) * 16
-                        ir_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
-                        pix_ir_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+                        sec_m = reg_masks_64[p] > 0.0
+                        ir_stud[b, :, sec_m] = 0.0
+                        pix_ir_stud[b, :, sec_m] = 0.0
 
                 # PMW: tokens 16..31
                 for p in range(16):
                     if mask_to_recon[b, 16 + p, 0] > 0.5:
-                        r_idx, c_idx = p // 4, p % 4
-                        h_s, h_e = r_idx * 16, (r_idx + 1) * 16
-                        w_s, w_e = c_idx * 16, (c_idx + 1) * 16
-                        pmw_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
-                        pix_pmw_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+                        sec_m = reg_masks_64[p] > 0.0
+                        pmw_stud[b, :, sec_m] = 0.0
+                        pix_pmw_stud[b, :, sec_m] = 0.0
 
                 # GPROF: tokens 32..47
                 for p in range(16):
                     if mask_to_recon[b, 32 + p, 0] > 0.5:
-                        r_idx, c_idx = p // 4, p % 4
-                        h_s, h_e = r_idx * 16, (r_idx + 1) * 16
-                        w_s, w_e = c_idx * 16, (c_idx + 1) * 16
-                        gp_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
-                        pix_gp_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+                        sec_m = reg_masks_64[p] > 0.0
+                        gp_stud[b, :, sec_m] = 0.0
+                        pix_gp_stud[b, :, sec_m] = 0.0
 
-                # Radar: tokens 48..63 (32x32 spatial grid -> 8x8 patches)
+                # Radar: tokens 48..63
                 for p in range(16):
                     if mask_to_recon[b, 48 + p, 0] > 0.5:
-                        r_idx, c_idx = p // 4, p % 4
-                        h_s, h_e = r_idx * 8, (r_idx + 1) * 8
-                        w_s, w_e = c_idx * 8, (c_idx + 1) * 8
-                        rad_stud[b, :, :, h_s:h_e, w_s:w_e] = 0.0
-                        pix_rad_stud[b, :, :, h_s:h_e, w_s:w_e] = 0.0
+                        sec_m = reg_masks_rad[p] > 0.0
+                        rad_stud[b, :, :, sec_m] = 0.0
+                        pix_rad_stud[b, :, :, sec_m] = 0.0
 
                 # Env: tokens 64..79
                 for p in range(16):
                     if mask_to_recon[b, 64 + p, 0] > 0.5:
-                        r_idx, c_idx = p // 4, p % 4
-                        h_s, h_e = r_idx * 16, (r_idx + 1) * 16
-                        w_s, w_e = c_idx * 16, (c_idx + 1) * 16
-                        env_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
-                        pix_env_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+                        sec_m = reg_masks_64[p] > 0.0
+                        env_stud[b, :, sec_m] = 0.0
+                        pix_env_stud[b, :, sec_m] = 0.0
 
             # 5. Student forward pass with active autograd graph
             s_ir = model.ir_encoder(ir_stud, m_ir, pixel_mask=pix_ir_stud)
