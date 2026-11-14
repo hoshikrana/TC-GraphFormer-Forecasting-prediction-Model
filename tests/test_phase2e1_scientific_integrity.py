@@ -30,7 +30,7 @@ from src.data.collate import collate_multimodal_batch, collate_sequence_batch
 from src.models.tc_graphformer import TCGraphFormer
 from src.models.graph.spatial_graph import SpatialGraphEncoder, PolarSectorPooling
 from src.training.losses import MultiTaskLoss
-from src.training.pretrain import MaskedFeatureReconstructionHead
+from src.training.pretrain import MaskedFeatureReconstructionHead, compute_module_grad_norm
 
 
 class TestPhase2E1ScientificIntegrity(unittest.TestCase):
@@ -789,6 +789,113 @@ class TestPhase2E1ScientificIntegrity(unittest.TestCase):
         self.assertAlmostEqual(int_diff, 0.0, places=5, msg="Model intensity prediction leaked unobserved radar voxels!")
         self.assertAlmostEqual(prs_diff, 0.0, places=5, msg="Model pressure prediction leaked unobserved radar voxels!")
         self.assertAlmostEqual(stg_diff, 0.0, places=5, msg="Model stage prediction leaked unobserved radar voxels!")
+
+    # 14. Radar-Present Sequence Learning & Multi-Task Gradient Flow
+    def test_14_radar_present_sequence_learning_and_gradient_flow(self):
+        """
+        Verify that a multi-modal sequence containing a radar observation
+        propagates pixel/voxel masks to the model, calculates multi-task loss,
+        and generates strictly non-zero gradients for radar_encoder and all other modules.
+        """
+        B, T = 1, 4
+        H, W = 64, 64
+        D_rad = 16
+
+        seq = []
+        for t in range(T):
+            has_rad = (t == 3)  # Step 3 has radar
+            rad_tensor = torch.zeros(1, D_rad, H // 2, W // 2)
+            rad_voxel = torch.zeros(1, D_rad, H // 2, W // 2)
+            if has_rad:
+                rad_tensor[0, :, 10:20, 10:20] = torch.rand(D_rad, 10, 10) * 0.8
+                rad_voxel[0, :, 10:20, 10:20] = 1.0
+
+            obs = {
+                "sample_id": f"SMP_TEST_{t}",
+                "storm_id": "STORM_TEST",
+                "timestamp_epoch": 1600000000 + t * 7200,
+                "timestamp_utc": f"202106140{t}0000",
+                "instrument": "GMI" if has_rad else "SSMIS",
+                "ir": torch.randn(1, H, W) * 0.5 + 0.5,
+                "pmw": torch.randn(4, H, W) * 0.5 + 0.5,
+                "gprof": torch.randn(4, H, W) * 0.5 + 0.5,
+                "radar": rad_tensor,
+                "env": torch.randn(6, H, W) * 0.5 + 0.5,
+                "modality_masks": torch.tensor([1.0, 1.0, 1.0, 1.0 if has_rad else 0.0, 1.0]),
+                "masks": {
+                    "ir_pixel": torch.ones(1, H, W),
+                    "pmw_pixel": torch.ones(4, H, W),
+                    "gprof_pixel": torch.ones(4, H, W),
+                    "radar_voxel": rad_voxel,
+                    "radar_echo": rad_voxel,
+                    "env_pixel": torch.ones(6, H, W),
+                    "pmw_channels": torch.ones(4),
+                    "gprof_channels": torch.ones(4),
+                    "env_channels": torch.ones(6),
+                },
+                "targets": {
+                    "intensity": torch.tensor(65.0),
+                    "intensity_mask": torch.tensor(1.0),
+                    "pressure": torch.tensor(985.0),
+                    "pressure_mask": torch.tensor(1.0),
+                    "stage": torch.tensor(2),
+                    "stage_mask": torch.tensor(1.0),
+                    "raw_stage": "HU",
+                    "intensity_change": torch.tensor([5.0, 10.0, 15.0, 20.0]),
+                    "intensity_change_mask": torch.tensor([1.0, 1.0, 1.0, 1.0]),
+                    "rapid_intensification": torch.tensor(0.0),
+                    "ri_mask": torch.tensor(1.0),
+                    "track_displacement": torch.tensor([[10.0, 20.0], [20.0, 40.0], [30.0, 60.0], [40.0, 80.0]]),
+                    "track_mask": torch.tensor([1.0, 1.0, 1.0, 1.0]),
+                },
+                "geospatial_provenance": {"radar": "raw_beam_kdtree" if has_rad else "none"},
+            }
+            seq.append(obs)
+
+        batch_seq = collate_sequence_batch([seq])
+        model = TCGraphFormer(d_model=64, num_stages=5)
+        loss_fn = MultiTaskLoss()
+        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+
+        model.train()
+        optimizer.zero_grad()
+
+        pixel_masks = {k: v for k, v in batch_seq["pixel_masks"].items() if v is not None}
+        channel_masks = {k: v for k, v in batch_seq["channel_masks"].items() if v is not None}
+
+        preds = model(
+            ir=batch_seq["ir"],
+            pmw=batch_seq["pmw"],
+            gprof=batch_seq["gprof"],
+            radar=batch_seq["radar"],
+            env=batch_seq["env"],
+            modality_masks=batch_seq["modality_masks"],
+            delta_times_hours=batch_seq["delta_times_hours"],
+            seq_pad_mask=batch_seq["seq_pad_mask"],
+            channel_masks=channel_masks,
+            pixel_masks=pixel_masks,
+        )
+
+        loss, loss_dict = loss_fn(preds, batch_seq["targets"])
+        loss.backward()
+
+        g_radar = compute_module_grad_norm(model.radar_encoder)
+        g_ir = compute_module_grad_norm(model.ir_encoder)
+        g_pmw = compute_module_grad_norm(model.pmw_encoder)
+        g_gp = compute_module_grad_norm(model.gprof_encoder)
+        g_env = compute_module_grad_norm(model.env_encoder)
+        g_graph = compute_module_grad_norm(model.spatial_graph)
+        g_temp = compute_module_grad_norm(model.temporal_transformer)
+        g_heads = compute_module_grad_norm(model.task_heads)
+
+        self.assertGreater(g_radar, 0.0, "Radar encoder must receive non-zero gradients when radar is present!")
+        self.assertGreater(g_ir, 0.0)
+        self.assertGreater(g_pmw, 0.0)
+        self.assertGreater(g_gp, 0.0)
+        self.assertGreater(g_env, 0.0)
+        self.assertGreater(g_graph, 0.0)
+        self.assertGreater(g_temp, 0.0)
+        self.assertGreater(g_heads, 0.0)
 
 
 if __name__ == "__main__":

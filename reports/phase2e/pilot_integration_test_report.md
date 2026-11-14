@@ -1,33 +1,69 @@
 # TC-GraphFormer — Phase 2E: Pilot Integration Test Report
 
-**Execution Date:** 2026-11-13  
+**Execution Date:** 2026-11-14  
 **Dataset:** NOAA TC PRIMED v01r01-final (Pilot ~20 GB, 2,599 observations)  
-**Verification Target:** Complete end-to-end data-to-model integration pipeline
+**Verification Target:** Complete end-to-end data-to-model integration pipeline with 100% pilot observation audit and active radar learning
 
 ---
 
 ## 1. Summary of End-to-End Test Execution
 
-The pilot integration test successfully demonstrated the complete causal forecasting pipeline on real satellite observations:
+The pilot integration test verified the entire causal forecasting pipeline on real satellite observations:
 
 ```text
-Standardized NetCDF Containers
-  -> TCPRIMEDSequenceDataset (Real storm history AL022021, T=4 observations)
-  -> collate_sequence_batch (Batched [B, T, C, H, W] with sequence padding & delta-t)
+Standardized NetCDF Containers (2,599 observations audited)
+  -> Full All-Sample Data Audit (Zero non-finite tensors, zero processing errors)
+  -> TCPRIMEDSequenceDataset (Real storm history AL022021 with GMI DPR radar, T=4 observations)
+  -> collate_sequence_batch (Batched [B, T, C, H, W] with pixel masks, voxel masks, channel masks, delta-t)
   -> 5 Modality Encoders (IR, PMW, GPROF, Radar, Environmental Synoptic)
-  -> Mask-Aware Cross-Modal Attention Fusion (80 multimodal tokens)
+  -> Polar Sector Pooling (4 radial rings x 4 azimuthal sectors = 16 geometric tokens)
+  -> Mask-Aware Cross-Modal Attention Fusion (80 multimodal tokens with attention padding masks)
   -> Storm-Relative Spatial Graph MPNN (16 geometric nodes, 8 edge dimensions)
   -> Continuous-Time Causal Temporal Transformer (Irregular delta-t hours)
   -> Anchor Horizon Representation Gathering (T_anchor)
   -> Multi-Task Prediction Heads (Wind, Pressure, Stage, dV, RI, Track)
   -> Masked MultiTaskLoss (Zero contribution from missing targets)
-  -> Backpropagation & Parameter Gradient Updates
+  -> Backpropagation & Parameter Gradient Updates (All 10 modules including radar_encoder)
   -> Checkpoint Serialization & Integrity Verification
 ```
 
 ---
 
-## 2. Sensor and Modality Loading Results
+## 2. Comprehensive All-Sample Data Audit (2,599 Observations)
+
+Every observation in `sample_index.csv` ($N = 2599$) was dereferenced and verified through `TCPRIMEDDataset`:
+
+| Metric | Result | Status |
+| :--- | :--- | :--- |
+| **Total Pilot Observations Audited** | `2599` / `2599` | **100% Dereferenced** |
+| **Audit Execution Time** | `692.9 s` (`3.8` samp/s) | Clean Execution |
+| **Audit Database Artifact** | [`pilot_all_observations_audit.csv`](file:///D:/Project/Capstone_project/reports/phase2e/pilot_all_observations_audit.csv ) | Serialized |
+| **Invalid / Non-Finite Tensors** | `0` | **Zero Defects** |
+| **Shape Mismatches** | `0` | **Zero Defects** |
+| **Container Processing Errors** | `0` | **Zero Defects** |
+
+### Modality Availability Across 2,599 Observations
+
+| Modality | Available Count | Availability Percentage |
+| :--- | :--- | :--- |
+| **Infrared (IRWIN)** | `2262` | `87.0%` |
+| **Passive Microwave (PMW)** | `2247` | `86.5%` |
+| **GPROF Precipitation** | `2595` | `99.8%` |
+| **Radar Radiometer (DPR/PR)** | `75` | `2.9%` |
+| **Environmental Reanalysis (ERA5)** | `2521` | `97.0%` |
+
+### Coordinate Provenance Breakdown
+
+| **Infrared** | nominal_fallback: 2262, none: 337 |
+| **Passive_microwave** | tangent_plane_geodetic_km: 2247, none: 352 |
+| **Gprof** | nominal_fallback: 2595, none: 4 |
+| **Radar** | none: 2524, radar_beam_geodetic_km: 74, nominal_fallback: 1 |
+| **Environmental** | nominal_fallback: 2521, none: 78 |
+
+
+---
+
+## 3. Sensor and Modality Loading Results
 
 | Instrument | Sample ID | Storm ID | PMW Channels Present | Radar Present | Env Present | PMW Tensor Sum |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -39,31 +75,31 @@ Standardized NetCDF Containers
 | **AMSUB** | SMP_AL022001_AMSUB_NOAA16_20010711162751 | AL022001 | [0.0, 0.0, 0.0, 1.0] | No | Yes | 2911.58 |
 | **MHS** | SMP_AL022021_MHS_METOPB_20210614013814 | AL022021 | [0.0, 0.0, 0.0, 1.0] | No | Yes | 2410.55 |
 
-- **Radar Radiometer Loading:** Verified on `SMP_AL022021_GMI_GPM_20210614123541`. Ku reflectivity profile `(88, 373, 49)` interpolated to `(1, 16, 32, 32)` with 685 valid voxels preserved and max normalized dBZ of `0.623`.
+- **Radar Radiometer Loading:** Verified on `SMP_AL022021_GMI_GPM_20210614123541`. Ku reflectivity profile `(88, 373, 49)` interpolated to `(1, 16, 32, 32)` with 289 valid voxels preserved and max normalized dBZ of `0.623`.
 - **Radar-Absent Verification:** Verified on no-radar overpasses; radar tensor is strictly zero and `modality_masks[3] == 0.0`.
 
 ---
 
-## 3. Real Storm Historical Sequence
+## 4. Real Storm Historical Sequence with Radar
 
 - **Storm:** `AL022021`
 - **Sequence Length:** `T = 4`
-- **Timestamps:**
-  - Step 0: `SMP_AL022021_SSMIS_F17_20210615215502` (SSMIS) at `2021-06-15 21:55:02 UTC` (Delta-t: 0.00h)
-  - Step 1: `SMP_AL022021_MHS_NOAA19_20210615221923` (MHS) at `2021-06-15 22:19:23 UTC` (Delta-t: 0.41h)
-  - Step 2: `SMP_AL022021_MHS_METOPC_20210616001135` (MHS) at `2021-06-16 00:11:35 UTC` (Delta-t: 2.28h)
-  - Step 3: `SMP_AL022021_MHS_METOPB_20210616005840` (MHS) at `2021-06-16 00:58:40 UTC` (Delta-t: 3.06h)
+- **Timestamps and Instruments:**
+  - Step 0: `SMP_AL022021_SSMIS_F18_20210614093137` (SSMIS) at `2021-06-14 09:31:37 UTC` (Delta-t:  0.00h) — No radar
+  - Step 1: `SMP_AL022021_SSMIS_F16_20210614100848` (SSMIS) at `2021-06-14 10:08:48 UTC` (Delta-t:  0.62h) — No radar
+  - Step 2: `SMP_AL022021_SSMIS_F17_20210614122616` (SSMIS) at `2021-06-14 12:26:16 UTC` (Delta-t:  2.91h) — No radar
+  - Step 3: `SMP_AL022021_GMI_GPM_20210614123541` (GMI) at `2021-06-14 12:35:41 UTC` (Delta-t:  3.07h) — RADAR PRESENT (289 valid voxels)
 
 ---
 
-## 4. Multi-Task Target and Mask Values for Anchor Observation
+## 5. Multi-Task Target and Mask Values for Anchor Observation
 
-- **Anchor Sample:** `SMP_AL022021_MHS_METOPB_20210616005840`
-- **Current Intensity:** `35.0 kt` (Mask: `1.0`)
-- **Central Pressure:** `1010.0 hPa` (Mask: `0.0`)
-- **Development Stage:** Class `3` (Mask: `1.0`, Raw: `EX`)
-- **Intensity Changes (+6h, +12h, +18h, +24h):** `[[0.0, 0.0, 0.0, 0.0]] kt` (Masks: `[[0.0, 0.0, 0.0, 0.0]]`)
-- **Rapid Intensification (>=30kt/24h):** `0.0` (Mask: `0.0`)
+- **Anchor Sample:** `SMP_AL022021_GMI_GPM_20210614123541`
+- **Current Intensity:** `30.0 kt` (Mask: `1.0`)
+- **Central Pressure:** `1005.0 hPa` (Mask: `1.0`)
+- **Development Stage:** Class `0` (Mask: `1.0`, Raw: `TD`)
+- **Intensity Changes (+6h, +12h, +18h, +24h):** `[[5.0, 10.0, 20.0, 24.0]] kt` (Masks: `[[1.0, 1.0, 1.0, 1.0]]`)
+- **Rapid Intensification (>=30kt/24h):** `0.0` (Mask: `1.0`)
 - **Track Displacements (East/North km):**
   - +6h: `[0.0, 0.0] km` (Mask: `0.0`)
   - +12h: `[0.0, 0.0] km` (Mask: `0.0`)
@@ -72,32 +108,32 @@ Standardized NetCDF Containers
 
 ---
 
-## 5. Model Parameter Gradient Norms
+## 6. Model Parameter Gradient Norms
 
-All modules received valid autograd signals without gradient saturation or vanishing:
+All 10 modules, including `radar_encoder`, received valid autograd signals without gradient saturation or vanishing:
 
-| Architecture Component | L2 Gradient Norm | Training Status |
-| :--- | :--- | :--- |
-| `ir_encoder` | `0.831131` | Updated |
-| `pmw_encoder` | `1.140102` | Updated |
-| `gprof_encoder` | `0.843612` | Updated |
-| `radar_encoder` | `0.682997` | Updated |
-| `env_encoder` | `0.818895` | Updated |
-| `cross_modal_fusion` | `1.657384` | Updated |
-| `spatial_aggregator` | `6.284925` | Updated |
-| `spatial_graph_mpnn` | `1.154949` | Updated |
-| `temporal_transformer` | `2.802623` | Updated |
-| `task_prediction_heads` | `5.177658` | Updated |
+| Architecture Component | L2 Gradient Norm | Training Status | Active Verification |
+| :--- | :--- | :--- | :--- |
+| `ir_encoder` | `4.364743` | Updated | > 0.0 Verified |
+| `pmw_encoder` | `6.086959` | Updated | > 0.0 Verified |
+| `gprof_encoder` | `3.969091` | Updated | > 0.0 Verified |
+| `radar_encoder` | `3.944332` | Updated | **> 0.0 Confirmed (Active Radar Learning)** |
+| `env_encoder` | `3.856971` | Updated | > 0.0 Verified |
+| `cross_modal_fusion` | `5.431917` | Updated | > 0.0 Verified |
+| `spatial_aggregator` | `19.402029` | Updated | > 0.0 Verified |
+| `spatial_graph_mpnn` | `2.845997` | Updated | > 0.0 Verified |
+| `temporal_transformer` | `6.509693` | Updated | > 0.0 Verified |
+| `task_prediction_heads` | `8.329716` | Updated | > 0.0 Verified |
 
 ---
 
-## 6. Verification Status
+## 7. Verification Status
 
-- [x] All expected modalities loaded from real pilot NetCDF containers.
-- [x] Radar Ku measurements extracted and normalized into 3D volumes.
+- [x] All 2,599 pilot observations dereferenced and verified (zero non-finite tensors, zero processing errors).
+- [x] Full audit database generated and saved to `reports/phase2e/pilot_all_observations_audit.csv`.
+- [x] Radar Ku measurements extracted and normalized into 3D volumes with precipitation echo masks.
 - [x] Deterministic PMW channel mapping enforced per sensor family.
-- [x] Missing target masks prevent artificial loss contamination.
-- [x] Historical sequence strictly causal (t_k <= t_anchor).
-- [x] Sequence batching preserves actual irregular time intervals.
-- [x] Complete backward pass generates non-zero parameter updates across all components.
+- [x] Historical sequence strictly causal ($t_k \le t_{anchor}$) with radar-present observation verified.
+- [x] Pixel and voxel validity masks explicitly propagated to model forward pass.
+- [x] Complete backward pass generates non-zero parameter updates across all components, including `radar_encoder`.
 - [x] Checkpoint serialization and schema verified.

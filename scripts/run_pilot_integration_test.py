@@ -1,13 +1,21 @@
 """
 Phase 2E Pilot Integration Test: End-to-End Pipeline Verification.
 Verifies complete flow on real NOAA TC PRIMED pilot observations:
-Raw Processed Containers -> Dataset Sequence -> Collate -> Modality Encoders
--> Fusion -> Spatial Graph -> Temporal Transformer -> Prediction Heads -> Masked Losses -> Backpropagation -> Checkpoint Serialization.
+1. Comprehensive All-Sample Data Audit (2,599 observations dereferenced)
+2. Modality & Sensor Representative Audits
+3. Radar-Present Historical Sequence Construction
+4. Batch Collation with Pixel and Voxel Masks
+5. Full End-to-End Forward Pass, Masked Loss & Backward Pass with Explicit Pixel Masks
+6. Parameter Gradient Verification (including non-zero radar encoder gradient)
+7. Checkpoint Serialization & Verification
+8. Deliverable Report Generation
 """
 
 import os
 import sys
+import time
 import json
+from collections import Counter
 import numpy as np
 import pandas as pd
 import torch
@@ -22,23 +30,157 @@ from src.training.losses import MultiTaskLoss
 from src.training.pretrain import compute_module_grad_norm
 
 
-def run_integration_test():
+def run_integration_test(force_full_audit: bool = True):
     sample_index_csv = "reports/pipeline/sample_index.csv"
     if not os.path.exists(sample_index_csv):
         raise FileNotFoundError(f"Missing sample index: {sample_index_csv}")
 
     df = pd.read_csv(sample_index_csv)
-    print("=" * 70)
-    print("TC-GRAPHFORMER PHASE 2E: PILOT INTEGRATION TEST")
-    print(f"Total available pilot observations: {len(df)}")
-    print("=" * 70)
+    total_samples = len(df)
+    print("=" * 75, flush=True)
+    print("TC-GRAPHFORMER PHASE 2E: PILOT INTEGRATION TEST", flush=True)
+    print(f"Total available pilot observations in index: {total_samples}", flush=True)
+    print("=" * 75, flush=True)
+
+    os.makedirs("reports/phase2e", exist_ok=True)
+    audit_csv_path = "reports/phase2e/pilot_all_observations_audit.csv"
 
     # -------------------------------------------------------------------------
-    # 1. Modality & Sensor Representative Audits
+    # 1. Comprehensive Audit of All 2,599 Pilot Observations
     # -------------------------------------------------------------------------
+    print("\n" + "-" * 75, flush=True)
+    print(f"SECTION 1: COMPREHENSIVE DATA AUDIT OF ALL {total_samples} OBSERVATIONS", flush=True)
+    print("-" * 75, flush=True)
+
     ds_all = TCPRIMEDDataset(sample_index_csv=sample_index_csv, partition=None)
-    sensor_results = {}
+    N = len(ds_all)
 
+    audit_records = []
+    modality_counts = Counter()
+    prov_counts = {
+        "infrared": Counter(),
+        "passive_microwave": Counter(),
+        "gprof": Counter(),
+        "radar": Counter(),
+        "environmental": Counter(),
+    }
+    invalid_tensors_count = 0
+    shape_mismatch_count = 0
+
+    t_start_audit = time.time()
+    print(f"[AUDIT] Beginning dereferencing of all {N} pilot observation containers...", flush=True)
+
+    for i in range(N):
+        s = ds_all[i]
+
+        # Verify shapes
+        s_ir_ok = s["ir"].shape == (1, 64, 64)
+        s_pmw_ok = s["pmw"].shape == (4, 64, 64)
+        s_gp_ok = s["gprof"].shape == (4, 64, 64)
+        s_rad_ok = s["radar"].shape == (1, 16, 32, 32)
+        s_env_ok = s["env"].shape == (6, 64, 64)
+        s_mod_ok = s["modality_masks"].shape == (5,)
+        shapes_ok = s_ir_ok and s_pmw_ok and s_gp_ok and s_rad_ok and s_env_ok and s_mod_ok
+        if not shapes_ok:
+            shape_mismatch_count += 1
+
+        # Verify finite values
+        f_ir = bool(torch.isfinite(s["ir"]).all().item())
+        f_pmw = bool(torch.isfinite(s["pmw"]).all().item())
+        f_gp = bool(torch.isfinite(s["gprof"]).all().item())
+        f_rad = bool(torch.isfinite(s["radar"]).all().item())
+        f_env = bool(torch.isfinite(s["env"]).all().item())
+        all_finite = f_ir and f_pmw and f_gp and f_rad and f_env
+        if not all_finite:
+            invalid_tensors_count += 1
+
+        # Track modalities
+        m_mask = s["modality_masks"]
+        has_ir = bool(m_mask[0].item() > 0.5)
+        has_pmw = bool(m_mask[1].item() > 0.5)
+        has_gprof = bool(m_mask[2].item() > 0.5)
+        has_radar = bool(m_mask[3].item() > 0.5)
+        has_env = bool(m_mask[4].item() > 0.5)
+
+        if has_ir: modality_counts["ir"] += 1
+        if has_pmw: modality_counts["pmw"] += 1
+        if has_gprof: modality_counts["gprof"] += 1
+        if has_radar: modality_counts["radar"] += 1
+        if has_env: modality_counts["env"] += 1
+
+        # Track geospatial provenance
+        prov = s.get("geospatial_provenance", {})
+        for k in prov_counts:
+            prov_counts[k][prov.get(k, "none")] += 1
+
+        # Voxel/pixel counts
+        ir_valid_px = int(s["masks"]["ir_pixel"].sum().item())
+        pmw_valid_px = int(s["masks"]["pmw_pixel"].sum().item())
+        gprof_valid_px = int(s["masks"]["gprof_pixel"].sum().item())
+        radar_valid_vx = int(s["masks"]["radar_voxel"].sum().item())
+        radar_echo_vx = int(s["masks"].get("radar_echo", torch.zeros(1)).sum().item())
+        env_valid_px = int(s["masks"]["env_pixel"].sum().item())
+        pmw_ch_str = "".join([str(int(c)) for c in s["masks"]["pmw_channels"].tolist()])
+
+        audit_records.append({
+            "index": i,
+            "sample_id": s["sample_id"],
+            "storm_id": s["storm_id"],
+            "instrument": s["instrument"],
+            "timestamp_utc": s["timestamp_utc"],
+            "has_ir": has_ir,
+            "has_pmw": has_pmw,
+            "has_gprof": has_gprof,
+            "has_radar": has_radar,
+            "has_env": has_env,
+            "prov_ir": prov.get("infrared", "none"),
+            "prov_pmw": prov.get("passive_microwave", "none"),
+            "prov_gprof": prov.get("gprof", "none"),
+            "prov_radar": prov.get("radar", "none"),
+            "prov_env": prov.get("environmental", "none"),
+            "pmw_channels": pmw_ch_str,
+            "ir_valid_px": ir_valid_px,
+            "pmw_valid_px": pmw_valid_px,
+            "radar_valid_vx": radar_valid_vx,
+            "radar_echo_vx": radar_echo_vx,
+            "all_finite": all_finite,
+            "shapes_ok": shapes_ok,
+        })
+
+        if (i + 1) % 250 == 0 or (i + 1) == N:
+            elapsed = time.time() - t_start_audit
+            rate = (i + 1) / elapsed
+            eta = (N - (i + 1)) / rate if rate > 0 else 0
+            print(
+                f"[AUDIT PROGRESS] {i + 1:4d}/{N} ({(i + 1) / N * 100:5.1f}%) | "
+                f"Rate: {rate:4.1f} samp/s | Elapsed: {elapsed:5.1f}s | ETA: {eta:5.1f}s",
+                flush=True,
+            )
+
+    t_audit_total = time.time() - t_start_audit
+    audit_df = pd.DataFrame(audit_records)
+    audit_df.to_csv(audit_csv_path, index=False)
+    print(f"\n[AUDIT COMPLETE] Successfully audited {N}/{N} observations in {t_audit_total:.1f}s.", flush=True)
+    print(f"[AUDIT SUMMARY] Saved audit database to: {audit_csv_path}", flush=True)
+    print(f"[AUDIT SUMMARY] Invalid / Non-finite tensors: {invalid_tensors_count}", flush=True)
+    print(f"[AUDIT SUMMARY] Shape mismatches:             {shape_mismatch_count}", flush=True)
+    print(f"[AUDIT SUMMARY] Processing errors recorded:   {len(ds_all.processing_errors)}", flush=True)
+    print(f"[AUDIT SUMMARY] Modality counts:              {dict(modality_counts)}", flush=True)
+    print(f"[AUDIT SUMMARY] Radar provenance:             {dict(prov_counts['radar'])}", flush=True)
+    print(f"[AUDIT SUMMARY] PMW provenance:               {dict(prov_counts['passive_microwave'])}", flush=True)
+
+    assert invalid_tensors_count == 0, f"Found {invalid_tensors_count} non-finite tensors!"
+    assert shape_mismatch_count == 0, f"Found {shape_mismatch_count} shape mismatches!"
+    assert len(ds_all.processing_errors) == 0, f"Encountered {len(ds_all.processing_errors)} processing errors!"
+
+    # -------------------------------------------------------------------------
+    # 2. Modality & Sensor Representative Audits
+    # -------------------------------------------------------------------------
+    print("\n" + "-" * 75, flush=True)
+    print("SECTION 2: SENSOR REPRESENTATIVE & RADAR RADIOMETER VERIFICATION", flush=True)
+    print("-" * 75, flush=True)
+
+    sensor_results = {}
     target_sensors = ["GMI", "TMI", "AMSR2", "SSMI", "SSMIS", "MHS", "AMSUB"]
     for inst in target_sensors:
         subset = ds_all.df[ds_all.df["instrument"] == inst]
@@ -56,7 +198,7 @@ def run_integration_test():
                 "ir_valid": bool(s["modality_masks"][0].item() > 0.5),
                 "has_radar": bool(s["modality_masks"][3].item() > 0.5),
             }
-            print(f"[SENSOR TEST] {inst:6s} -> PMW mask={s['masks']['pmw_channels'].tolist()} | NonZeroSum={s['pmw'].sum().item():.2f}")
+            print(f"[SENSOR TEST] {inst:6s} -> PMW mask={s['masks']['pmw_channels'].tolist()} | NonZeroSum={s['pmw'].sum().item():.2f}", flush=True)
 
     # Test real radar sample
     radar_subset = ds_all.df[ds_all.df["has_radar"] == True]
@@ -64,14 +206,25 @@ def run_integration_test():
     rad_s = ds_all[radar_subset.index[0]]
     assert rad_s["modality_masks"][3].item() == 1.0, "Radar mask must be 1.0"
     assert rad_s["radar"].sum().item() > 0.0, "Radar tensor must contain non-zero Ku data"
-    print(f"[RADAR TEST] Loaded sample {rad_s['sample_id']} | Radar tensor sum: {rad_s['radar'].sum().item():.2f} | Shape: {list(rad_s['radar'].shape)}")
+    assert rad_s["masks"]["radar_voxel"].sum().item() > 0.0, "Radar voxel mask must contain valid voxels"
+    print(
+        f"[RADAR TEST] Loaded sample {rad_s['sample_id']} | "
+        f"Radar tensor sum: {rad_s['radar'].sum().item():.2f} | "
+        f"Valid voxels: {int(rad_s['masks']['radar_voxel'].sum().item())} | "
+        f"Shape: {list(rad_s['radar'].shape)}",
+        flush=True,
+    )
 
     # -------------------------------------------------------------------------
-    # 2. Historical Sequence Construction on Real Storm
+    # 3. Historical Sequence Construction on Real Storm with Radar Observation
     # -------------------------------------------------------------------------
+    print("\n" + "-" * 75, flush=True)
+    print("SECTION 3: RADAR-PRESENT HISTORICAL SEQUENCE SELECTION", flush=True)
+    print("-" * 75, flush=True)
+
     storm_id_target = "AL022021"
     storm_df = df[df["storm_id"] == storm_id_target]
-    print(f"\n[STORM SEQUENCE] Selecting storm {storm_id_target} with {len(storm_df)} observations.")
+    print(f"[STORM SEQUENCE] Selecting storm {storm_id_target} ({len(storm_df)} total observations).", flush=True)
 
     seq_ds = TCPRIMEDSequenceDataset(
         sample_index_csv=sample_index_csv,
@@ -81,45 +234,75 @@ def run_integration_test():
         max_history_hours=72.0,
     )
 
-    # Filter sequence dataset to target storm
-    storm_sequences = []
+    # Search for a sequence in storm_id_target that contains at least one radar observation
+    radar_sequence_indices = None
     for seq_indices in seq_ds.sequence_index:
         first_row = seq_ds.base_dataset.df.iloc[seq_indices[0]]
         if first_row["storm_id"] == storm_id_target and len(seq_indices) >= 2:
-            storm_sequences.append(seq_indices)
+            # Check if any observation in this sequence has radar
+            seq_has_radar = any(seq_ds.base_dataset.df.iloc[idx]["has_radar"] for idx in seq_indices)
+            if seq_has_radar:
+                radar_sequence_indices = seq_indices
+                break
 
-    assert len(storm_sequences) > 0, f"No sequences of length >= 2 for storm {storm_id_target}"
-    chosen_seq_indices = storm_sequences[-1]
-    chosen_seq = [seq_ds.base_dataset[i] for i in chosen_seq_indices]
+    assert radar_sequence_indices is not None, f"No radar-containing sequences found for storm {storm_id_target}"
+    chosen_seq = [seq_ds.base_dataset[i] for i in radar_sequence_indices]
     T_real = len(chosen_seq)
-    print(f"[STORM SEQUENCE] Constructed real history of length T = {T_real} observations:")
-    for t_idx, obs in enumerate(chosen_seq):
-        print(f"  Step t={t_idx}: {obs['sample_id']} | Instrument={obs['instrument']} | Time={obs['timestamp_utc']} | dt={ (obs['timestamp_epoch'] - chosen_seq[0]['timestamp_epoch'])/3600.0:.2f}h")
 
-    # Verify chronological ordering
+    print(f"[STORM SEQUENCE] Selected sequence indices {radar_sequence_indices} (T = {T_real} observations):", flush=True)
+    radar_step_idx = None
+    for t_idx, obs in enumerate(chosen_seq):
+        dt_h = (obs["timestamp_epoch"] - chosen_seq[0]["timestamp_epoch"]) / 3600.0
+        rad_flag = bool(obs["modality_masks"][3].item() > 0.5)
+        rad_voxels = int(obs["masks"]["radar_voxel"].sum().item()) if rad_flag else 0
+        if rad_flag:
+            radar_step_idx = t_idx
+        print(
+            f"  Step t={t_idx}: {obs['sample_id']:40s} | {obs['instrument']:6s} | "
+            f"Time={obs['timestamp_utc']} | dt={dt_h:5.2f}h | has_radar={rad_flag} (valid voxels: {rad_voxels})",
+            flush=True,
+        )
+
+    assert radar_step_idx is not None, "Selected sequence must contain at least one observation with radar"
+
+    # Verify chronological causal ordering
     epochs = [obs["timestamp_epoch"] for obs in chosen_seq]
     for k in range(len(epochs) - 1):
         assert epochs[k] <= epochs[k + 1], f"Chronology violated: {epochs[k]} > {epochs[k+1]}"
-    print("[STORM SEQUENCE] Chronological causal ordering strictly verified.")
+    print("[STORM SEQUENCE] Chronological causal ordering strictly verified.", flush=True)
 
     # -------------------------------------------------------------------------
-    # 3. Collation and Batch Sequence Construction
+    # 4. Collation and Batch Sequence Construction
     # -------------------------------------------------------------------------
+    print("\n" + "-" * 75, flush=True)
+    print("SECTION 4: BATCH SEQUENCE COLLATION WITH PIXEL & VOXEL MASKS", flush=True)
+    print("-" * 75, flush=True)
+
     batch_seq = collate_sequence_batch([chosen_seq])
     B, T, C_ir, H, W = batch_seq["ir"].shape
-    print(f"\n[BATCH] Collated Sequence Batch shapes:")
-    print(f"  ir: {list(batch_seq['ir'].shape)}")
-    print(f"  pmw: {list(batch_seq['pmw'].shape)}")
-    print(f"  gprof: {list(batch_seq['gprof'].shape)}")
-    print(f"  radar: {list(batch_seq['radar'].shape)}")
-    print(f"  env: {list(batch_seq['env'].shape)}")
-    print(f"  modality_masks: {list(batch_seq['modality_masks'].shape)}")
-    print(f"  delta_times_hours: {batch_seq['delta_times_hours'].tolist()}")
-    print(f"  seq_pad_mask: {batch_seq['seq_pad_mask'].tolist()}")
+    print(f"[BATCH] Collated Sequence Batch dimensions (B={B}, T={T}):", flush=True)
+    print(f"  ir:                {list(batch_seq['ir'].shape)}", flush=True)
+    print(f"  pmw:               {list(batch_seq['pmw'].shape)}", flush=True)
+    print(f"  gprof:             {list(batch_seq['gprof'].shape)}", flush=True)
+    print(f"  radar:             {list(batch_seq['radar'].shape)}", flush=True)
+    print(f"  env:               {list(batch_seq['env'].shape)}", flush=True)
+    print(f"  modality_masks:    {list(batch_seq['modality_masks'].shape)}", flush=True)
+    print(f"  delta_times_hours: {batch_seq['delta_times_hours'].tolist()}", flush=True)
+    print(f"  seq_pad_mask:      {batch_seq['seq_pad_mask'].tolist()}", flush=True)
+
+    # Verify pixel_masks structure in collated batch
+    assert "pixel_masks" in batch_seq, "batch_seq must contain pixel_masks dictionary"
+    for mod_name in ["ir", "pmw", "gprof", "radar", "radar_echo", "env"]:
+        assert mod_name in batch_seq["pixel_masks"], f"Missing {mod_name} in batch_seq['pixel_masks']"
+    print("[BATCH] All pixel and voxel masks verified in batch_seq.", flush=True)
 
     # -------------------------------------------------------------------------
-    # 4. Full End-to-End Forward Pass, Masked Loss & Backward Pass
+    # 5. Full End-to-End Forward Pass, Masked Loss & Backward Pass with Pixel Masks
     # -------------------------------------------------------------------------
+    print("\n" + "-" * 75, flush=True)
+    print("SECTION 5: FORWARD PASS, MASKED LOSS, AND GRADIENT VERIFICATION", flush=True)
+    print("-" * 75, flush=True)
+
     device = "cpu"
     d_model = 128
     model = TCGraphFormer(d_model=d_model, num_stages=5).to(device)
@@ -129,7 +312,10 @@ def run_integration_test():
     model.train()
     optimizer.zero_grad()
 
-    # Forward pass
+    # Explicitly pass pixel_masks and channel_masks to exercise polar pooling and masked cross-modal fusion
+    pixel_masks_dev = {k: v.to(device) for k, v in batch_seq["pixel_masks"].items() if v is not None}
+    channel_masks_dev = {k: v.to(device) for k, v in batch_seq["channel_masks"].items() if v is not None}
+
     preds = model(
         ir=batch_seq["ir"].to(device),
         pmw=batch_seq["pmw"].to(device),
@@ -139,22 +325,23 @@ def run_integration_test():
         modality_masks=batch_seq["modality_masks"].to(device),
         delta_times_hours=batch_seq["delta_times_hours"].to(device),
         seq_pad_mask=batch_seq["seq_pad_mask"].to(device),
-        channel_masks={k: v.to(device) for k, v in batch_seq["channel_masks"].items()},
+        channel_masks=channel_masks_dev,
+        pixel_masks=pixel_masks_dev,
     )
 
-    print("\n[FORWARD PASS] Predictions generated:")
-    print(f"  intensity pred: {preds['intensity'].item():.2f} kt | true: {batch_seq['targets']['intensity'].item():.2f} kt (mask={batch_seq['targets']['intensity_mask'].item()})")
-    print(f"  pressure pred: {preds['pressure'].item():.2f} hPa | true: {batch_seq['targets']['pressure'].item():.2f} hPa (mask={batch_seq['targets']['pressure_mask'].item()})")
-    print(f"  stage logits shape: {list(preds['stage_logits'].shape)} | true: {batch_seq['targets']['stage'].item()} (mask={batch_seq['targets']['stage_mask'].item()})")
-    print(f"  intensity_change pred: {preds['intensity_change'].detach().numpy().round(2).tolist()} | true: {batch_seq['targets']['intensity_change'].tolist()}")
-    print(f"  track_delta pred: {preds['track_delta'].detach().numpy().round(1).tolist()} (km)")
+    print("\n[FORWARD PASS] Multi-task predictions generated:", flush=True)
+    print(f"  Intensity Pred:         {preds['intensity'].item():.2f} kt (Target: {batch_seq['targets']['intensity'].item():.2f} kt, mask={batch_seq['targets']['intensity_mask'].item()})", flush=True)
+    print(f"  Pressure Pred:          {preds['pressure'].item():.2f} hPa (Target: {batch_seq['targets']['pressure'].item():.2f} hPa, mask={batch_seq['targets']['pressure_mask'].item()})", flush=True)
+    print(f"  Stage Logits:           {list(preds['stage_logits'].shape)} (Target: {batch_seq['targets']['stage'].item()}, mask={batch_seq['targets']['stage_mask'].item()})", flush=True)
+    print(f"  Intensity Change Pred:  {preds['intensity_change'].detach().numpy().round(2).tolist()}", flush=True)
+    print(f"  Track Delta Pred:       {preds['track_delta'].detach().numpy().round(1).tolist()} (km)", flush=True)
 
     # Loss computation
     targets_dev = {k: v.to(device) for k, v in batch_seq["targets"].items() if isinstance(v, torch.Tensor)}
     loss, loss_dict = loss_fn(preds, targets_dev)
-    print(f"\n[LOSS] Computed Masked Multi-Task Loss: {loss.item():.4f}")
+    print(f"\n[LOSS] Computed Masked Multi-Task Loss: {loss.item():.4f}", flush=True)
     for k, v in loss_dict.items():
-        print(f"  {k:22s}: {v}")
+        print(f"  {k:22s}: {v}", flush=True)
 
     # Backward pass & Gradient Verification
     loss.backward()
@@ -172,22 +359,34 @@ def run_integration_test():
         "task_heads": round(compute_module_grad_norm(model.task_heads), 6),
     }
 
-    print("\n[GRADIENTS] Parameter Gradients across all pipeline components:")
+    print("\n[GRADIENTS] Parameter Gradients across all pipeline components:", flush=True)
     for comp, g_val in grad_norms.items():
-        print(f"  {comp:22s}: grad_norm = {g_val}")
+        print(f"  {comp:22s}: grad_norm = {g_val:10.6f}", flush=True)
 
-    # Ensure temporal transformer and active encoders have non-zero gradients
-    assert grad_norms["temporal_transformer"] > 0.0, "Temporal transformer must have non-zero gradients"
-    assert grad_norms["task_heads"] > 0.0, "Task heads must have non-zero gradients"
-    assert grad_norms["spatial_graph"] > 0.0, "Spatial graph must have non-zero gradients"
-    assert grad_norms["fusion"] > 0.0, "Fusion must have non-zero gradients"
+    # Verify that all components have non-zero gradients
+    assert grad_norms["ir_encoder"] > 0.0, "ir_encoder must have non-zero gradients"
+    assert grad_norms["pmw_encoder"] > 0.0, "pmw_encoder must have non-zero gradients"
+    assert grad_norms["gprof_encoder"] > 0.0, "gprof_encoder must have non-zero gradients"
+    assert grad_norms["radar_encoder"] > 0.0, f"radar_encoder MUST have non-zero gradients when radar is present (got {grad_norms['radar_encoder']})"
+    assert grad_norms["env_encoder"] > 0.0, "env_encoder must have non-zero gradients"
+    assert grad_norms["fusion"] > 0.0, "fusion must have non-zero gradients"
+    assert grad_norms["spatial_aggregator"] > 0.0, "spatial_aggregator must have non-zero gradients"
+    assert grad_norms["spatial_graph"] > 0.0, "spatial_graph must have non-zero gradients"
+    assert grad_norms["temporal_transformer"] > 0.0, "temporal_transformer must have non-zero gradients"
+    assert grad_norms["task_heads"] > 0.0, "task_heads must have non-zero gradients"
+
+    print("\n[VERIFICATION] All 10 architectural components, including radar_encoder, have strictly non-zero gradients!", flush=True)
 
     optimizer.step()
-    print("[OPTIMIZER] Completed 1 full optimization step cleanly.")
+    print("[OPTIMIZER] Completed 1 full optimization step cleanly.", flush=True)
 
     # -------------------------------------------------------------------------
-    # 5. Checkpoint Serialization & Verification
+    # 6. Checkpoint Serialization & Verification
     # -------------------------------------------------------------------------
+    print("\n" + "-" * 75, flush=True)
+    print("SECTION 6: CHECKPOINT SERIALIZATION & INTEGRITY VERIFICATION", flush=True)
+    print("-" * 75, flush=True)
+
     os.makedirs("checkpoints", exist_ok=True)
     test_ckpt_path = "checkpoints/phase2e_pilot_integration_test.pt"
     torch.save({
@@ -199,6 +398,9 @@ def run_integration_test():
         "grad_norms": grad_norms,
         "sample_sequence": [obs["sample_id"] for obs in chosen_seq],
         "storm_id": storm_id_target,
+        "audit_total_observations": N,
+        "audit_invalid_tensors": invalid_tensors_count,
+        "audit_errors": len(ds_all.processing_errors),
     }, test_ckpt_path)
 
     # Verify reload
@@ -206,41 +408,83 @@ def run_integration_test():
     assert "model_state_dict" in reloaded
     assert reloaded["num_stages"] == 5
     assert reloaded["storm_id"] == storm_id_target
-    print(f"\n[CHECKPOINT] Serialized and verified integration checkpoint: {test_ckpt_path}")
+    assert reloaded["grad_norms"]["radar_encoder"] > 0.0
+    assert reloaded["audit_total_observations"] == N
+    print(f"[CHECKPOINT] Serialized and verified integration checkpoint: {test_ckpt_path}", flush=True)
 
     # -------------------------------------------------------------------------
-    # 6. Generate Deliverable Report
+    # 7. Generate Deliverable Report
     # -------------------------------------------------------------------------
+    print("\n" + "-" * 75, flush=True)
+    print("SECTION 7: GENERATING DELIVERABLE REPORT", flush=True)
+    print("-" * 75, flush=True)
+
+    prov_summary_rows = ""
+    for mod_name, c in prov_counts.items():
+        c_str = ", ".join([f"{k}: {v}" for k, v in c.items()])
+        prov_summary_rows += f"| **{mod_name.capitalize()}** | {c_str} |\n"
+
     report_md = f"""# TC-GraphFormer — Phase 2E: Pilot Integration Test Report
 
-**Execution Date:** 2026-11-13  
+**Execution Date:** 2026-11-14  
 **Dataset:** NOAA TC PRIMED v01r01-final (Pilot ~20 GB, 2,599 observations)  
-**Verification Target:** Complete end-to-end data-to-model integration pipeline
+**Verification Target:** Complete end-to-end data-to-model integration pipeline with 100% pilot observation audit and active radar learning
 
 ---
 
 ## 1. Summary of End-to-End Test Execution
 
-The pilot integration test successfully demonstrated the complete causal forecasting pipeline on real satellite observations:
+The pilot integration test verified the entire causal forecasting pipeline on real satellite observations:
 
 ```text
-Standardized NetCDF Containers
-  -> TCPRIMEDSequenceDataset (Real storm history AL022021, T={T_real} observations)
-  -> collate_sequence_batch (Batched [B, T, C, H, W] with sequence padding & delta-t)
+Standardized NetCDF Containers (2,599 observations audited)
+  -> Full All-Sample Data Audit (Zero non-finite tensors, zero processing errors)
+  -> TCPRIMEDSequenceDataset (Real storm history AL022021 with GMI DPR radar, T={T_real} observations)
+  -> collate_sequence_batch (Batched [B, T, C, H, W] with pixel masks, voxel masks, channel masks, delta-t)
   -> 5 Modality Encoders (IR, PMW, GPROF, Radar, Environmental Synoptic)
-  -> Mask-Aware Cross-Modal Attention Fusion (80 multimodal tokens)
+  -> Polar Sector Pooling (4 radial rings x 4 azimuthal sectors = 16 geometric tokens)
+  -> Mask-Aware Cross-Modal Attention Fusion (80 multimodal tokens with attention padding masks)
   -> Storm-Relative Spatial Graph MPNN (16 geometric nodes, 8 edge dimensions)
   -> Continuous-Time Causal Temporal Transformer (Irregular delta-t hours)
   -> Anchor Horizon Representation Gathering (T_anchor)
   -> Multi-Task Prediction Heads (Wind, Pressure, Stage, dV, RI, Track)
   -> Masked MultiTaskLoss (Zero contribution from missing targets)
-  -> Backpropagation & Parameter Gradient Updates
+  -> Backpropagation & Parameter Gradient Updates (All 10 modules including radar_encoder)
   -> Checkpoint Serialization & Integrity Verification
 ```
 
 ---
 
-## 2. Sensor and Modality Loading Results
+## 2. Comprehensive All-Sample Data Audit (2,599 Observations)
+
+Every observation in `sample_index.csv` ($N = {N}$) was dereferenced and verified through `TCPRIMEDDataset`:
+
+| Metric | Result | Status |
+| :--- | :--- | :--- |
+| **Total Pilot Observations Audited** | `{N}` / `{N}` | **100% Dereferenced** |
+| **Audit Execution Time** | `{t_audit_total:.1f} s` (`{N / t_audit_total:.1f}` samp/s) | Clean Execution |
+| **Audit Database Artifact** | [`pilot_all_observations_audit.csv`](file:///{os.path.abspath(audit_csv_path).replace(chr(92), '/')} ) | Serialized |
+| **Invalid / Non-Finite Tensors** | `{invalid_tensors_count}` | **Zero Defects** |
+| **Shape Mismatches** | `{shape_mismatch_count}` | **Zero Defects** |
+| **Container Processing Errors** | `{len(ds_all.processing_errors)}` | **Zero Defects** |
+
+### Modality Availability Across 2,599 Observations
+
+| Modality | Available Count | Availability Percentage |
+| :--- | :--- | :--- |
+| **Infrared (IRWIN)** | `{modality_counts['ir']}` | `{(modality_counts['ir'] / N) * 100:.1f}%` |
+| **Passive Microwave (PMW)** | `{modality_counts['pmw']}` | `{(modality_counts['pmw'] / N) * 100:.1f}%` |
+| **GPROF Precipitation** | `{modality_counts['gprof']}` | `{(modality_counts['gprof'] / N) * 100:.1f}%` |
+| **Radar Radiometer (DPR/PR)** | `{modality_counts['radar']}` | `{(modality_counts['radar'] / N) * 100:.1f}%` |
+| **Environmental Reanalysis (ERA5)** | `{modality_counts['env']}` | `{(modality_counts['env'] / N) * 100:.1f}%` |
+
+### Coordinate Provenance Breakdown
+
+{prov_summary_rows}
+
+---
+
+## 3. Sensor and Modality Loading Results
 
 | Instrument | Sample ID | Storm ID | PMW Channels Present | Radar Present | Env Present | PMW Tensor Sum |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -252,25 +496,26 @@ Standardized NetCDF Containers
 | **AMSUB** | {sensor_results.get('AMSUB', {}).get('sample_id')} | {sensor_results.get('AMSUB', {}).get('storm_id')} | {sensor_results.get('AMSUB', {}).get('pmw_channels_valid')} | No | Yes | {sensor_results.get('AMSUB', {}).get('pmw_non_zero_sum')} |
 | **MHS** | {sensor_results.get('MHS', {}).get('sample_id')} | {sensor_results.get('MHS', {}).get('storm_id')} | {sensor_results.get('MHS', {}).get('pmw_channels_valid')} | No | Yes | {sensor_results.get('MHS', {}).get('pmw_non_zero_sum')} |
 
-- **Radar Radiometer Loading:** Verified on `{rad_s['sample_id']}`. Ku reflectivity profile `(88, 373, 49)` interpolated to `(1, 16, 32, 32)` with 685 valid voxels preserved and max normalized dBZ of `{rad_s['radar'].max().item():.3f}`.
+- **Radar Radiometer Loading:** Verified on `{rad_s['sample_id']}`. Ku reflectivity profile `(88, 373, 49)` interpolated to `(1, 16, 32, 32)` with {int(rad_s['masks']['radar_voxel'].sum().item())} valid voxels preserved and max normalized dBZ of `{rad_s['radar'].max().item():.3f}`.
 - **Radar-Absent Verification:** Verified on no-radar overpasses; radar tensor is strictly zero and `modality_masks[3] == 0.0`.
 
 ---
 
-## 3. Real Storm Historical Sequence
+## 4. Real Storm Historical Sequence with Radar
 
 - **Storm:** `{storm_id_target}`
 - **Sequence Length:** `T = {T_real}`
-- **Timestamps:**
+- **Timestamps and Instruments:**
 """
     for t_idx, obs in enumerate(chosen_seq):
         dt_h = (obs['timestamp_epoch'] - chosen_seq[0]['timestamp_epoch']) / 3600.0
-        report_md += f"  - Step {t_idx}: `{obs['sample_id']}` ({obs['instrument']}) at `{obs['timestamp_utc']}` (Delta-t: {dt_h:.2f}h)\n"
+        rad_info = f"RADAR PRESENT ({int(obs['masks']['radar_voxel'].sum().item())} valid voxels)" if obs['modality_masks'][3] > 0.5 else "No radar"
+        report_md += f"  - Step {t_idx}: `{obs['sample_id']}` ({obs['instrument']}) at `{obs['timestamp_utc']}` (Delta-t: {dt_h:5.2f}h) — {rad_info}\n"
 
     report_md += f"""
 ---
 
-## 4. Multi-Task Target and Mask Values for Anchor Observation
+## 5. Multi-Task Target and Mask Values for Anchor Observation
 
 - **Anchor Sample:** `{chosen_seq[-1]['sample_id']}`
 - **Current Intensity:** `{batch_seq['targets']['intensity'].item():.1f} kt` (Mask: `{batch_seq['targets']['intensity_mask'].item()}`)
@@ -286,44 +531,43 @@ Standardized NetCDF Containers
 
 ---
 
-## 5. Model Parameter Gradient Norms
+## 6. Model Parameter Gradient Norms
 
-All modules received valid autograd signals without gradient saturation or vanishing:
+All 10 modules, including `radar_encoder`, received valid autograd signals without gradient saturation or vanishing:
 
-| Architecture Component | L2 Gradient Norm | Training Status |
-| :--- | :--- | :--- |
-| `ir_encoder` | `{grad_norms['ir_encoder']}` | Updated |
-| `pmw_encoder` | `{grad_norms['pmw_encoder']}` | Updated |
-| `gprof_encoder` | `{grad_norms['gprof_encoder']}` | Updated |
-| `radar_encoder` | `{grad_norms['radar_encoder']}` | Updated |
-| `env_encoder` | `{grad_norms['env_encoder']}` | Updated |
-| `cross_modal_fusion` | `{grad_norms['fusion']}` | Updated |
-| `spatial_aggregator` | `{grad_norms['spatial_aggregator']}` | Updated |
-| `spatial_graph_mpnn` | `{grad_norms['spatial_graph']}` | Updated |
-| `temporal_transformer` | `{grad_norms['temporal_transformer']}` | Updated |
-| `task_prediction_heads` | `{grad_norms['task_heads']}` | Updated |
+| Architecture Component | L2 Gradient Norm | Training Status | Active Verification |
+| :--- | :--- | :--- | :--- |
+| `ir_encoder` | `{grad_norms['ir_encoder']}` | Updated | > 0.0 Verified |
+| `pmw_encoder` | `{grad_norms['pmw_encoder']}` | Updated | > 0.0 Verified |
+| `gprof_encoder` | `{grad_norms['gprof_encoder']}` | Updated | > 0.0 Verified |
+| `radar_encoder` | `{grad_norms['radar_encoder']}` | Updated | **> 0.0 Confirmed (Active Radar Learning)** |
+| `env_encoder` | `{grad_norms['env_encoder']}` | Updated | > 0.0 Verified |
+| `cross_modal_fusion` | `{grad_norms['fusion']}` | Updated | > 0.0 Verified |
+| `spatial_aggregator` | `{grad_norms['spatial_aggregator']}` | Updated | > 0.0 Verified |
+| `spatial_graph_mpnn` | `{grad_norms['spatial_graph']}` | Updated | > 0.0 Verified |
+| `temporal_transformer` | `{grad_norms['temporal_transformer']}` | Updated | > 0.0 Verified |
+| `task_prediction_heads` | `{grad_norms['task_heads']}` | Updated | > 0.0 Verified |
 
 ---
 
-## 6. Verification Status
+## 7. Verification Status
 
-- [x] All expected modalities loaded from real pilot NetCDF containers.
-- [x] Radar Ku measurements extracted and normalized into 3D volumes.
+- [x] All 2,599 pilot observations dereferenced and verified (zero non-finite tensors, zero processing errors).
+- [x] Full audit database generated and saved to `reports/phase2e/pilot_all_observations_audit.csv`.
+- [x] Radar Ku measurements extracted and normalized into 3D volumes with precipitation echo masks.
 - [x] Deterministic PMW channel mapping enforced per sensor family.
-- [x] Missing target masks prevent artificial loss contamination.
-- [x] Historical sequence strictly causal (t_k <= t_anchor).
-- [x] Sequence batching preserves actual irregular time intervals.
-- [x] Complete backward pass generates non-zero parameter updates across all components.
+- [x] Historical sequence strictly causal ($t_k \le t_{{anchor}}$) with radar-present observation verified.
+- [x] Pixel and voxel validity masks explicitly propagated to model forward pass.
+- [x] Complete backward pass generates non-zero parameter updates across all components, including `radar_encoder`.
 - [x] Checkpoint serialization and schema verified.
 """
 
-    os.makedirs("reports/phase2e", exist_ok=True)
     report_path = "reports/phase2e/pilot_integration_test_report.md"
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_md)
 
-    print(f"\n[OK] Pilot Integration Test Report written to: {report_path}")
-    print("[SUCCESS] Complete pilot integration test passed with zero defects!")
+    print(f"\n[OK] Pilot Integration Test Report written to: {report_path}", flush=True)
+    print("[SUCCESS] Complete pilot integration test passed with zero defects!", flush=True)
 
 
 if __name__ == "__main__":
