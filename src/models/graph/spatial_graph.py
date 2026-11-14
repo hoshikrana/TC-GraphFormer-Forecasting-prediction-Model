@@ -96,9 +96,12 @@ class PolarSectorPooling(nn.Module):
         if key in self._cached_masks:
             return self._cached_masks[key]
 
-        # Storm-centered coordinates: Y is North positive, X is East positive
-        y = torch.linspace(self.domain_radius_km, -self.domain_radius_km, H, device=device)
-        x = torch.linspace(-self.domain_radius_km, self.domain_radius_km, W, device=device)
+        # Storm-centered cell-centered coordinates: Y is North positive, X is East positive
+        # For H=64, W=64, domain_radius_km=500.0, cell width is exactly 15.625 km (not linspace boundary spacing 15.873 km)
+        dy = (2.0 * self.domain_radius_km) / H
+        dx = (2.0 * self.domain_radius_km) / W
+        y = self.domain_radius_km - (torch.arange(H, device=device, dtype=torch.float32) + 0.5) * dy
+        x = -self.domain_radius_km + (torch.arange(W, device=device, dtype=torch.float32) + 0.5) * dx
         yy, xx = torch.meshgrid(y, x, indexing="ij")
         r = torch.sqrt(xx**2 + yy**2)
         theta = (torch.atan2(yy, xx) + 2.0 * math.pi) % (2.0 * math.pi)
@@ -145,14 +148,26 @@ class PolarSectorPooling(nn.Module):
         if pixel_mask is not None:
             if pixel_mask.dim() == 4 and pixel_mask.size(1) > 1:
                 pm = (pixel_mask.mean(dim=1, keepdim=True) > 0.0).float()
+            elif pixel_mask.dim() == 5:
+                pm = (pixel_mask.mean(dim=(1, 2), keepdim=True) > 0.0).float().squeeze(2)
             else:
                 pm = pixel_mask.float()
-            if pm.shape[-2:] != (H, W):
-                pm = (F.interpolate(pm, size=(H, W), mode="nearest") > 0.0).float()
+
+            # Sector-level valid pixel coverage at native resolution before any downsampling
+            H_orig, W_orig = pm.shape[-2:]
+            if (H_orig, W_orig) != (H, W):
+                orig_reg_masks = self._get_region_masks(H_orig, W_orig, x.device)
+                native_cov = (orig_reg_masks.unsqueeze(0).unsqueeze(2) * pm.unsqueeze(1)).sum(dim=(-2, -1)) > 0.0
+                pm_down = (F.interpolate(pm, size=(H, W), mode="nearest") > 0.0).float()
+            else:
+                native_cov = None
+                pm_down = pm
+
             # Enforce pixel-level invariance
-            x = x * pm
-            weights = region_masks.unsqueeze(0).unsqueeze(2) * pm.unsqueeze(1)  # (B, 16, 1, H, W)
+            x = x * pm_down
+            weights = region_masks.unsqueeze(0).unsqueeze(2) * pm_down.unsqueeze(1)  # (B, 16, 1, H, W)
         else:
+            native_cov = None
             weights = region_masks.unsqueeze(0).unsqueeze(2).expand(B, 16, 1, H, W)
 
         weight_sum = weights.sum(dim=(-2, -1))  # (B, 16, 1)
@@ -160,6 +175,8 @@ class PolarSectorPooling(nn.Module):
         token_features = weighted_x.sum(dim=(-2, -1)) / (weight_sum + 1e-6)
 
         token_validity = (weight_sum > 0.0).float()
+        if native_cov is not None:
+            token_validity = token_validity * native_cov.float()
         token_features = token_features * token_validity  # (B, 16, C)
 
         tokens = self.proj(token_features) * token_validity  # (B, 16, d_model)

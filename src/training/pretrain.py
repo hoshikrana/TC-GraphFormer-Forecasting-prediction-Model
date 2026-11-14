@@ -82,7 +82,7 @@ def run_pretraining(
     model = TCGraphFormer(d_model=d_model).to(device)
     recon_head = MaskedFeatureReconstructionHead(d_model=d_model).to(device)
 
-    params = (
+    raw_params = (
         list(model.ir_encoder.parameters()) +
         list(model.pmw_encoder.parameters()) +
         list(model.gprof_encoder.parameters()) +
@@ -91,6 +91,8 @@ def run_pretraining(
         list(model.fusion.parameters()) +
         list(recon_head.parameters())
     )
+    seen = set()
+    params = [p for p in raw_params if not (id(p) in seen or seen.add(id(p)))]
 
     optimizer = torch.optim.AdamW(params, lr=lr, weight_decay=1e-4)
 
@@ -148,6 +150,9 @@ def run_pretraining(
             valid_tok_mask = torch.cat([
                 v_ir_tgt, v_pmw_tgt, v_gp_tgt, v_rad_tgt, v_env_tgt
             ], dim=1).unsqueeze(-1)  # (B, 80, 1)
+
+            # Gate target representations by valid_tok_mask: unobserved tokens must be 0
+            all_targets = all_targets * valid_tok_mask
 
             # 3. Generate random mask strictly over valid tokens
             mask_to_recon = torch.zeros((B, 80, 1), dtype=torch.float32, device=device)
@@ -233,17 +238,17 @@ def run_pretraining(
             s_rad, v_s_rad = model.radar_encoder(rad_stud, m_rad, voxel_mask=pix_rad_stud, return_validity=True)
             s_env, v_s_env = model.env_encoder(env_stud, m_env, channel_mask=ch_masks.get("env"), pixel_mask=pix_env_stud, return_validity=True)
 
-            # Cross-modal fusion with per-token validity masks and reconstruction head
+            # Cross-modal fusion with token validity from observation (unobserved tokens remain padded)
             fused = model.fusion(
                 [s_ir, s_pmw, s_gp, s_rad, s_env],
                 modality_masks=masks,
-                token_masks=[v_s_ir, v_s_pmw, v_s_gp, v_s_rad, v_s_env],
+                token_masks=[v_ir_tgt, v_pmw_tgt, v_gp_tgt, v_rad_tgt, v_env_tgt],
             )
             recon = recon_head(fused)
 
             # 6. Loss computed ONLY on masked valid tokens
             diff = F.mse_loss(recon, all_targets, reduction="none")  # (B, 80, d_model)
-            denom = mask_to_recon.sum().clamp(min=1.0)
+            denom = (mask_to_recon.sum() * model.d_model).clamp(min=1.0)
             loss = (diff * mask_to_recon).sum() / denom
 
             optimizer.zero_grad()

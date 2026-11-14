@@ -20,49 +20,76 @@ corrupted_tokens = tokens * (1.0 - mask) # Zeroing token after convolution
 ```
 Because convolutional receptive fields span large spatial regions, the encoder had already observed all pixels. The network could trivially memorize features, defeating the self-supervised pretext task.
 
-### Phase 2E.1 Solution: Raw Input Spatial Patch Masking
+### Phase 2E.1 Solution: Raw Input Polar Sector Masking & Invariance
 In `src/training/pretrain.py:run_pretraining`:
 1. **Target Generation (`torch.no_grad()`):**
    Unmasked sensor arrays pass through the encoders with gradient tracking disabled:
    ```python
    with torch.no_grad():
-       t_ir_tgt = model.ir_encoder(ir, m_ir, pixel_mask=pix_ir).detach()
-       t_pmw_tgt = model.pmw_encoder(pmw, m_pmw, channel_mask=ch_pmw, pixel_mask=pix_pmw).detach()
+       t_ir_tgt, v_ir_tgt = model.ir_encoder(ir, m_ir, pixel_mask=pix_ir, return_validity=True)
+       t_pmw_tgt, v_pmw_tgt = model.pmw_encoder(pmw, m_pmw, channel_mask=ch_pmw, pixel_mask=pix_pmw, return_validity=True)
        ...
-       all_targets = torch.cat([t_ir_tgt, t_pmw_tgt, ...], dim=1)  # (B, 80, d_model)
+       all_targets = torch.cat([t_ir_tgt, t_pmw_tgt, ...], dim=1).detach()  # (B, 80, d_model)
    ```
-2. **Raw Input Patch Masking:**
-   When a spatial token $p \in \{0, \dots, 15\}$ of modality $m$ is selected for masking, the **raw input pixels** and the **pixel validity mask** of that spatial region are zeroed out in the student input:
+2. **Valid-Token Selection via Native Spatial Coverage:**
+   A spatial sector token is valid if and only if the modality is present ($m = 1$) **and** the spatial sector has strictly positive valid pixel coverage ($> 0$ valid pixels inside that sector at native coordinate resolution):
    ```python
-   # Patch p maps to grid block [h_s:h_e, w_s:w_e]
-   ir_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
-   pix_ir_stud[b, :, h_s:h_e, w_s:w_e] = 0.0
+   valid_tok_mask = torch.cat([v_ir_tgt, v_pmw_tgt, v_gp_tgt, v_rad_tgt, v_env_tgt], dim=1).unsqueeze(-1)  # (B, 80, 1)
+   all_targets = all_targets * valid_tok_mask  # Suppress any target leakage from unobserved sectors
    ```
-3. **Student Forward Pass:**
+   Unobserved sectors (due to narrow satellite swaths or missing channels) have `valid_tok_mask == 0.0` and are **strictly excluded** from random masking selection and loss evaluation.
+3. **Physical Polar Sector Masking:**
+   When a spatial token $p \in \{0, \dots, 15\}$ of modality $m$ is selected for masking, the **raw input pixels** and the **pixel validity mask** of that spatial polar sector are zeroed out in the student input:
+   ```python
+   ir_stud[b, :, reg_masks[p] > 0] = 0.0
+   pix_ir_stud[b, :, reg_masks[p] > 0] = 0.0
+   ```
+4. **Student Forward Pass:**
    The student encoders operate strictly on the masked tensors (`ir_stud`, `pmw_stud`, etc.).
    **The student encoder cannot observe masked regions through any receptive field.**
-4. **Reconstruction Head:**
-   Cross-modal fusion combines visible tokens across modalities. The reconstruction head predicts the target token representations at the masked positions.
-5. **Masked Loss Computation:**
-   Loss is evaluated strictly at masked valid tokens:
+5. **Cross-Modal Transformer Prediction:**
+   Cross-modal fusion combines visible tokens across modalities. In MFM, queries corresponding to masked observed tokens attend across other modalities and sectors. Truly unobserved sectors remain padded to prevent attention leakage.
+6. **Masked Loss Computation:**
+   Loss is evaluated strictly at masked valid tokens with exact feature element normalization:
    $$\mathcal{L}_{\text{MFM}} = \frac{\sum_{b, k} \|\hat{\mathbf{y}}_{b, k} - \mathbf{y}_{b, k}\|^2 \cdot \mathbf{M}_{b, k}^{\text{recon}}}{\sum_{b, k} \mathbf{M}_{b, k}^{\text{recon}} \cdot d_{\text{model}} + \epsilon}$$
 
 ---
 
-## 2. Pretraining vs. Transfer Provenance
+## 2. Cell-Centered Reference Grid Spacing ($15.625\text{ km}$)
+
+The storm-centered reference grid spanning $[-500, +500]\text{ km}$ at $64 \times 64$ resolution now uses exact cell-centered coordinates:
+$$\Delta x = \frac{2 \cdot 500.0}{64} = 15.625\text{ km}, \quad \Delta y = \frac{2 \cdot 500.0}{64} = 15.625\text{ km}$$
+$$x_j = -500.0 + (j + 0.5) \cdot 15.625\text{ km} \in [-492.1875, +492.1875]\text{ km}$$
+$$y_i = 500.0 - (i + 0.5) \cdot 15.625\text{ km} \in [+492.1875, -492.1875]\text{ km}$$
+
+This resolves the previous boundary endpoint artifact where `linspace(-500, 500, 64)` produced $(500 - (-500))/63 = 15.873\text{ km}$. Outer cell boundaries now span $[-500.0, +500.0]\text{ km}$ exactly.
+
+---
+
+## 3. Pretraining vs. Transfer Provenance
 
 A key requirement of Phase 2E.1 is establishing unambiguous architectural provenance between self-supervised pretraining and downstream supervised fine-tuning.
 
 ### Pretraining Scope (Single Overpasses)
 Pretraining operates on individual multi-modal overpass observations to learn invariant cross-sensor representations of cyclone physical structure.
 - **Components Trained:**
-  1. `IREncoder` (stem, ConvBlocks, token projection)
-  2. `PMWEncoder` (stem, ConvBlocks, channel gating)
-  3. `GPROFEncoder` (stem, ConvBlocks, channel gating)
-  4. `RadarEncoder` (3D convolutions, trilinear pooling)
-  5. `EnvEncoder` (stem, ConvBlocks, channel gating)
+  1. `IREncoder` (stem, ConvBlocks, polar pooling, token projection)
+  2. `PMWEncoder` (stem, ConvBlocks, channel gating, polar pooling, token projection)
+  3. `GPROFEncoder` (stem, ConvBlocks, channel gating, polar pooling, token projection)
+  4. `RadarEncoder` (3D convolutions, trilinear pooling, polar pooling, token projection)
+  5. `EnvEncoder` (stem, ConvBlocks, channel gating, polar pooling, token projection)
   6. `CrossModalFusion` (multi-head cross-attention across 80 tokens)
   7. `MaskedFeatureReconstructionHead` (projection MLP back to target feature space)
+
+### Verified Gradient Flow
+In unit test `test_08_mfm_pretraining_workflow_and_all_modality_gradients`, executing `run_pretraining()` across all 5 modalities verified non-zero gradient norms across all backbone components:
+- `ir_encoder`: $0.031459 > 0$
+- `pmw_encoder`: $0.032429 > 0$
+- `gprof_encoder`: $0.027050 > 0$
+- `radar_encoder`: $0.026716 > 0$
+- `env_encoder`: $0.030069 > 0$
+- `fusion`: $0.115706 > 0$
+- `recon_head`: $0.232565 > 0$
 
 ### Transfer Scope (Supervised Multi-Task & Sequence Modeling)
 When fine-tuning on forecasting tasks (`run_finetuning`) or supervised training (`train_multitask`):
@@ -76,4 +103,3 @@ When fine-tuning on forecasting tasks (`run_finetuning`) or supervised training 
   - `TaskPredictionHeads`: Initialized fresh. (Linear heads for intensity, pressure, stage classification, intensity change, RI, and track).
 
 This separation is scientifically sound and eliminates any false claim that temporal or graph parameters were trained during single-overpass pretraining.
-

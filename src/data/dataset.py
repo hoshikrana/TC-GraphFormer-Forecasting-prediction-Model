@@ -299,8 +299,11 @@ class TCPRIMEDDataset(Dataset):
                 vals = arr[valid_pts].flatten()
 
                 tree = cKDTree(coords)
-                gx = np.linspace(-domain_km, domain_km, target_shape[1])
-                gy = np.linspace(domain_km, -domain_km, target_shape[0])  # North positive
+                # Cell-centered target coordinates for exact dx = 2*domain_km / W (e.g. 1000 / 64 = 15.625 km)
+                dx = (2.0 * domain_km) / target_shape[1]
+                dy = (2.0 * domain_km) / target_shape[0]
+                gx = -domain_km + (np.arange(target_shape[1], dtype=np.float32) + 0.5) * dx
+                gy = domain_km - (np.arange(target_shape[0], dtype=np.float32) + 0.5) * dy  # North positive
                 grid_x, grid_y = np.meshgrid(gx, gy)
                 query_pts = np.column_stack([grid_x.flatten(), grid_y.flatten()])
 
@@ -473,8 +476,11 @@ class TCPRIMEDDataset(Dataset):
                     t_echo, size=(target_depth, n_scan, n_beam), mode="nearest"
                 ).squeeze(0).squeeze(0)  # (target_depth, n_scan, n_beam)
 
-                gx = np.linspace(-domain_km, domain_km, W)
-                gy = np.linspace(domain_km, -domain_km, H)  # North positive
+                # Cell-centered target coordinates for exact spacing (e.g. 1000 / 32 = 31.25 km)
+                dx = (2.0 * domain_km) / W
+                dy = (2.0 * domain_km) / H
+                gx = -domain_km + (np.arange(W, dtype=np.float32) + 0.5) * dx
+                gy = domain_km - (np.arange(H, dtype=np.float32) + 0.5) * dy  # North positive
                 grid_x, grid_y = np.meshgrid(gx, gy)
                 query_pts = np.column_stack([grid_x.flatten(), grid_y.flatten()])
 

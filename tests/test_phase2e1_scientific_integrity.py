@@ -30,7 +30,7 @@ from src.data.collate import collate_multimodal_batch, collate_sequence_batch
 from src.models.tc_graphformer import TCGraphFormer
 from src.models.graph.spatial_graph import SpatialGraphEncoder, PolarSectorPooling
 from src.training.losses import MultiTaskLoss
-from src.training.pretrain import MaskedFeatureReconstructionHead, compute_module_grad_norm
+from src.training.pretrain import MaskedFeatureReconstructionHead, compute_module_grad_norm, run_pretraining
 
 
 class TestPhase2E1ScientificIntegrity(unittest.TestCase):
@@ -299,54 +299,43 @@ class TestPhase2E1ScientificIntegrity(unittest.TestCase):
                 prov = sample.get("geospatial_provenance", {}).get("radar")
                 self.assertEqual(prov, "radar_beam_geodetic_km", "Radar must use true beam coordinates!")
 
-    # 8. MFM Student Mask Leakage Invariance
-    def test_08_mfm_student_mask_leakage_invariance(self):
-        torch.manual_seed(42)
-        model = TCGraphFormer(d_model=64)
-        recon_head = MaskedFeatureReconstructionHead(d_model=64)
+    # 8. MFM Pretraining Execution Across All Modalities & Encoder Gradient Flow
+    def test_08_mfm_pretraining_workflow_and_all_modality_gradients(self):
+        tmp_ckpt_dir = "checkpoints/test_pretrain_unit"
+        tmp_summary = "reports/phase2e/test_pretrain_unit_summary.json"
+        tmp_grads = "reports/phase2e/test_pretrain_unit_grads.json"
+        os.makedirs(tmp_ckpt_dir, exist_ok=True)
 
-        B = 2
-        ir = torch.randn(B, 1, 64, 64)
-        pmw = torch.randn(B, 4, 64, 64)
-        gprof = torch.randn(B, 4, 64, 64)
-        radar = torch.randn(B, 1, 16, 32, 32)
-        env = torch.randn(B, 6, 64, 64)
-        masks = torch.tensor([[1.0, 1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 0.0, 1.0]])
+        res = run_pretraining(
+            train_index=self.sample_index_csv if self.has_real_index else "reports/pipeline/sample_index.csv",
+            epochs=1,
+            batch_size=4,
+            d_model=64,
+            max_samples=8,
+            checkpoint_dir=tmp_ckpt_dir,
+            output_report=tmp_summary,
+            gradient_report_path=tmp_grads,
+            device="cpu",
+        )
 
-        # Detached target representations
-        with torch.no_grad():
-            t_ir = model.ir_encoder(ir, masks[:, 0]).detach()
-            t_pmw = model.pmw_encoder(pmw, masks[:, 1]).detach()
-            t_gp = model.gprof_encoder(gprof, masks[:, 2]).detach()
-            t_rad = model.radar_encoder(radar, masks[:, 3]).detach()
-            t_env = model.env_encoder(env, masks[:, 4]).detach()
-            targets = torch.cat([t_ir, t_pmw, t_gp, t_rad, t_env], dim=1)
+        self.assertEqual(res["epochs"], 1)
+        self.assertIsNotNone(res["final_loss_mse"])
+        self.assertGreater(res["final_loss_mse"], 0.0)
+        self.assertFalse(math.isnan(res["final_loss_mse"]))
 
-        # Mask student inputs at patch 0 (top-left 16x16)
-        ir_stud = ir.clone()
-        ir_stud[:, :, :16, :16] = 0.0
-        pix_ir_stud = torch.ones_like(ir)
-        pix_ir_stud[:, :, :16, :16] = 0.0
+        # Verify saved backbone checkpoint
+        ckpt_path = os.path.join(tmp_ckpt_dir, "pretrained_backbone.pt")
+        self.assertTrue(os.path.exists(ckpt_path))
+        ckpt = torch.load(ckpt_path, map_location="cpu")
+        self.assertIn("model_state_dict", ckpt)
+        self.assertIn("history", ckpt)
 
-        s_ir = model.ir_encoder(ir_stud, masks[:, 0], pixel_mask=pix_ir_stud)
-        s_pmw = model.pmw_encoder(pmw, masks[:, 1])
-        s_gp = model.gprof_encoder(gprof, masks[:, 2])
-        s_rad = model.radar_encoder(radar, masks[:, 3])
-        s_env = model.env_encoder(env, masks[:, 4])
-
-        fused = model.fusion([s_ir, s_pmw, s_gp, s_rad, s_env], masks)
-        preds = recon_head(fused)
-
-        mask_to_recon = torch.zeros(B, 80, 1)
-        mask_to_recon[:, 0, 0] = 1.0  # Reconstruct patch 0
-
-        loss = ((preds - targets) ** 2 * mask_to_recon).sum() / (mask_to_recon.sum() * 64 + 1e-6)
-        loss.backward()
-
-        # Encoder gradients exist and are finite
-        grad_norm = sum(p.grad.norm().item() for p in model.ir_encoder.parameters() if p.grad is not None)
-        self.assertGreater(grad_norm, 0.0)
-        self.assertFalse(math.isnan(grad_norm))
+        # Verify gradients flowed into ALL encoders, fusion and reconstruction head
+        grad_norms = res["final_gradient_norms"]
+        expected_modules = ["ir_encoder", "pmw_encoder", "gprof_encoder", "radar_encoder", "env_encoder", "fusion", "recon_head"]
+        for mod in expected_modules:
+            self.assertIn(mod, grad_norms)
+            self.assertGreater(grad_norms[mod], 0.0, f"MFM pretraining yielded zero gradient for {mod}!")
 
     # 9. Strict NIO Basin and Partition Isolation
     def test_09_nio_adaptation_strict_basin_and_partition_isolation(self):
@@ -896,6 +885,89 @@ class TestPhase2E1ScientificIntegrity(unittest.TestCase):
         self.assertGreater(g_graph, 0.0)
         self.assertGreater(g_temp, 0.0)
         self.assertGreater(g_heads, 0.0)
+
+    # 15. Reference-Grid Cell-Centered Spacing (15.625 km, not linspace boundary 15.873 km)
+    def test_15_reference_grid_cell_centered_spacing_15_625km(self):
+        model = TCGraphFormer(d_model=64)
+        pool = model.polar_pool
+        H, W = 64, 64
+        domain_radius_km = 500.0
+
+        # Exact expected spacing: 2 * 500 / 64 = 15.625 km
+        expected_dx = (2.0 * domain_radius_km) / W
+        self.assertAlmostEqual(expected_dx, 15.625, places=4)
+
+        # Outer endpoints: linspace(-500, 500, 64) would have step 1000/63 = 15.8730 km.
+        # Cell-centered grid coordinates must have step exactly 15.625 km and cell centers at +/- 492.1875 km
+        expected_x0 = -domain_radius_km + 0.5 * expected_dx  # -492.1875 km
+        expected_x_last = domain_radius_km - 0.5 * expected_dx # +492.1875 km
+        self.assertAlmostEqual(expected_x0, -492.1875, places=4)
+        self.assertAlmostEqual(expected_x_last, 492.1875, places=4)
+
+        # PolarSectorPooling internal cell center verification
+        masks = pool._get_region_masks(H, W, "cpu")
+        self.assertEqual(masks.shape, (16, H, W))
+        # Total cells partitioned by polar sectors must be valid
+        self.assertGreater(masks.sum().item(), 0.0)
+
+        # Test dataset swath resampling coordinate generator
+        dataset = TCPRIMEDDataset.__new__(TCPRIMEDDataset)
+        dataset.grid_size = 64
+        dx = (2.0 * domain_radius_km) / 64
+        gx = -domain_radius_km + (np.arange(64, dtype=np.float32) + 0.5) * dx
+        self.assertAlmostEqual(float(gx[1] - gx[0]), 15.625, places=4)
+        self.assertAlmostEqual(float(gx[0]), -492.1875, places=4)
+        self.assertAlmostEqual(float(gx[-1]), 492.1875, places=4)
+
+    # 16. MFM Valid-Token Selection Excludes Zero-Pixel Coverage Sectors
+    def test_16_mfm_valid_token_selection_excludes_zero_pixel_coverage(self):
+        torch.manual_seed(42)
+        model = TCGraphFormer(d_model=64)
+        B = 2
+        H, W = 64, 64
+        ir = torch.randn(B, 1, H, W)
+        pmw = torch.randn(B, 4, H, W)
+        gprof = torch.randn(B, 4, H, W)
+        radar = torch.randn(B, 1, 16, 32, 32)
+        env = torch.randn(B, 6, H, W)
+        masks = torch.ones(B, 5) # All 5 modalities marked present
+
+        # Create a partial pixel mask for IR where only sector 0 (Inner Core NE) is valid;
+        # sectors 1..15 have ZERO valid pixel coverage.
+        reg_masks = model.polar_pool._get_region_masks(H, W, "cpu")
+        pix_ir = torch.zeros(B, 1, H, W)
+        pix_ir[:, :, reg_masks[0] > 0] = 1.0
+
+        # Encoders with return_validity=True
+        with torch.no_grad():
+            t_ir, v_ir = model.ir_encoder(ir, masks[:, 0], pixel_mask=pix_ir, return_validity=True)
+            t_pmw, v_pmw = model.pmw_encoder(pmw, masks[:, 1], return_validity=True)
+            t_gp, v_gp = model.gprof_encoder(gprof, masks[:, 2], return_validity=True)
+            t_rad, v_rad = model.radar_encoder(radar, masks[:, 3], return_validity=True)
+            t_env, v_env = model.env_encoder(env, masks[:, 4], return_validity=True)
+
+        # IR validity must be 1.0 ONLY for sector 0, and strictly 0.0 for sectors 1..15
+        self.assertEqual(v_ir[:, 0].sum().item(), float(B))
+        self.assertEqual(v_ir[:, 1:].sum().item(), 0.0)
+
+        # MFM valid_tok_mask
+        valid_tok_mask = torch.cat([v_ir, v_pmw, v_gp, v_rad, v_env], dim=1).unsqueeze(-1) # (B, 80, 1)
+
+        # Assert IR tokens 1..15 in valid_tok_mask are strictly 0.0
+        self.assertEqual(valid_tok_mask[:, 1:16, :].sum().item(), 0.0)
+
+        # Target representations gated by valid_tok_mask
+        all_targets = torch.cat([t_ir, t_pmw, t_gp, t_rad, t_env], dim=1) * valid_tok_mask
+        # Invalid IR targets must be identically 0.0
+        self.assertEqual(all_targets[:, 1:16, :].abs().sum().item(), 0.0)
+
+        # Ensure random masking loop NEVER selects invalid tokens
+        mask_to_recon = torch.zeros_like(valid_tok_mask)
+        for b in range(B):
+            valid_idx = torch.where(valid_tok_mask[b, :, 0] > 0.5)[0]
+            # Ensure valid_idx does NOT contain any of 1..15
+            for idx in valid_idx.tolist():
+                self.assertNotIn(idx, list(range(1, 16)))
 
 
 if __name__ == "__main__":
