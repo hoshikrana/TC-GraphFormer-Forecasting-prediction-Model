@@ -165,18 +165,23 @@ def run_pretraining(
 
             # 3. Generate random mask strictly over valid tokens
             mask_to_recon = torch.zeros((B, 80, 1), dtype=torch.float32, device=device)
+            batch_skipped_samples = 0
 
             for b in range(B):
                 valid_idx = torch.where(valid_tok_mask[b, :, 0] > 0.5)[0]
                 n_v = len(valid_idx)
-                if n_v > 1:
-                    # Choose number of tokens to mask respecting mask_ratio
-                    n_mask = max(1, min(n_v - 1, int(round(n_v * mask_ratio))))
+                if n_v >= 2:
+                    # Choose number of tokens to mask respecting mask_ratio while leaving >= 1 visible token
+                    n_mask = min(max(1, int(round(n_v * mask_ratio))), n_v - 1)
                     perm = torch.randperm(n_v)
                     chosen = valid_idx[perm[:n_mask]]
                     mask_to_recon[b, chosen, 0] = 1.0
                 elif n_v == 1:
-                    mask_to_recon[b, valid_idx[0], 0] = 1.0
+                    # Exactly 1 valid token: do not mask it to preserve visible context
+                    batch_skipped_samples += 1
+                else:
+                    # 0 valid tokens: skip reconstruction for this sample
+                    batch_skipped_samples += 1
 
             n_valid_batch = int(valid_tok_mask.sum().item())
             n_masked_batch = int(mask_to_recon.sum().item())
@@ -199,9 +204,9 @@ def run_pretraining(
             pix_rad_stud = pix_rad.clone() if pix_rad is not None else torch.ones_like(radar)
             pix_env_stud = pix_env.clone() if pix_env is not None else torch.ones_like(env)
 
-            # Get polar region masks for 2D grids (IR, PMW, GPROF, Env) and Radar (H, W)
-            reg_masks_64 = model.polar_pool._get_region_masks(ir.size(-2), ir.size(-1), ir.device)
-            reg_masks_rad = model.polar_pool._get_region_masks(radar.size(-2), radar.size(-1), radar.device)
+            # Get polar region masks using unified physical geometry
+            reg_masks_64 = model.polar_pool._get_region_masks(ir.size(-2), ir.size(-1), ir.device, is_feature_grid=False)
+            reg_masks_rad = model.polar_pool._get_region_masks(radar.size(-2), radar.size(-1), radar.device, is_feature_grid=True)
 
             # Apply polar-sector spatial masking on student inputs
             for b in range(B):
@@ -258,10 +263,13 @@ def run_pretraining(
             # 6. Loss computed ONLY on masked valid tokens
             diff = F.mse_loss(recon, all_targets, reduction="none")  # (B, 80, d_model)
             denom = (mask_to_recon.sum() * model.d_model).clamp(min=1.0)
-            loss = (diff * mask_to_recon).sum() / denom
-
-            optimizer.zero_grad()
-            loss.backward()
+            if n_masked_batch > 0:
+                loss = (diff * mask_to_recon).sum() / denom
+                optimizer.zero_grad()
+                loss.backward()
+            else:
+                loss = torch.tensor(0.0, device=device)
+                optimizer.zero_grad()
 
             # Record gradient norms
             latest_grad_norms = {

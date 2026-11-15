@@ -14,6 +14,15 @@ import netCDF4 as nc
 
 from .config import OutputConfig
 
+# Storage Schema and Pipeline Provenance Constants
+SCHEMA_VERSION: str = "2.3.0"
+PIPELINE_VERSION: str = "2.3.0"
+COORDINATE_SCHEMA_VERSION: str = "2.3.0"
+MODALITY_SCHEMA_VERSION: str = "2.3.0"
+RADAR_VERTICAL_CONVENTION: str = "physical_cappi_km"
+GRID_SPECIFICATION: str = "64x64_15.625km_cell_centered"
+NORMALIZATION_SPECIFICATION: str = "v2.3_calibrated_physical"
+
 
 class StorageWriter:
     """Manages writing and indexing of standardized per-storm NetCDF-4/HDF5 containers."""
@@ -29,15 +38,31 @@ class StorageWriter:
         storm_dir = os.path.join(self.config.root, str(season), basin, storm_id)
         return os.path.join(storm_dir, f"{storm_id}_processed.nc")
 
-    def is_storm_processed(self, season: int, basin: str, storm_id: str) -> bool:
-        """Check if a storm container already exists and is readable."""
+    def is_storm_processed(
+        self,
+        season: int,
+        basin: str,
+        storm_id: str,
+        required_schema: Optional[str] = SCHEMA_VERSION,
+    ) -> bool:
+        """
+        Check if a storm container already exists, is readable, matches the target schema version,
+        and contains non-empty overpass records. Prevents reusing stale containers.
+        """
         cpath = self.get_storm_container_path(season, basin, storm_id)
         if not os.path.exists(cpath):
             return False
         try:
             with nc.Dataset(cpath, "r") as ds:
-                if "overpasses" in ds.groups and ds.getncattr("storm_id") == storm_id:
-                    return True
+                if "overpasses" not in ds.groups or ds.getncattr("storm_id") != storm_id:
+                    return False
+                if len(ds.groups["overpasses"].groups) == 0:
+                    return False
+                if required_schema is not None:
+                    stored_ver = getattr(ds, "schema_version", None)
+                    if stored_ver != required_schema:
+                        return False
+                return True
         except Exception:
             return False
         return False
@@ -73,7 +98,15 @@ class StorageWriter:
             ds.total_observations = len(observations)
             ds.date_created_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
             ds.Conventions = "CF-1.8, TC-PRIMED-v01r01"
-            ds.pipeline_version = "1.0.0"
+            ds.schema_version = SCHEMA_VERSION
+            ds.pipeline_version = PIPELINE_VERSION
+            ds.coordinate_schema_version = COORDINATE_SCHEMA_VERSION
+            ds.modality_schema_version = MODALITY_SCHEMA_VERSION
+            ds.radar_vertical_convention = RADAR_VERTICAL_CONVENTION
+            ds.grid_specification = GRID_SPECIFICATION
+            ds.normalization_specification = NORMALIZATION_SPECIFICATION
+            ds.domain_radius_km = 500.0
+            ds.grid_spacing_km = 15.625
 
             # 2. Sequential Best Track group (/storm_metadata)
             g_bt = ds.createGroup("storm_metadata")
@@ -353,19 +386,46 @@ class StorageWriter:
                             v_y.units = "km"
 
                     bin_h = rad.get("bin_height")
-                    if bin_h is not None and len(bin_h.shape) == 3:
-                        nr, ns, nb = bin_h.shape
-                        if "radar_range" not in g_rad.dimensions:
-                            g_rad.createDimension("radar_range", nr)
-                        if "radar_scan" not in g_rad.dimensions:
-                            g_rad.createDimension("radar_scan", ns)
-                        if "radar_beam" not in g_rad.dimensions:
-                            g_rad.createDimension("radar_beam", nb)
-                        if "binHeight" not in g_rad.variables:
-                            v_bh = g_rad.createVariable("binHeight", "f4", ("radar_range", "radar_scan", "radar_beam"),
-                                                        fill_value=-9999.0, zlib=do_zlib, complevel=comp_level)
-                            v_bh[:] = bin_h
-                            v_bh.units = "km"
+                    if bin_h is not None:
+                        if len(bin_h.shape) == 3:
+                            nr, ns, nb = bin_h.shape
+                            if "radar_range" not in g_rad.dimensions:
+                                g_rad.createDimension("radar_range", nr)
+                            if "radar_scan" not in g_rad.dimensions:
+                                g_rad.createDimension("radar_scan", ns)
+                            if "radar_beam" not in g_rad.dimensions:
+                                g_rad.createDimension("radar_beam", nb)
+                            if "bin_height_km" not in g_rad.variables:
+                                v_bh_km = g_rad.createVariable(
+                                    "bin_height_km", "f4", ("radar_range", "radar_scan", "radar_beam"),
+                                    fill_value=-9999.0, zlib=do_zlib, complevel=comp_level
+                                )
+                                v_bh_km[:] = bin_h
+                                v_bh_km.units = "km"
+                                v_bh_km.long_name = "Physical height of each radar gate above Earth ellipsoid"
+                                v_bh_km.standard_name = "height"
+                                v_bh_km.positive = "up"
+                            if "binHeight" not in g_rad.variables:
+                                v_bh = g_rad.createVariable(
+                                    "binHeight", "f4", ("radar_range", "radar_scan", "radar_beam"),
+                                    fill_value=-9999.0, zlib=do_zlib, complevel=comp_level
+                                )
+                                v_bh[:] = bin_h
+                                v_bh.units = "km"
+                        elif len(bin_h.shape) == 1:
+                            nr = len(bin_h)
+                            if "radar_range" not in g_rad.dimensions:
+                                g_rad.createDimension("radar_range", nr)
+                            if "bin_height_km" not in g_rad.variables:
+                                v_bh_km = g_rad.createVariable(
+                                    "bin_height_km", "f4", ("radar_range",),
+                                    fill_value=-9999.0, zlib=do_zlib, complevel=comp_level
+                                )
+                                v_bh_km[:] = bin_h
+                                v_bh_km.units = "km"
+                                v_bh_km.long_name = "Physical height of each radar gate above Earth ellipsoid"
+                                v_bh_km.standard_name = "height"
+                                v_bh_km.positive = "up"
 
                 # Modality: Environmental Reanalysis Slice
                 env_slice = obs.get("env_slice_data", {})

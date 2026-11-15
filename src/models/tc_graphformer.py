@@ -36,10 +36,12 @@ class TCGraphFormer(nn.Module):
         num_graph_layers: int = 2,
         num_temporal_layers: int = 2,
         num_stages: int = 5,
+        min_sector_coverage: float = 0.05,
         dropout: float = 0.1,
     ):
         super().__init__()
         self.d_model = d_model
+        self.min_sector_coverage = min_sector_coverage
 
         # 1. Modality Encoders (extract 2D spatial feature representations)
         self.ir_encoder = IREncoder(in_channels=1, d_model=d_model)
@@ -50,7 +52,9 @@ class TCGraphFormer(nn.Module):
 
         # 2. Polar Sector Pooling: Connects 2D spatial feature maps and validity masks
         # to 16 physical storm-centered polar sectors (4 concentric rings x 4 azimuthal quadrants)
-        self.polar_pool = PolarSectorPooling(in_channels=d_model, d_model=d_model, bias=False)
+        self.polar_pool = PolarSectorPooling(
+            in_channels=d_model, d_model=d_model, min_sector_coverage=min_sector_coverage, bias=False
+        )
 
         # Connect polar pooling module to all modality encoders
         self.ir_encoder.polar_pool = self.polar_pool
@@ -192,8 +196,16 @@ class TCGraphFormer(nn.Module):
         fused_reshaped = fused.view(B, 5, 16, self.d_model).permute(0, 2, 1, 3).reshape(B, 16, 5 * self.d_model)
         spatial_nodes = self.spatial_aggregator(fused_reshaped)  # (B, 16, d_model)
 
-        # 5. Spatial Polar Graph Message Passing
-        graph_latent = self.spatial_graph(spatial_nodes)  # (B, d_model)
+        # Construct spatial node validity: sector p is valid if ANY modality has valid observation in sector p
+        node_validity = (
+            (val_ir > 0.5) | (val_pmw > 0.5) | (val_gprof > 0.5) | (val_radar > 0.5) | (val_env > 0.5)
+        ).float().unsqueeze(-1)  # (B, 16, 1)
+
+        # Suppress aggregator linear layer & LayerNorm bias revival for entirely unobserved sectors
+        spatial_nodes = spatial_nodes * node_validity
+
+        # 5. Spatial Polar Graph Message Passing with node-validity gating
+        graph_latent = self.spatial_graph(spatial_nodes, node_validity=node_validity)  # (B, d_model)
         return graph_latent
 
     def forward(

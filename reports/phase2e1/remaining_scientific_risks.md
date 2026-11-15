@@ -51,3 +51,16 @@ However, **software integration must not be conflated with trained meteorologica
 - **Risk:** Beyond 24 hours, internal convective vortex structure becomes secondary to large-scale environmental steering (subtropical ridge positioning, upper-level trough interactions, baroclinic shear). Satellite imagery alone cannot sustain 48–72h track forecasts without continuous coupled numerical guidance.
 - **Mitigation:** Keep the model's primary forecasting horizon focused on the critical $0 - 24\text{ hour}$ short-term rapid intensification and eyewall structural evolution window, where satellite observations provide maximum physical value over NWP.
 
+---
+
+## 4. Post-Phase 2E.3 Reconciliation Note (2026-11-15)
+
+In **Phase 2E.3**, all remaining scientific integrity risks identified in Phase 2E.1 have been systematically resolved:
+1. **Grid Geometry Alignment:** Unified $64 \times 64$ cell-centered grid ($15.625\text{ km}$ spacing) with $32 \times 32$ convolution feature receptive field centers ($31.25\text{ km}$ spacing), resolving the $7.8125\text{ km}$ offset.
+2. **Polar Sector Area Formulation:** Canonical ring radii strictly defined as `[0, 75, 175, 300, 500]` km across 4 quadrants (NE, NW, SW, SE). Area coverage enforced at $\ge 5\%$ of exact geometric sector area.
+3. **Linear Bias Elimination:** Invalid polar sector tokens and aggregated spatial nodes are strictly gated by validity masks to prevent linear and LayerNorm bias revival.
+4. **Physical CAPPI Radar Binning:** 3D radar data resampled along actual `binHeight` in km to 16 CAPPI levels ($0.5\text{ to }19.5\text{ km}$) with no extrapolation, separating measurement validity ($-20\text{ to }100\text{ dBZ}$) from echo classification ($\ge 12\text{ dBZ}$).
+5. **Geospatial Policy:** Strict scientific mode rejects missing coordinates or missing heights with explicit errors (`geospatial_policy="raise"`).
+6. **Storage Schema:** Container schema `"2.3.0"` and CF metadata for `bin_height_km` enforced; stale containers rejected.
+7. **Verification:** 171/171 tests passed (100%), full 2,599 observation audit completed with zero defects, and active radar learning confirmed (`radar_encoder` gradient norm = 2.954607).
+

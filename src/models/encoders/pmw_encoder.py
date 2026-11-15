@@ -46,6 +46,8 @@ class PMWEncoder(nn.Module):
             x = x * channel_mask.view(B, -1, 1, 1)
 
         if pixel_mask is not None:
+            if pixel_mask.dim() == 3:
+                pixel_mask = pixel_mask.unsqueeze(1)
             x = x * pixel_mask
 
         out = self.stem(x)

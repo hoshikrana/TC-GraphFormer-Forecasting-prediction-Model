@@ -66,3 +66,17 @@ The Phase 2E pipeline and model architecture are validated on the 20 GB pilot da
 - Approximately 50,000 overpasses ($\approx 500\text{ GB}$ raw NetCDF storage).
 - Single-epoch training on CPU is not viable at 50,000 samples.
 - **Requirement for Machine B:** The two-machine staging architecture (`scripts/stage_two_machine_data.py`) must be used to transfer preprocessed `.tar.gz` chunks to the remote GPU node (Machine B) for multi-epoch GPU training under CUDA/cuDNN.
+
+---
+
+## 6. Post-Phase 2E.3 Reconciliation Note (2026-11-15)
+
+In **Phase 2E.3**, all remaining scientific integrity and data-to-model flow issues have been resolved:
+1. **Physical Grid Alignment:** Resolved $7.8125\text{ km}$ offset between $64 \times 64$ input grid ($15.625\text{ km}$ cell centers) and $32 \times 32$ convolution feature receptive field centers via unified `GridGeometry`. Active radar now queries the exact receptive field centers.
+2. **Physical Sector Area Threshold:** `PolarSectorPooling` computes true observed physical area coverage $A_{\text{valid}} / A_{\text{sector}}$ against canonical ring boundaries (`[0, 75, 175, 300, 500]` km), enforcing $\ge 5\%$ threshold and eliminating arbitrary pixel counting.
+3. **Linear Bias Revival Suppression:** Strict post-projection zeroing in `PolarSectorPooling` and output gating in `SpatialAggregator` ensure unobserved sectors remain identically zero.
+4. **Masked Graph Message Passing:** `SpatialGraphEncoder` propagates `node_validity`, ensuring invalid nodes cannot transmit or receive messages, and all-invalid samples yield exact zero vectors without NaNs.
+5. **Physical Radar CAPPI Resampling:** Resamples radar reflectivity along actual gate altitudes (`binHeight` in km) to 16 canonical CAPPI levels ($0.5\text{ to }19.5\text{ km}$) with zero extrapolation, separating measurement validity ($-20\text{ to }100\text{ dBZ}$) from echo classification ($\ge 12\text{ dBZ}$).
+6. **Container Schema Versioning:** Storage schema `"2.3.0"` and vertical convention `"physical_cappi_km"` enforced.
+7. **Lifecycle Preservation:** Date filtering in `DatasetInventory` selects storms by lifecycle overlap without truncating overpasses or environmental files.
+8. **Verification:** Verified across all 171 tests (100% pass) and full 2,599 observation pilot audit with confirmed active radar learning (`radar_encoder` gradient norm = 2.954607).

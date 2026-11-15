@@ -43,6 +43,11 @@ class PipelineRunner:
         self.splitter = StormSplitter(config.splitting)
         self.sample_builder = SampleBuilder(config.targets)
         self.storage_writer = StorageWriter(config.output)
+        self.qc_policy = getattr(config, "qc_policy", "reject")
+        self.qc_examined_count: int = 0
+        self.qc_valid_count: int = 0
+        self.qc_rejected_count: int = 0
+        self.qc_rejection_reasons: Dict[str, int] = {}
         self.env_matcher = EnvironmentalMatcher(config.quality_control.enforce_causal_environmental)
 
     def run_inventory(self) -> Dict[str, Any]:
@@ -271,10 +276,24 @@ class PipelineRunner:
                         with open_netcdf(env_rec["file_path"], "r") as ds_env:
                             env_slice_data = ModalityProcessors.process_environmental_slice(ds_env, matched_idx)
 
-                    # 5. Quality Control validation
+                    # 5. Quality Control validation & policy enforcement
                     is_valid, issues = self.qc.validate_overpass(
                         op_path, op_meta, pmw_data, ir_data, targets
                     )
+                    self.qc_examined_count += 1
+                    if is_valid:
+                        self.qc_valid_count += 1
+                    else:
+                        self.qc_rejected_count += 1
+                        for issue in issues:
+                            self.qc_rejection_reasons[issue] = self.qc_rejection_reasons.get(issue, 0) + 1
+
+                        if self.qc_policy == "reject":
+                            logger.warning(f"[QC REJECT] Rejected overpass {op_path} due to: {issues}")
+                            continue
+                        elif self.qc_policy == "quarantine":
+                            logger.warning(f"[QC QUARANTINE] Quarantined overpass {op_path} due to: {issues}")
+                            continue
 
                     # Modality flags
                     mod_flags = {

@@ -22,7 +22,28 @@ try:
 except ImportError:
     HAS_SCIPY = False
 
+from ..models.graph.grid_geometry import GLOBAL_GRID_GEOMETRY, GridGeometry
+
 logger = logging.getLogger(__name__)
+
+# Canonical physical radar height levels (16 levels in km, 0.5 to 19.5 km)
+TARGET_RADAR_HEIGHTS_KM: Tuple[float, ...] = tuple(
+    np.linspace(0.5, 19.5, 16, dtype=np.float32).tolist()
+)
+
+# Calibrated geospatial resampling distance thresholds by sensor footprint and resolution
+DEFAULT_RESAMPLING_THRESHOLDS_KM: Dict[str, float] = {
+    "ir": 15.0,     # Native IR footprint ~4 km; 15 km threshold preserves contiguous field
+    "pmw": 35.0,    # Low-frequency PMW channels (19 GHz) have ~30-50 km footprint
+    "gprof": 20.0,  # GPROF retrieved precipitation swath grid ~10-15 km
+    "radar": 15.0,  # Spaceborne DPR/PR beam footprint ~5 km (15 km captures up to 3 cross-track beams)
+    "env": 40.0,    # ERA5 0.25 deg grid spacing ~28 km at tropics
+}
+
+
+class SampleExclusionError(RuntimeError):
+    """Raised when an observation cannot be processed under an exclude_sample policy."""
+    pass
 
 # Canonical 5-class stage mapping (0..4) with invalid stage mask for unmapped/unknown
 # 0: Depression (TD, SD, MD)
@@ -144,6 +165,15 @@ class TCPRIMEDDataset(Dataset):
     mask-aware preprocessing and physical validation.
     """
 
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls)
+        instance.geospatial_policy = "nominal_fallback"
+        instance.strict_mode = False
+        instance._query_pts_cache = {}
+        instance._raw_radar_coord_cache = {}
+        instance.processing_errors = []
+        return instance
+
     def __init__(
         self,
         sample_index_csv: str = "reports/pipeline/sample_index.csv",
@@ -151,6 +181,8 @@ class TCPRIMEDDataset(Dataset):
         grid_size: int = 64,
         max_samples: Optional[int] = None,
         strict_mode: bool = False,
+        geospatial_policy: Optional[str] = None,
+        resampling_thresholds: Optional[Dict[str, float]] = None,
         transform=None,
         basin: Optional[str] = None,
         df: Optional[pd.DataFrame] = None,
@@ -161,10 +193,29 @@ class TCPRIMEDDataset(Dataset):
         self.partition = partition.upper() if partition else None
         self.grid_size = grid_size
         self.strict_mode = strict_mode
+        # Geospatial policy: "raise", "exclude_modality", "exclude_sample", or "nominal_fallback"
+        if geospatial_policy is not None:
+            policy = geospatial_policy.lower()
+            if policy not in ("raise", "exclude_modality", "exclude_sample", "nominal_fallback"):
+                raise ValueError(
+                    f"Invalid geospatial_policy '{geospatial_policy}'. "
+                    f"Must be one of: 'raise', 'exclude_modality', 'exclude_sample', 'nominal_fallback'."
+                )
+            self.geospatial_policy = policy
+        elif strict_mode:
+            self.geospatial_policy = "raise"
+        else:
+            self.geospatial_policy = "nominal_fallback"
+
+        self.resampling_thresholds = {
+            **DEFAULT_RESAMPLING_THRESHOLDS_KM,
+            **(resampling_thresholds or {}),
+        }
         self.transform = transform
         self.basin = basin
         self.raw_data_dir = raw_data_dir if (raw_data_dir and os.path.exists(raw_data_dir)) else None
         self._raw_radar_coord_cache: Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
+        self._query_pts_cache: Dict[Tuple[int, int, bool], np.ndarray] = {}
         self.processing_errors: List[Dict[str, Any]] = []
 
         if df is not None:
@@ -299,13 +350,13 @@ class TCPRIMEDDataset(Dataset):
                 vals = arr[valid_pts].flatten()
 
                 tree = cKDTree(coords)
-                # Cell-centered target coordinates for exact dx = 2*domain_km / W (e.g. 1000 / 64 = 15.625 km)
-                dx = (2.0 * domain_km) / target_shape[1]
-                dy = (2.0 * domain_km) / target_shape[0]
-                gx = -domain_km + (np.arange(target_shape[1], dtype=np.float32) + 0.5) * dx
-                gy = domain_km - (np.arange(target_shape[0], dtype=np.float32) + 0.5) * dy  # North positive
-                grid_x, grid_y = np.meshgrid(gx, gy)
-                query_pts = np.column_stack([grid_x.flatten(), grid_y.flatten()])
+                # Cell-centered target coordinates using unified GridGeometry with query caching
+                cache_key = (target_shape[0], target_shape[1], False)
+                if cache_key not in self._query_pts_cache:
+                    gx, gy = GLOBAL_GRID_GEOMETRY.get_coords(target_shape[0], target_shape[1], is_feature_grid=False)
+                    grid_x, grid_y = np.meshgrid(gx, gy)
+                    self._query_pts_cache[cache_key] = np.column_stack([grid_x.flatten(), grid_y.flatten()])
+                query_pts = self._query_pts_cache[cache_key]
 
                 dists, indices = tree.query(query_pts, distance_upper_bound=max_dist_km)
                 is_valid = dists <= max_dist_km
@@ -319,11 +370,81 @@ class TCPRIMEDDataset(Dataset):
                 t_mask = torch.from_numpy(grid_mask.reshape(1, target_shape[0], target_shape[1]))
                 return t_data, t_mask, source
 
-        if getattr(self, "strict_mode", False):
+        # Policy enforcement when coordinates are missing or unregistered
+        if self.strict_mode or self.geospatial_policy == "raise":
             raise ValueError(f"Strict scientific mode failure: missing coordinate metadata in group {getattr(grp, 'name', 'unnamed')}")
+        elif self.geospatial_policy == "exclude_modality":
+            zero_tensor = torch.zeros((1, target_shape[0], target_shape[1]), dtype=torch.float32)
+            zero_mask = torch.zeros((1, target_shape[0], target_shape[1]), dtype=torch.float32)
+            return zero_tensor, zero_mask, "excluded_missing_coords"
+        elif self.geospatial_policy == "exclude_sample":
+            raise SampleExclusionError(f"Observation excluded due to missing coordinates in {getattr(grp, 'name', 'unnamed')}")
 
         t_data, t_mask = self._resize_to_grid_with_mask(arr, target_shape)
         return t_data, t_mask, "nominal_fallback"
+
+    def _resample_radar_vertical_profile_to_cappi(
+        self,
+        raw_ku_beam: np.ndarray,
+        bin_height_km_beam: np.ndarray,
+        target_heights_km: np.ndarray,
+        echo_threshold_dbz: float = 12.0,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Resamples a single ray/beam vertical reflectivity profile to 16 CAPPI height levels.
+        raw_ku_beam: (n_range,) in dBZ
+        bin_height_km_beam: (n_range,) in km
+        target_heights_km: (16,) target levels in km
+        Returns:
+            norm_refl: (16,) normalized in [0, 1]
+            meas_valid: (16,) 1.0 if measurement valid (-20 <= Ku <= 100), 0.0 otherwise
+            echo_valid: (16,) 1.0 if echo valid (Ku >= 12.0), 0.0 otherwise
+        """
+        n_targets = len(target_heights_km)
+        norm_refl = np.zeros(n_targets, dtype=np.float32)
+        meas_valid = np.zeros(n_targets, dtype=np.float32)
+        echo_valid = np.zeros(n_targets, dtype=np.float32)
+
+        # Gate validity: non-NaN, non-sentinel, within valid measurement range [-20, 100] dBZ
+        valid_gates = (
+            (~np.isnan(bin_height_km_beam))
+            & (~np.isnan(raw_ku_beam))
+            & (raw_ku_beam > -9000.0)
+            & (raw_ku_beam >= -20.0)
+            & (raw_ku_beam <= 100.0)
+        )
+        if np.sum(valid_gates) < 2:
+            return norm_refl, meas_valid, echo_valid
+
+        h_valid = bin_height_km_beam[valid_gates]
+        q_valid = raw_ku_beam[valid_gates]
+
+        # Sort ascending by height
+        sort_idx = np.argsort(h_valid)
+        h_sorted = h_valid[sort_idx]
+        q_sorted = q_valid[sort_idx]
+
+        # Check for non-monotonic duplicate heights and filter if needed
+        if len(h_sorted) > 1:
+            diffs = np.diff(h_sorted)
+            if np.any(diffs <= 0):
+                unique_mask = np.concatenate([[True], diffs > 1e-4])
+                h_sorted = h_sorted[unique_mask]
+                q_sorted = q_sorted[unique_mask]
+                if len(h_sorted) < 2:
+                    return norm_refl, meas_valid, echo_valid
+
+        # Interpolate strictly between observed bounds (no extrapolation!)
+        interp_q = np.interp(target_heights_km, h_sorted, q_sorted, left=np.nan, right=np.nan)
+        is_interp_valid = ~np.isnan(interp_q)
+
+        meas_valid[is_interp_valid] = 1.0
+        echo_valid[is_interp_valid & (interp_q >= echo_threshold_dbz)] = 1.0
+        # Physical normalization: [-20, 100] dBZ -> [0, 1]
+        norm_refl[is_interp_valid] = np.clip(
+            (interp_q[is_interp_valid] - (-20.0)) / (100.0 - (-20.0)), 0.0, 1.0
+        )
+        return norm_refl, meas_valid, echo_valid
 
     def _load_radar_volume(
         self,
@@ -333,7 +454,7 @@ class TCPRIMEDDataset(Dataset):
         storm_lat: Optional[float] = None,
         storm_lon: Optional[float] = None,
         domain_km: float = 500.0,
-        max_dist_km: float = 35.0,
+        max_dist_km: float = 15.0,
         echo_threshold_dbz: float = 12.0,
         raw_sample_id: Optional[str] = None,
         raw_data_dir: Optional[str] = None,
@@ -346,17 +467,13 @@ class TCPRIMEDDataset(Dataset):
         Tuple[torch.Tensor, torch.Tensor, torch.Tensor, bool, str],
     ]:
         """
-        Load 3D volumetric radar reflectivity (Ku band), interpolate depth to target_depth,
-        and resample spatial dimensions to (target_grid[0]//2, target_grid[1]//2).
+        Load 3D volumetric radar reflectivity (Ku band), interpolate vertical depth to
+        16 explicitly defined physical height levels (0.5 to 19.5 km), and resample
+        spatial dimensions onto the unified convolution feature grid (32x32).
 
         Separates measurement validity from precipitation echo classification:
           - Measurement validity: [-20.0, 100.0] dBZ (preserves valid low-reflectivity measurements)
           - Precipitation echo classification: Ku >= echo_threshold_dbz (default 12.0 dBZ MDS)
-
-        Preserves 3D geometry:
-          - Vertical: 88 range gates spanning [0, 21.8] km mapped to target_depth (16) vertical layers.
-          - Horizontal: Storm-centered geodetic coordinates (x, y) projected via 2D k-d tree onto
-            [-domain_km, +domain_km]. Cells outside the radar swath (> max_dist_km) are strictly masked 0.
         """
         H, W = target_grid[0] // 2, target_grid[1] // 2
         empty_tensor = torch.zeros((1, target_depth, H, W), dtype=torch.float32)
@@ -385,13 +502,24 @@ class TCPRIMEDDataset(Dataset):
 
         n_range, n_scan, n_beam = raw_ku.shape
 
-        # Physical normalization: dBZ [-20, 80] -> [0, 1]. Preserves low-reflectivity [-20, 12) dBZ
+        # Physical normalization: dBZ [-20, 80] -> [0, 1] with range 100 dBZ
         norm_ku = np.clip(np.where(valid_meas, raw_ku, -20.0) - (-20.0), 0.0, 100.0) / 100.0
         mask_ku = valid_meas.astype(np.float32)
         echo_ku = echo_class.astype(np.float32)
 
         x_2d, y_2d = None, None
+        bin_height_km = None
         source = "nominal_fallback"
+
+        # Check for physical radar gate heights in processed container
+        for bh_name in ["bin_height_km", "binHeight", "bin_height"]:
+            if bh_name in radar_grp.variables:
+                bh_raw = np.ma.filled(radar_grp.variables[bh_name][:], np.nan)
+                units = getattr(radar_grp.variables[bh_name], "units", "km")
+                if "m" in units.lower() and "km" not in units.lower():
+                    bh_raw = bh_raw / 1000.0  # convert meters to km
+                bin_height_km = bh_raw
+                break
 
         # Attempt coordinate extraction directly from radar group
         try:
@@ -414,14 +542,18 @@ class TCPRIMEDDataset(Dataset):
             x_2d, y_2d = None, None
             source = "nominal_fallback"
 
-        # If coordinates missing from processed group, check raw NetCDF container if available
-        if x_2d is None and raw_sample_id is not None:
+        # If coordinates or binHeight missing from processed group, check raw NetCDF container if available
+        if (x_2d is None or bin_height_km is None) and raw_sample_id is not None:
             rdir = raw_data_dir or getattr(self, "raw_data_dir", "data/raw/pilot")
             if rdir and os.path.exists(rdir):
                 try:
                     cache = getattr(self, "_raw_radar_coord_cache", None)
                     if cache is not None and raw_sample_id in cache:
-                        x_2d, y_2d = cache[raw_sample_id]
+                        cached_entry = cache[raw_sample_id]
+                        if len(cached_entry) == 3:
+                            x_2d, y_2d, bin_height_km = cached_entry
+                        else:
+                            x_2d, y_2d = cached_entry
                         source = "radar_beam_geodetic_km"
                     else:
                         parts = raw_sample_id.replace("SMP_", "").split("_")
@@ -442,19 +574,27 @@ class TCPRIMEDDataset(Dataset):
                                     for sub_cand in ["KuKaGMI", "KuGMI", "KuTMI"]:
                                         if sub_cand in rr_raw.groups:
                                             sg_raw = rr_raw.groups[sub_cand]
-                                            if "x" in sg_raw.variables and "y" in sg_raw.variables:
+                                            if x_2d is None and "x" in sg_raw.variables and "y" in sg_raw.variables:
                                                 xr = np.ma.filled(sg_raw.variables["x"][:], np.nan)
                                                 yr = np.ma.filled(sg_raw.variables["y"][:], np.nan)
                                                 if xr.shape == (n_scan, n_beam) and yr.shape == (n_scan, n_beam):
                                                     x_2d, y_2d = xr, yr
                                                     source = "radar_beam_geodetic_km"
-                                                    if cache is not None:
-                                                        cache[raw_sample_id] = (x_2d, y_2d)
-                                                    break
+                                            if bin_height_km is None and "binHeight" in sg_raw.variables:
+                                                bhr = np.ma.filled(sg_raw.variables["binHeight"][:], np.nan)
+                                                units = getattr(sg_raw.variables["binHeight"], "units", "km")
+                                                if "m" in units.lower() and "km" not in units.lower():
+                                                    bhr = bhr / 1000.0
+                                                bin_height_km = bhr
+                                            if cache is not None and x_2d is not None:
+                                                cache[raw_sample_id] = (x_2d, y_2d, bin_height_km)
+                                            break
                 except Exception:
                     pass
 
-        # 3. Coordinate-aware geospatial registration
+        target_heights_np = np.asarray(TARGET_RADAR_HEIGHTS_KM, dtype=np.float32)
+
+        # 3. Coordinate-aware geospatial and vertical registration
         if x_2d is not None and y_2d is not None and HAS_SCIPY:
             coords = np.column_stack([x_2d.flatten(), y_2d.flatten()])
             valid_coords = (~np.isnan(coords[:, 0])) & (~np.isnan(coords[:, 1]))
@@ -462,72 +602,87 @@ class TCPRIMEDDataset(Dataset):
                 valid_indices_original = np.where(valid_coords)[0]
                 tree = cKDTree(coords[valid_coords])
 
-                # Interpolate vertical axis to target_depth (preserving n_scan, n_beam)
-                t_data = torch.from_numpy(norm_ku.astype(np.float32)).unsqueeze(0).unsqueeze(0)
-                t_mask = torch.from_numpy(mask_ku).unsqueeze(0).unsqueeze(0)
-                t_echo = torch.from_numpy(echo_ku).unsqueeze(0).unsqueeze(0)
-
-                t_data_v = F.interpolate(
-                    t_data, size=(target_depth, n_scan, n_beam), mode="trilinear", align_corners=False
-                ).squeeze(0).squeeze(0)  # (target_depth, n_scan, n_beam)
-
-                t_mask_v = F.interpolate(
-                    t_mask, size=(target_depth, n_scan, n_beam), mode="nearest"
-                ).squeeze(0).squeeze(0)  # (target_depth, n_scan, n_beam)
-
-                t_echo_v = F.interpolate(
-                    t_echo, size=(target_depth, n_scan, n_beam), mode="nearest"
-                ).squeeze(0).squeeze(0)  # (target_depth, n_scan, n_beam)
-
-                # Cell-centered target coordinates for exact spacing (e.g. 1000 / 32 = 31.25 km)
-                dx = (2.0 * domain_km) / W
-                dy = (2.0 * domain_km) / H
-                gx = -domain_km + (np.arange(W, dtype=np.float32) + 0.5) * dx
-                gy = domain_km - (np.arange(H, dtype=np.float32) + 0.5) * dy  # North positive
-                grid_x, grid_y = np.meshgrid(gx, gy)
-                query_pts = np.column_stack([grid_x.flatten(), grid_y.flatten()])
+                # Unified convolution feature grid target coordinates (32x32 feature receptive field centers)
+                cache_key = (H, W, True)
+                if cache_key not in self._query_pts_cache:
+                    if H == 32 and W == 32:
+                        grid_x, grid_y = GLOBAL_GRID_GEOMETRY.get_feature_mesh_32()
+                    else:
+                        gx, gy = GLOBAL_GRID_GEOMETRY.get_coords(H, W, is_feature_grid=True)
+                        grid_x, grid_y = np.meshgrid(gx, gy)
+                    self._query_pts_cache[cache_key] = np.column_stack([grid_x.flatten(), grid_y.flatten()])
+                query_pts = self._query_pts_cache[cache_key]
 
                 dists, sub_indices = tree.query(query_pts, distance_upper_bound=max_dist_km)
                 is_valid_horiz = dists <= max_dist_km
 
-                grid_data = torch.zeros((target_depth, H * W), dtype=torch.float32)
-                grid_mask = torch.zeros((target_depth, H * W), dtype=torch.float32)
-                grid_echo = torch.zeros((target_depth, H * W), dtype=torch.float32)
+                grid_data = np.zeros((target_depth, H * W), dtype=np.float32)
+                grid_mask = np.zeros((target_depth, H * W), dtype=np.float32)
+                grid_echo = np.zeros((target_depth, H * W), dtype=np.float32)
 
                 if np.any(is_valid_horiz):
                     matched_sub = sub_indices[is_valid_horiz]
                     orig_flat_idx = valid_indices_original[matched_sub]
                     scan_idx, beam_idx = np.unravel_index(orig_flat_idx, (n_scan, n_beam))
+                    valid_positions = np.where(is_valid_horiz)[0]
 
-                    grid_data[:, is_valid_horiz] = t_data_v[:, scan_idx, beam_idx]
-                    grid_mask[:, is_valid_horiz] = t_mask_v[:, scan_idx, beam_idx]
-                    grid_echo[:, is_valid_horiz] = t_echo_v[:, scan_idx, beam_idx]
+                    if bin_height_km is not None:
+                        # Physical CAPPI vertical resampling along true gate heights
+                        is_1d_bh = (bin_height_km.ndim == 1)
+                        for col_idx, (s_i, b_i) in enumerate(zip(scan_idx, beam_idx)):
+                            bh_col = bin_height_km if is_1d_bh else bin_height_km[:, s_i, b_i]
+                            q_col = raw_ku[:, s_i, b_i]
+                            d_col, m_col, e_col = self._resample_radar_vertical_profile_to_cappi(
+                                q_col, bh_col, target_heights_np, echo_threshold_dbz=echo_threshold_dbz
+                            )
+                            h_pos = valid_positions[col_idx]
+                            grid_data[:, h_pos] = d_col
+                            grid_mask[:, h_pos] = m_col
+                            grid_echo[:, h_pos] = e_col
+                    else:
+                        # Fallback vertical interpolation if binHeight is missing
+                        if self.strict_mode or self.geospatial_policy == "raise":
+                            raise ValueError(f"Strict scientific mode failure: missing radar binHeight in {getattr(radar_grp, 'name', 'unnamed')}")
+                        elif self.geospatial_policy == "exclude_modality":
+                            return _format_return(empty_tensor, empty_mask, empty_echo, False, "excluded_missing_height")
+                        elif self.geospatial_policy == "exclude_sample":
+                            raise SampleExclusionError(f"Observation excluded due to missing radar binHeight in {getattr(radar_grp, 'name', 'unnamed')}")
 
-                data_clean = (grid_data * grid_mask).view(1, target_depth, H, W)
-                mask_clean = grid_mask.view(1, target_depth, H, W)
-                echo_clean = grid_echo.view(1, target_depth, H, W)
+                        t_data = torch.from_numpy(norm_ku.astype(np.float32)).unsqueeze(0).unsqueeze(0)
+                        t_mask = torch.from_numpy(mask_ku).unsqueeze(0).unsqueeze(0)
+                        t_echo = torch.from_numpy(echo_ku).unsqueeze(0).unsqueeze(0)
+                        t_data_v = F.interpolate(t_data, size=(target_depth, n_scan, n_beam), mode="trilinear", align_corners=False).squeeze(0).squeeze(0)
+                        t_mask_v = F.interpolate(t_mask, size=(target_depth, n_scan, n_beam), mode="nearest").squeeze(0).squeeze(0)
+                        t_echo_v = F.interpolate(t_echo, size=(target_depth, n_scan, n_beam), mode="nearest").squeeze(0).squeeze(0)
+
+                        grid_data[:, is_valid_horiz] = t_data_v[:, scan_idx, beam_idx].numpy()
+                        grid_mask[:, is_valid_horiz] = t_mask_v[:, scan_idx, beam_idx].numpy()
+                        grid_echo[:, is_valid_horiz] = t_echo_v[:, scan_idx, beam_idx].numpy()
+
+                data_clean = torch.from_numpy(grid_data * grid_mask).view(1, target_depth, H, W)
+                mask_clean = torch.from_numpy(grid_mask).view(1, target_depth, H, W)
+                echo_clean = torch.from_numpy(grid_echo).view(1, target_depth, H, W)
                 is_valid = bool(mask_clean.sum() > 0)
                 return _format_return(data_clean, mask_clean, echo_clean, is_valid, source)
 
-        # 4. Clean fallback to nominal trilinear resizing (when coordinates unavailable)
-        if getattr(self, "strict_mode", False):
+        # 4. Geospatial policy enforcement on missing radar coordinates
+        if self.strict_mode or self.geospatial_policy == "raise":
             raise ValueError(f"Strict scientific mode failure: missing radar beam coordinate metadata in group {getattr(radar_grp, 'name', 'unnamed')}")
+        elif self.geospatial_policy == "exclude_modality":
+            return _format_return(empty_tensor, empty_mask, empty_echo, False, "excluded_missing_coords")
+        elif self.geospatial_policy == "exclude_sample":
+            raise SampleExclusionError(f"Observation excluded due to missing radar beam coordinates in {getattr(radar_grp, 'name', 'unnamed')}")
 
+        # Nominal fallback mode
         t_data = torch.from_numpy(norm_ku.astype(np.float32)).unsqueeze(0).unsqueeze(0)
         t_mask = torch.from_numpy(mask_ku).unsqueeze(0).unsqueeze(0)
         t_echo = torch.from_numpy(echo_ku).unsqueeze(0).unsqueeze(0)
 
         data_resized = F.interpolate(
             t_data, size=(target_depth, H, W), mode="trilinear", align_corners=False
-        ).squeeze(0)  # (1, D, H, W)
-
-        mask_resized = F.interpolate(
-            t_mask, size=(target_depth, H, W), mode="nearest"
-        ).squeeze(0)  # (1, D, H, W)
-
-        echo_resized = F.interpolate(
-            t_echo, size=(target_depth, H, W), mode="nearest"
-        ).squeeze(0)  # (1, D, H, W)
+        ).squeeze(0)
+        mask_resized = F.interpolate(t_mask, size=(target_depth, H, W), mode="nearest").squeeze(0)
+        echo_resized = F.interpolate(t_echo, size=(target_depth, H, W), mode="nearest").squeeze(0)
 
         data_clean = data_resized * mask_resized
         is_valid = bool(mask_resized.sum() > 0)
@@ -618,12 +773,18 @@ class TCPRIMEDDataset(Dataset):
                                     # Raw valid range check: [100, 360] K before arithmetic
                                     valid_ir = (~np.isnan(raw_ir)) & (raw_ir > -9000.0) & (raw_ir > 100.0) & (raw_ir < 360.0)
                                     norm_ir = np.where(valid_ir, np.clip((raw_ir - 170.0) / 150.0, 0.0, 1.0), np.nan)
-                                    ir_tensor, ir_pixel_mask, ir_src = self._resample_swath_with_coords(
-                                        norm_ir, ir_grp, storm_lat, storm_lon, (H, W), max_dist_km=15.0
+                                    ir_dist_thresh = self.resampling_thresholds.get("ir", 15.0)
+                                    t_ir, m_ir, ir_src = self._resample_swath_with_coords(
+                                        norm_ir, ir_grp, storm_lat, storm_lon, (H, W), max_dist_km=ir_dist_thresh
                                     )
-                                    if ir_pixel_mask.sum() == 0:
+                                    if m_ir.sum() > 0:
+                                        ir_tensor = t_ir
+                                        ir_pixel_mask = m_ir
+                                    else:
                                         has_ir = False
                             except Exception as e_ir:
+                                if self.strict_mode or self.geospatial_policy == "raise":
+                                    raise
                                 has_ir = False
                                 self._record_error(sample_id, storm_id, nc_path, group_path, "infrared", "IRWIN", str(e_ir))
 
@@ -632,6 +793,7 @@ class TCPRIMEDDataset(Dataset):
                             try:
                                 pmw_grp = curr_grp.groups["passive_microwave"]
                                 ch_map = SENSOR_PMW_CHANNEL_MAP.get(instrument, {})
+                                pmw_dist_thresh = self.resampling_thresholds.get("pmw", 35.0)
 
                                 for ch_idx in range(4):
                                     mapping = ch_map.get(ch_idx)
@@ -644,7 +806,7 @@ class TCPRIMEDDataset(Dataset):
                                             valid_tb = (~np.isnan(raw_tb)) & (raw_tb > -9000.0) & (raw_tb > 50.0) & (raw_tb < 360.0)
                                             norm_tb = np.where(valid_tb, np.clip((raw_tb - 100.0) / 220.0, 0.0, 1.0), np.nan)
                                             t_ch, m_ch, ch_src = self._resample_swath_with_coords(
-                                                norm_tb, sw_grp, storm_lat, storm_lon, (H, W), max_dist_km=35.0
+                                                norm_tb, sw_grp, storm_lat, storm_lon, (H, W), max_dist_km=pmw_dist_thresh
                                             )
                                             if m_ch.sum() > 0:
                                                 pmw_tensor[ch_idx] = t_ch.squeeze(0)
@@ -655,6 +817,8 @@ class TCPRIMEDDataset(Dataset):
                                 if pmw_channel_mask.sum() == 0:
                                     has_pmw = False
                             except Exception as e_pmw:
+                                if self.strict_mode or self.geospatial_policy == "raise":
+                                    raise
                                 has_pmw = False
                                 self._record_error(sample_id, storm_id, nc_path, group_path, "passive_microwave", "TB", str(e_pmw))
 
@@ -662,6 +826,7 @@ class TCPRIMEDDataset(Dataset):
                         if has_gprof and "GPROF" in curr_grp.groups:
                             try:
                                 gp_grp = curr_grp.groups["GPROF"]
+                                gp_dist_thresh = self.resampling_thresholds.get("gprof", 20.0)
                                 gprof_fields = [
                                     ("surfacePrecipitation", 0, 5.0),
                                     ("convectivePrecipitation", 1, 5.0),
@@ -675,7 +840,7 @@ class TCPRIMEDDataset(Dataset):
                                         valid_f = (~np.isnan(raw_f)) & (raw_f > -9000.0) & (raw_f >= 0.0)
                                         norm_f = np.where(valid_f, np.log1p(np.maximum(raw_f, 0.0)) / norm_scale, np.nan)
                                         t_f, m_f, f_src = self._resample_swath_with_coords(
-                                            norm_f, gp_grp, storm_lat, storm_lon, (H, W), max_dist_km=20.0
+                                            norm_f, gp_grp, storm_lat, storm_lon, (H, W), max_dist_km=gp_dist_thresh
                                         )
                                         if m_f.sum() > 0:
                                             gprof_tensor[fidx] = t_f.squeeze(0)
@@ -686,6 +851,8 @@ class TCPRIMEDDataset(Dataset):
                                 if gprof_channel_mask.sum() == 0:
                                     has_gprof = False
                             except Exception as e_gp:
+                                if self.strict_mode or self.geospatial_policy == "raise":
+                                    raise
                                 has_gprof = False
                                 self._record_error(sample_id, storm_id, nc_path, group_path, "GPROF", "precipitation", str(e_gp))
 
@@ -693,10 +860,11 @@ class TCPRIMEDDataset(Dataset):
                         if has_radar and "radar_radiometer" in curr_grp.groups:
                             try:
                                 rad_grp = curr_grp.groups["radar_radiometer"]
+                                rad_dist_thresh = self.resampling_thresholds.get("radar", 15.0)
                                 r_tensor, r_mask, r_echo, r_valid, rad_src = self._load_radar_volume(
                                     rad_grp, (H, W), target_depth=16,
                                     storm_lat=storm_lat, storm_lon=storm_lon,
-                                    max_dist_km=15.0,
+                                    max_dist_km=rad_dist_thresh,
                                     raw_sample_id=sample_id,
                                     raw_data_dir=getattr(self, "raw_data_dir", "data/raw/pilot"),
                                     echo_threshold_dbz=12.0,
@@ -711,6 +879,8 @@ class TCPRIMEDDataset(Dataset):
                                 else:
                                     has_radar = False
                             except Exception as e_rad:
+                                if self.strict_mode or self.geospatial_policy == "raise":
+                                    raise
                                 has_radar = False
                                 self._record_error(sample_id, storm_id, nc_path, group_path, "radar_radiometer", "Ku", str(e_rad))
                         else:
@@ -720,6 +890,7 @@ class TCPRIMEDDataset(Dataset):
                         if has_env and "environmental_synoptic" in curr_grp.groups:
                             try:
                                 env_grp = curr_grp.groups["environmental_synoptic"]
+                                env_dist_thresh = self.resampling_thresholds.get("env", 40.0)
                                 env_fields = [
                                     ("precipitable_water", 0, 80.0, 0.0),
                                     ("sst", 1, 35.0, 273.15),
@@ -735,7 +906,7 @@ class TCPRIMEDDataset(Dataset):
                                         valid_e = (~np.isnan(raw_e)) & (raw_e > -9000.0) & (raw_e != -32768)
                                         norm_e = np.where(valid_e, (raw_e - foffset) / fscale, np.nan)
                                         t_e, m_e, e_src = self._resample_swath_with_coords(
-                                            norm_e, env_grp, storm_lat, storm_lon, (H, W), max_dist_km=40.0
+                                            norm_e, env_grp, storm_lat, storm_lon, (H, W), max_dist_km=env_dist_thresh
                                         )
                                         if m_e.sum() > 0:
                                             env_tensor[fidx] = t_e.squeeze(0)
@@ -746,16 +917,18 @@ class TCPRIMEDDataset(Dataset):
                                 if env_channel_mask.sum() == 0:
                                     has_env = False
                             except Exception as e_env:
+                                if self.strict_mode or self.geospatial_policy == "raise":
+                                    raise
                                 has_env = False
                                 self._record_error(sample_id, storm_id, nc_path, group_path, "environmental_synoptic", "env", str(e_env))
 
             except Exception as e_top:
                 self._record_error(sample_id, storm_id, nc_path, group_path, "container", "open", str(e_top))
-                if self.strict_mode:
+                if self.strict_mode or self.geospatial_policy == "raise":
                     raise RuntimeError(f"Strict mode failure loading container {nc_path}: {e_top}")
         else:
             self._record_error(sample_id, storm_id, nc_path, group_path, "filesystem", "missing", "Container path does not exist")
-            if self.strict_mode:
+            if self.strict_mode or self.geospatial_policy == "raise":
                 raise FileNotFoundError(f"Container not found: {nc_path}")
 
         # Current storm coordinates

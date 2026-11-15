@@ -166,15 +166,10 @@ class DatasetInventory:
                         fp = os.path.join(dirpath, fname)
                         raw_records.append((fp, os.path.getsize(fp)))
 
-        # Process and filter records
-        self.files = []
-        self.storms = defaultdict(lambda: {
-            "storm_id": "",
-            "season": 0,
-            "basin": "",
-            "overpass_files": [],
-            "env_file": None,
-        })
+        # Group all valid candidate records by storm_id first to preserve complete lifecycles
+        records_by_storm = defaultdict(list)
+        storm_basins = {}
+        storm_seasons = {}
 
         for fpath, fsize in raw_records:
             meta = parse_filename_metadata(fpath)
@@ -184,18 +179,8 @@ class DatasetInventory:
             sid = meta["storm_id"]
             basin = meta["basin"]
             season = meta["season"]
-
-            # Apply filters
-            if self.config.dataset.include_storms and sid not in self.config.dataset.include_storms:
-                continue
-            if self.config.dataset.exclude_storms and sid in self.config.dataset.exclude_storms:
-                continue
-            if self.config.dataset.include_basins and basin not in self.config.dataset.include_basins:
-                continue
-            if self.config.dataset.date_start and meta["timestamp_str"] and meta["timestamp_str"][:8] < self.config.dataset.date_start:
-                continue
-            if self.config.dataset.date_end and meta["timestamp_str"] and meta["timestamp_str"][:8] > self.config.dataset.date_end:
-                continue
+            storm_basins[sid] = basin
+            storm_seasons[sid] = season
 
             record = {
                 "file_path": fpath,
@@ -212,16 +197,70 @@ class DatasetInventory:
                 "timestamp_str": meta["timestamp_str"],
                 "observation_time_utc": meta["observation_time_utc"],
             }
-            self.files.append(record)
+            records_by_storm[sid].append((record, meta))
 
+        self.files = []
+        self.storms = defaultdict(lambda: {
+            "storm_id": "",
+            "season": 0,
+            "basin": "",
+            "overpass_files": [],
+            "env_file": None,
+            "outside_date_window_count": 0,
+        })
+
+        # Apply storm-level selection preserving complete cyclone lifecycles
+        for sid, rec_list in records_by_storm.items():
+            basin = storm_basins.get(sid, "UN")
+            season = storm_seasons.get(sid, 0)
+
+            # Storm-level filters
+            if self.config.dataset.include_storms and sid not in self.config.dataset.include_storms:
+                continue
+            if self.config.dataset.exclude_storms and sid in self.config.dataset.exclude_storms:
+                continue
+            if self.config.dataset.include_basins and basin not in self.config.dataset.include_basins:
+                continue
+
+            # Lifecycle date overlap filter: storm is selected if its lifecycle intersects [date_start, date_end]
+            op_dates = [
+                meta["timestamp_str"][:8]
+                for rec, meta in rec_list
+                if (not meta["is_environmental"]) and meta.get("timestamp_str")
+            ]
+            if op_dates:
+                storm_min_date = min(op_dates)
+                storm_max_date = max(op_dates)
+                if self.config.dataset.date_start and storm_max_date < self.config.dataset.date_start:
+                    continue
+                if self.config.dataset.date_end and storm_min_date > self.config.dataset.date_end:
+                    continue
+
+            # Complete lifecycle preservation: retain all overpass files and environmental data for selected storm
             st = self.storms[sid]
             st["storm_id"] = sid
             st["season"] = season
             st["basin"] = basin
-            if meta["is_environmental"]:
-                st["env_file"] = record
-            else:
-                st["overpass_files"].append(record)
+
+            for record, meta in rec_list:
+                # Check if observation falls outside requested date window for audit reporting
+                ts = meta.get("timestamp_str")
+                if ts and len(ts) >= 8:
+                    d_str = ts[:8]
+                    if (self.config.dataset.date_start and d_str < self.config.dataset.date_start) or \
+                       (self.config.dataset.date_end and d_str > self.config.dataset.date_end):
+                        record["outside_date_window"] = True
+                        st["outside_date_window_count"] += 1
+                    else:
+                        record["outside_date_window"] = False
+                else:
+                    record["outside_date_window"] = False
+
+                self.files.append(record)
+                if meta["is_environmental"]:
+                    st["env_file"] = record
+                else:
+                    st["overpass_files"].append(record)
 
         return self
 

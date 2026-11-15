@@ -54,3 +54,19 @@ The following risks from previous phases are fully resolved:
 ## 4. Conclusion and Readiness Assessment
 
 The TC-GraphFormer architectural and data pipeline on branch `fix/phase2e2-physical-token-integration` is robust, mathematically consistent, and scientifically sound. All 10 priorities of Phase 2E.2 have been successfully satisfied and verified by 159 passing unit/integration tests with 0 failures and 0 errors. The codebase is fully prepared for scale-up to full-dataset pretraining and operational evaluation.
+
+---
+
+## 5. Post-Phase 2E.3 Reconciliation Note (2026-11-15)
+
+In **Phase 2E.3** (branch `fix/phase2e3-scientific-correctness`), the remaining mathematical and engineering risks have been closed:
+1. **Receptive Field Offset:** Eliminated the $7.8125\text{ km}$ offset between 2D convolution feature receptive field centers ($31.25\text{ km}$ spacing) and naive 32-cell grid centers via centralized `GridGeometry`.
+2. **Physical Sector Area Threshold:** `PolarSectorPooling` enforces $\ge 5\%$ true physical area coverage based on exact geometric sector areas ($A_{\text{valid}} / A_{\text{sector}}$) across canonical rings `[0, 75, 175, 300, 500]` km.
+3. **Linear & LayerNorm Bias Suppression:** Gating output nodes by `node_validity` in `SpatialAggregator` and `PolarSectorPooling` strictly suppresses projection bias revival for unobserved sectors.
+4. **All-Invalid Graph Safety:** `SpatialGraphEncoder` handles completely invalid graphs with zero vector return, ensuring zero NaNs, zero Infs, and valid backward gradients.
+5. **Radar CAPPI Resampling:** Resamples radar vertical columns along actual `binHeight` in km to 16 CAPPI levels ($0.5\text{ to }19.5\text{ km}$) with no extrapolation, decoupling measurement validity ($-20\text{ to }100\text{ dBZ}$) from echo classification ($\ge 12\text{ dBZ}$).
+6. **Geospatial Quality Policy:** Fully configurable via `geospatial_policy` (`"raise"`, `"exclude_modality"`, `"exclude_sample"`, `"nominal_fallback"`).
+7. **Storage Schema Versioning:** StorageWriter enforces schema `"2.3.0"` and radar vertical convention `"physical_cappi_km"`, rejecting stale containers.
+8. **Inventory Lifecycle Preservation:** Overpass and environmental files are selected by storm lifecycle overlap, preventing date-window lifecycle truncation.
+9. **Baseline Disambiguation:** True Persistence ($\Delta V = 0$) and Training Climatology evaluated side-by-side on identical target masks with pure NumPy PR-AUC and Brier calculations.
+10. **Verification:** 171/171 tests passed (100%), full 2,599 observation audit completed with zero defects, and active radar learning confirmed (`radar_encoder` gradient norm = 2.954607).

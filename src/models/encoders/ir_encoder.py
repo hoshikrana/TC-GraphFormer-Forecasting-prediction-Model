@@ -62,6 +62,8 @@ class IREncoder(nn.Module):
         Returns: (B, d_model, H/2, W/2)
         """
         if pixel_mask is not None:
+            if pixel_mask.dim() == 3:
+                pixel_mask = pixel_mask.unsqueeze(1)
             x = x * pixel_mask
         out = self.stem(x)
         out = self.layer1(out)

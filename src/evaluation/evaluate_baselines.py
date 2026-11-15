@@ -13,6 +13,7 @@ Generates:
 import os
 import sys
 import math
+from typing import Tuple, Dict, Any, List, Optional
 import numpy as np
 import pandas as pd
 import torch
@@ -35,6 +36,39 @@ def haversine_distance_km(lat1, lon1, lat2, lon2):
     a = np.sin(dphi / 2.0)**2 + np.cos(phi1) * np.cos(phi2) * np.sin(dlambda / 2.0)**2
     c = 2.0 * np.arctan2(np.sqrt(a), np.sqrt(1.0 - a))
     return R * c
+
+
+def compute_pr_auc_and_brier(y_true: np.ndarray, y_prob: np.ndarray) -> Tuple[float, float, float, float]:
+    """
+    Computes PR-AUC, Brier score, precision at default threshold 0.5, and recall at threshold 0.5
+    using pure NumPy without external sklearn dependencies.
+    """
+    if len(y_true) == 0 or np.sum(y_true) == 0:
+        return 0.0, 0.0, 0.0, 0.0
+
+    brier = float(np.mean((y_prob - y_true) ** 2))
+    pred_binary = (y_prob >= 0.5).astype(float)
+    tp = float(np.sum((pred_binary == 1.0) & (y_true == 1.0)))
+    fp = float(np.sum((pred_binary == 1.0) & (y_true == 0.0)))
+    fn = float(np.sum((pred_binary == 0.0) & (y_true == 1.0)))
+    prec_at_50 = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    rec_at_50 = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+
+    # Sort descending by predicted probability
+    order = np.argsort(-y_prob)
+    y_true_sorted = y_true[order]
+    tps = np.cumsum(y_true_sorted)
+    fps = np.cumsum(1.0 - y_true_sorted)
+    total_pos = float(np.sum(y_true))
+
+    recalls = tps / (total_pos + 1e-6)
+    precisions = tps / (tps + fps + 1e-6)
+
+    # Prepend (recall=0, precision=first precision) and append (recall=1, precision=baseline)
+    r_padded = np.concatenate([[0.0], recalls])
+    p_padded = np.concatenate([[precisions[0]], precisions])
+    pr_auc = float(np.sum((r_padded[1:] - r_padded[:-1]) * p_padded[1:]))
+    return round(pr_auc, 4), round(brier, 4), round(prec_at_50, 4), round(rec_at_50, 4)
 
 
 def evaluate_all(
@@ -220,19 +254,27 @@ def evaluate_all(
             "notes": f"Accuracy: {acc_nn:.2f}%"
         })
 
-        # --- D. Multi-Horizon Intensity Change ---
-        nn_dv_matrix = np.array(nn_dv_preds) # (N, 4)
+        # --- D. Multi-Horizon Intensity Change & True Persistence vs Climatology ---
+        nn_dv_matrix = np.array(nn_dv_preds)  # (N, 4)
         for h_idx, h in enumerate([6, 12, 18, 24]):
             col = f"intensity_change_{h}h_kt"
             valid_mask = part_df[col].notna()
             dv_true = part_df.loc[valid_mask, col].values
-            
-            # Persistence: predict 0.0 kt (no intensity change)
+            n_targets = len(dv_true)
+
+            # 1. True Persistence Baseline: predict no change (future V(t+h) == current V(t))
             dv_pred_zero = np.zeros_like(dv_true)
             mae_zero = float(np.mean(np.abs(dv_pred_zero - dv_true)))
             rmse_zero = float(np.sqrt(np.mean((dv_pred_zero - dv_true)**2)))
 
-            # Neural model
+            # 2. Climatology Baseline: predict training mean intensity change at horizon h
+            col_train = train_df[col].dropna()
+            clim_mean_dv = float(col_train.mean()) if len(col_train) > 0 else 0.0
+            dv_pred_clim = np.full_like(dv_true, clim_mean_dv)
+            mae_clim = float(np.mean(np.abs(dv_pred_clim - dv_true)))
+            rmse_clim = float(np.sqrt(np.mean((dv_pred_clim - dv_true)**2)))
+
+            # 3. TC-GraphFormer
             dv_pred_nn_h = nn_dv_matrix[valid_mask.values, h_idx]
             mae_nn = float(np.mean(np.abs(dv_pred_nn_h - dv_true)))
             rmse_nn = float(np.sqrt(np.mean((dv_pred_nn_h - dv_true)**2)))
@@ -240,12 +282,47 @@ def evaluate_all(
             horizon_records.append({
                 "partition": part_name,
                 "horizon_hours": h,
-                "n_valid_targets": len(dv_true),
+                "n_valid_targets": n_targets,
                 "persistence_mae_kt": round(mae_zero, 2),
                 "persistence_rmse_kt": round(rmse_zero, 2),
+                "climatology_mae_kt": round(mae_clim, 2),
+                "climatology_rmse_kt": round(rmse_clim, 2),
                 "tc_graphformer_mae_kt": round(mae_nn, 2),
                 "tc_graphformer_rmse_kt": round(rmse_nn, 2),
-                "improvement_kt": round(mae_zero - mae_nn, 2)
+                "improvement_over_persist_kt": round(mae_zero - mae_nn, 2),
+                "improvement_over_clim_kt": round(mae_clim - mae_nn, 2),
+            })
+
+        # --- D2. Rapid Intensification (24h RI >= 30 kt) Classification Metrics ---
+        ri_valid_mask = part_df["is_rapid_intensification_24h"].notna()
+        ri_true = part_df.loc[ri_valid_mask, "is_rapid_intensification_24h"].values.astype(float)
+        ri_prob = np.array(nn_ri_probs)[ri_valid_mask.values]
+
+        if len(ri_true) > 0 and np.sum(ri_true) > 0:
+            pr_auc, brier, prec_50, rec_50 = compute_pr_auc_and_brier(ri_true, ri_prob)
+            clim_rate = float(train_df["is_rapid_intensification_24h"].dropna().mean())
+            clim_prob = np.full_like(ri_true, clim_rate)
+            clim_pr_auc, clim_brier, clim_p50, clim_r50 = compute_pr_auc_and_brier(ri_true, clim_prob)
+
+            baseline_records.append({
+                "partition": part_name,
+                "task": "Rapid Intensification (24h >= 30kt)",
+                "model": "Training Climatology (Base Rate)",
+                "n_samples": len(ri_true),
+                "mae": round(clim_brier, 4),  # Brier score
+                "rmse": round(float(np.sqrt(clim_brier)), 4),
+                "bias": 0.0,
+                "notes": f"PR-AUC: {clim_pr_auc:.4f}, Base Rate: {clim_rate:.3f}"
+            })
+            baseline_records.append({
+                "partition": part_name,
+                "task": "Rapid Intensification (24h >= 30kt)",
+                "model": "TC-GraphFormer",
+                "n_samples": len(ri_true),
+                "mae": round(brier, 4),  # Brier score
+                "rmse": round(float(np.sqrt(brier)), 4),
+                "bias": 0.0,
+                "notes": f"PR-AUC: {pr_auc:.4f}, Prec@0.5: {prec_50:.4f}, Rec@0.5: {rec_50:.4f}"
             })
 
         # --- E. Future Track Persistence ---

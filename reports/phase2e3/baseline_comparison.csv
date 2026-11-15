@@ -1,0 +1,21 @@
+partition,task,model,n_samples,mae,rmse,bias,notes
+VAL,Current Intensity (v_max),Climatology (Mean),612,15.73,22.76,-2.17,kt units
+VAL,Current Intensity (v_max),Linear Regression,612,15.53,22.64,-2.96,kt units
+VAL,Current Intensity (v_max),TC-GraphFormer,612,40.43,46.35,-40.43,kt units
+VAL,Central Pressure (p_min),Climatology (Mean),476,9.11,11.45,1.12,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+VAL,Central Pressure (p_min),Linear Pressure-Wind Fit,476,5.1,6.52,1.1,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+VAL,Central Pressure (p_min),TC-GraphFormer,476,996.06,996.12,-996.06,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+VAL,Development Stage,Majority Class (TS),612,57.52,0.0,0.0,Accuracy: 42.48%
+VAL,Development Stage,TC-GraphFormer,612,68.46,0.0,0.0,Accuracy: 31.54%
+VAL,Rapid Intensification (24h >= 30kt),Training Climatology (Base Rate),428,0.0339,0.1841,0.0,"PR-AUC: 0.0312, Base Rate: 0.029"
+VAL,Rapid Intensification (24h >= 30kt),TC-GraphFormer,428,0.2256,0.475,0.0,"PR-AUC: 0.0321, Prec@0.5: 0.0123, Rec@0.5: 0.0667"
+TEST,Current Intensity (v_max),Climatology (Mean),245,12.31,17.08,6.02,kt units
+TEST,Current Intensity (v_max),Linear Regression,245,12.75,18.81,4.97,kt units
+TEST,Current Intensity (v_max),TC-GraphFormer,245,32.24,35.98,-32.24,kt units
+TEST,Central Pressure (p_min),Climatology (Mean),172,7.11,7.48,-5.79,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+TEST,Central Pressure (p_min),Linear Pressure-Wind Fit,172,2.87,3.84,0.3,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+TEST,Central Pressure (p_min),TC-GraphFormer,172,1002.96,1002.97,-1002.96,hPa units (Note: TC-GraphFormer initial bias unadjusted without extended training)
+TEST,Development Stage,Majority Class (TS),245,77.55,0.0,0.0,Accuracy: 22.45%
+TEST,Development Stage,TC-GraphFormer,245,54.69,0.0,0.0,Accuracy: 45.31%
+TEST,Rapid Intensification (24h >= 30kt),Training Climatology (Base Rate),113,0.0092,0.0959,0.0,"PR-AUC: 0.0169, Base Rate: 0.029"
+TEST,Rapid Intensification (24h >= 30kt),TC-GraphFormer,113,0.2178,0.4667,0.0,"PR-AUC: 0.0088, Prec@0.5: 0.0000, Rec@0.5: 0.0000"

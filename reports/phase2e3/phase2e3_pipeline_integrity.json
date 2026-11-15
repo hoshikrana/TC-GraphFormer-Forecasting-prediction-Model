@@ -1,0 +1,53 @@
+{
+  "status": "SUCCESS",
+  "phase": "Phase 2E.3",
+  "timestamp_utc": "2026-11-15T09:09:04Z",
+  "schema_version": "2.3.0",
+  "radar_vertical_convention": "physical_cappi_km",
+  "grid_specification": "64x64_15.625km_cell_centered",
+  "feature_grid_specification": "32x32_31.25km_receptive_field_centered",
+  "polar_sectors": 16,
+  "polar_rings_km": [
+    0,
+    75,
+    175,
+    300,
+    500
+  ],
+  "min_sector_coverage_threshold": 0.05,
+  "total_pilot_observations": 2599,
+  "invalid_tensors_count": 0,
+  "shape_mismatch_count": 0,
+  "processing_errors_count": 0,
+  "modality_counts": {
+    "ir": 2262,
+    "pmw": 2247,
+    "gprof": 2595,
+    "radar": 75,
+    "env": 2521
+  },
+  "modality_percentages": {
+    "ir": 87.03,
+    "pmw": 86.46,
+    "gprof": 99.85,
+    "radar": 2.89,
+    "env": 97.0
+  },
+  "radar_observations_audited": 76,
+  "radar_total_valid_voxels": 14024,
+  "radar_total_echo_voxels": 13616,
+  "radar_echo_fraction": 0.9709,
+  "model_gradient_norms": {
+    "ir_encoder": 3.340783,
+    "pmw_encoder": 4.535266,
+    "gprof_encoder": 2.879015,
+    "radar_encoder": 2.954607,
+    "env_encoder": 3.176214,
+    "fusion": 3.896943,
+    "spatial_aggregator": 14.098198,
+    "spatial_graph": 2.298577,
+    "temporal_transformer": 5.952555,
+    "task_heads": 7.878052
+  },
+  "test_suite_status": "171/171 tests passed (100%)"
+}

@@ -72,7 +72,7 @@ Every observation in `sample_index.csv` ($N = 2599$) was dereferenced and verifi
 | **AMSUB** | SMP_AL022001_AMSUB_NOAA16_20010711162751 | AL022001 | [0.0, 0.0, 0.0, 1.0] | No | Yes | 2911.74 |
 | **MHS** | SMP_AL022021_MHS_METOPB_20210614013814 | AL022021 | [0.0, 0.0, 0.0, 1.0] | No | Yes | 2429.27 |
 
-- **Radar Radiometer Loading:** Verified on `SMP_AL022021_GMI_GPM_20210614123541`. Ku reflectivity profile `(88, 373, 49)` interpolated to `(1, 16, 32, 32)` with 267 valid voxels preserved and max normalized dBZ of `0.645`.
+- **Radar Radiometer Loading:** Verified on `SMP_AL022021_GMI_GPM_20210614123541`. Ku reflectivity profile `(88, 373, 49)` interpolated to `(1, 16, 32, 32)` with 255 valid voxels preserved and max normalized dBZ of `0.529`.
 - **Radar-Absent Verification:** Verified on no-radar overpasses; radar tensor is strictly zero and `modality_masks[3] == 0.0`.
 
 ---
@@ -85,7 +85,7 @@ Every observation in `sample_index.csv` ($N = 2599$) was dereferenced and verifi
   - Step 0: `SMP_AL022021_SSMIS_F18_20210614093137` (SSMIS) at `2021-06-14 09:31:37 UTC` (Delta-t:  0.00h) — No radar
   - Step 1: `SMP_AL022021_SSMIS_F16_20210614100848` (SSMIS) at `2021-06-14 10:08:48 UTC` (Delta-t:  0.62h) — No radar
   - Step 2: `SMP_AL022021_SSMIS_F17_20210614122616` (SSMIS) at `2021-06-14 12:26:16 UTC` (Delta-t:  2.91h) — No radar
-  - Step 3: `SMP_AL022021_GMI_GPM_20210614123541` (GMI) at `2021-06-14 12:35:41 UTC` (Delta-t:  3.07h) — RADAR PRESENT (267 valid voxels)
+  - Step 3: `SMP_AL022021_GMI_GPM_20210614123541` (GMI) at `2021-06-14 12:35:41 UTC` (Delta-t:  3.07h) — RADAR PRESENT (255 valid voxels)
 
 ---
 
@@ -111,16 +111,16 @@ All 10 modules, including `radar_encoder`, received valid autograd signals witho
 
 | Architecture Component | L2 Gradient Norm | Training Status | Active Verification |
 | :--- | :--- | :--- | :--- |
-| `ir_encoder` | `3.800037` | Updated | > 0.0 Verified |
-| `pmw_encoder` | `4.365664` | Updated | > 0.0 Verified |
-| `gprof_encoder` | `3.154999` | Updated | > 0.0 Verified |
-| `radar_encoder` | `3.132727` | Updated | **> 0.0 Confirmed (Active Radar Learning)** |
-| `env_encoder` | `3.418067` | Updated | > 0.0 Verified |
-| `cross_modal_fusion` | `4.401495` | Updated | > 0.0 Verified |
-| `spatial_aggregator` | `16.635252` | Updated | > 0.0 Verified |
-| `spatial_graph_mpnn` | `2.202494` | Updated | > 0.0 Verified |
-| `temporal_transformer` | `5.431332` | Updated | > 0.0 Verified |
-| `task_prediction_heads` | `7.884783` | Updated | > 0.0 Verified |
+| `ir_encoder` | `3.340783` | Updated | > 0.0 Verified |
+| `pmw_encoder` | `4.535266` | Updated | > 0.0 Verified |
+| `gprof_encoder` | `2.879015` | Updated | > 0.0 Verified |
+| `radar_encoder` | `2.954607` | Updated | **> 0.0 Confirmed (Active Radar Learning)** |
+| `env_encoder` | `3.176214` | Updated | > 0.0 Verified |
+| `cross_modal_fusion` | `3.896943` | Updated | > 0.0 Verified |
+| `spatial_aggregator` | `14.098198` | Updated | > 0.0 Verified |
+| `spatial_graph_mpnn` | `2.298577` | Updated | > 0.0 Verified |
+| `temporal_transformer` | `5.952555` | Updated | > 0.0 Verified |
+| `task_prediction_heads` | `7.878052` | Updated | > 0.0 Verified |
 
 ---
 
