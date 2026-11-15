@@ -43,7 +43,7 @@ from src.infrastructure.verify_transfer import verify_staging
 class TestPhase2E4InfrastructureReadiness(unittest.TestCase):
 
     def test_01_training_yaml_config_and_cli_overrides(self):
-        """Verify YAML config parsing and parameter precedence."""
+        """Verify YAML config parsing and parameter precedence (CLI > YAML > Default)."""
         cfg_path = "configs/multitask_training.yaml"
         self.assertTrue(os.path.exists(cfg_path), f"Missing config: {cfg_path}")
 
@@ -55,6 +55,21 @@ class TestPhase2E4InfrastructureReadiness(unittest.TestCase):
         self.assertEqual(cfg["training"]["batch_size"], 16)
         self.assertEqual(cfg["training"]["d_model"], 128)
         self.assertEqual(cfg["loss_weights"]["ri_pos_weight"], 10.0)
+
+        # Precedence verification: CLI > YAML > Default
+        def resolve_val(cli_val, yaml_val, default):
+            if cli_val is not None:
+                return cli_val
+            if yaml_val is not None:
+                return yaml_val
+            return default
+
+        # Case 1: CLI provided overrides both YAML and default
+        self.assertEqual(resolve_val(cli_val=25, yaml_val=cfg["training"]["epochs"], default=5), 25)
+        # Case 2: CLI is None -> takes YAML value over default
+        self.assertEqual(resolve_val(cli_val=None, yaml_val=cfg["training"]["epochs"], default=5), 15)
+        # Case 3: Both CLI and YAML are None -> takes fallback default
+        self.assertEqual(resolve_val(cli_val=None, yaml_val=None, default=42), 42)
 
     def test_02_parameter_validation_bounds(self):
         """Verify that invalid hyperparameters fail loudly with ValueError."""

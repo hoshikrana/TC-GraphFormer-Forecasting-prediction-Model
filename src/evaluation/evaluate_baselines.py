@@ -1,22 +1,23 @@
 """
-Comprehensive Baseline and Model Evaluation Engine for TC-GraphFormer (Phase 2E.4).
+Comprehensive Baseline and Model Evaluation Engine for TC-GraphFormer (Phase 2E.4.1).
 Evaluates:
 1. Climatology and Persistence Baselines (Wind, Pressure, Stage, Intensity Change, RI Base Rate, Track)
 2. Tabular Linear Baselines (Fitted strictly on TRAIN partition)
 3. TC-GraphFormer Neural Model (in historical sequence or single-obs mode)
 
 Outputs:
-- reports/phase2e/baseline_comparison.csv
-- reports/phase2e/task_metrics_by_horizon.csv
-- reports/phase2e/basin_evaluation.csv
-- reports/phase2e/evaluation_summary.json
+- reports/phase2e4/baseline_comparison.csv
+- reports/phase2e4/task_metrics_by_horizon.csv
+- reports/phase2e4/basin_evaluation.csv
+- reports/phase2e4/evaluation_summary.json
 
 Enforces:
 - Geodesic / Euclidean track displacement errors in kilometers (km)
-- Intensity errors in knots (kt)
-- Pressure errors in hectopascals (hPa)
-- Strict checkpoint validation: explicitly marks whether weights are trained or random smoke-test
-- Masked loss and target handling for all prediction horizons
+- Persistence RMSE is strictly root-mean-squared error (median error reported separately)
+- Track climatology baseline fitted strictly on TRAIN valid displacement vectors (never 0.0 placeholder)
+- Missing targets (n=0) reported as null/None rather than 0.0
+- Strict checkpoint validation: explicitly requires --smoke-test for untrained or partial checkpoints
+- Intensity errors in knots (kt), pressure errors in hectopascals (hPa)
 """
 
 import os
@@ -32,7 +33,12 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from src.data.dataset import TCPRIMEDDataset, TCPRIMEDSequenceDataset, STAGE_MAPPING_CANONICAL
+from src.data.dataset import (
+    TCPRIMEDDataset,
+    TCPRIMEDSequenceDataset,
+    STAGE_MAPPING_CANONICAL,
+    compute_tangent_plane_displacement_km,
+)
 from src.data.collate import collate_multimodal_batch, collate_sequence_batch
 from src.models.tc_graphformer import TCGraphFormer
 
@@ -83,24 +89,111 @@ def compute_pr_auc_and_brier(y_true: np.ndarray, y_prob: np.ndarray) -> Tuple[fl
     return round(pr_auc, 4), round(brier, 4), round(prec_at_50, 4), round(rec_at_50, 4)
 
 
+def compute_train_track_climatology(
+    sample_index_csv: str,
+) -> Dict[int, Optional[Tuple[float, float]]]:
+    """
+    Compute mean valid training displacement vectors (mean_dx, mean_dy) in km
+    for each horizon [6, 12, 18, 24] strictly from the TRAIN partition.
+    Returns None for horizons where training targets are unavailable.
+    """
+    if not os.path.exists(sample_index_csv):
+        return {h: None for h in [6, 12, 18, 24]}
+
+    df = pd.read_csv(sample_index_csv)
+    train_df = df[df["partition"] == "TRAIN"]
+    if len(train_df) == 0:
+        return {h: None for h in [6, 12, 18, 24]}
+
+    clim_displacements = {h: [] for h in [6, 12, 18, 24]}
+
+    # Check if coordinates are in CSV or need NetCDF lookup
+    has_cur_coords = ("storm_latitude" in train_df.columns and "storm_longitude" in train_df.columns)
+
+    if has_cur_coords:
+        for h in [6, 12, 18, 24]:
+            lat_col, lon_col = f"future_lat_{h}h", f"future_lon_{h}h"
+            valid_m = (
+                train_df[lat_col].notna()
+                & train_df[lon_col].notna()
+                & train_df["storm_latitude"].notna()
+                & train_df["storm_longitude"].notna()
+            )
+            for _, r in train_df[valid_m].iterrows():
+                dx, dy = compute_tangent_plane_displacement_km(
+                    float(r["storm_latitude"]), float(r["storm_longitude"]),
+                    float(r[lat_col]), float(r[lon_col]),
+                )
+                clim_displacements[h].append((dx, dy))
+    else:
+        # Resolve from NetCDF containers if available
+        import netCDF4 as nc
+        container_groups = train_df.groupby("processed_container_path")
+        for nc_p, grp_df in container_groups:
+            if not os.path.exists(nc_p):
+                continue
+            try:
+                with nc.Dataset(nc_p, "r") as root:
+                    for _, row in grp_df.iterrows():
+                        g_name = row["container_group_path"].split("/")[-1]
+                        if "overpasses" in root.groups and g_name in root.groups["overpasses"].groups:
+                            tgt = root.groups["overpasses"].groups[g_name].groups["targets"]
+                            c_lat = float(tgt.variables["storm_latitude"][:])
+                            c_lon = float(tgt.variables["storm_longitude"][:])
+                            for h in [6, 12, 18, 24]:
+                                f_lat = row.get(f"future_lat_{h}h")
+                                f_lon = row.get(f"future_lon_{h}h")
+                                if (
+                                    not pd.isna(f_lat)
+                                    and not pd.isna(f_lon)
+                                    and not np.isnan(c_lat)
+                                    and not np.isnan(c_lon)
+                                ):
+                                    dx, dy = compute_tangent_plane_displacement_km(
+                                        c_lat, c_lon, float(f_lat), float(f_lon)
+                                    )
+                                    clim_displacements[h].append((dx, dy))
+            except Exception:
+                pass
+
+    climatology_vectors = {}
+    for h in [6, 12, 18, 24]:
+        arr = clim_displacements[h]
+        if len(arr) > 0:
+            arr_np = np.array(arr)
+            climatology_vectors[h] = (float(arr_np[:, 0].mean()), float(arr_np[:, 1].mean()))
+        else:
+            climatology_vectors[h] = None
+
+    return climatology_vectors
+
+
 def load_model_for_evaluation(
     checkpoint_path: Optional[str] = None,
     d_model: int = 128,
-    strict: bool = False,
+    strict: bool = True,
+    smoke_test: bool = False,
     device: str = "cpu",
 ) -> Tuple[TCGraphFormer, Dict[str, Any]]:
     """
-    Load TCGraphFormer model and validate checkpoint compatibility.
-    Never silently assumes an untrained model is trained.
+    Load TCGraphFormer model and validate checkpoint compatibility and training provenance.
+    Fails loudly if checkpoint is untrained or incomplete unless smoke_test=True.
     """
     model = TCGraphFormer(d_model=d_model, num_stages=5).to(device)
     model.eval()
 
     if checkpoint_path is None or not os.path.exists(checkpoint_path):
+        if not smoke_test:
+            raise FileNotFoundError(
+                f"Trained checkpoint not found at: '{checkpoint_path}'. "
+                f"Valid trained weights are required for model evaluation. "
+                f"Pass --smoke-test to execute a forward-pass test with random initialization."
+            )
         status = {
             "is_trained": False,
             "checkpoint_path": checkpoint_path,
-            "status": "untrained_random_init",
+            "status": "smoke_test_missing_checkpoint",
+            "model_label": "TC-GraphFormer (Smoke-Test Untrained - Not Forecasting Skill)",
             "message": "No checkpoint supplied or file not found. Running random initialization for verification only.",
             "matched_keys": 0,
             "total_keys": len(model.state_dict()),
@@ -123,20 +216,47 @@ def load_model_for_evaluation(
                 mismatches.append(k)
 
     missing = sorted(list(model_keys - set(matched.keys())))
+    is_compatible = (len(missing) == 0 and len(mismatches) == 0)
 
-    if strict and (len(missing) > 0 or len(mismatches) > 0):
+    # Verifiable training provenance check
+    has_training_provenance = (
+        ckpt.get("is_trained") is True
+        or ckpt.get("provenance", {}).get("is_trained") is True
+        or (
+            is_compatible
+            and ckpt.get("epoch", 0) >= 1
+            and ckpt.get("optimizer_state_dict") is not None
+            and ckpt.get("metrics") is not None
+        )
+    )
+
+    is_qualified_trained = is_compatible and has_training_provenance
+
+    if strict and not is_qualified_trained and not smoke_test:
         raise ValueError(
-            f"Strict checkpoint validation failed for {checkpoint_path}! "
-            f"Missing keys: {len(missing)}, Shape mismatches: {len(mismatches)}"
+            f"Checkpoint '{checkpoint_path}' does not qualify as a valid trained model! "
+            f"Compatible parameters: {is_compatible} ({len(matched)}/{len(model_keys)}), "
+            f"Training provenance: {has_training_provenance}. "
+            f"Pass --smoke-test to run pipeline verification with an untrained or partial checkpoint."
         )
 
     model.load_state_dict(matched, strict=False)
-    is_trained = (len(matched) == len(model_keys))
+
+    if is_qualified_trained:
+        status_name = "trained_checkpoint"
+        model_label = "TC-GraphFormer"
+    elif is_compatible:
+        status_name = "smoke_test_untrained"
+        model_label = "TC-GraphFormer (Smoke-Test Untrained - Not Forecasting Skill)"
+    else:
+        status_name = "smoke_test_partial"
+        model_label = "TC-GraphFormer (Smoke-Test Partial - Not Forecasting Skill)"
 
     status = {
-        "is_trained": is_trained,
+        "is_trained": is_qualified_trained,
         "checkpoint_path": checkpoint_path,
-        "status": "trained_checkpoint" if is_trained else "partially_matched_checkpoint",
+        "status": status_name,
+        "model_label": model_label,
         "matched_keys": len(matched),
         "total_keys": len(model_keys),
         "missing_keys_count": len(missing),
@@ -144,7 +264,12 @@ def load_model_for_evaluation(
         "epoch": ckpt.get("epoch", None),
         "metrics": ckpt.get("metrics", {}),
     }
-    print(f"[EVAL] Checkpoint '{checkpoint_path}' loaded: {len(matched)}/{len(model_keys)} parameters matched. Status: {status['status']}")
+
+    if not is_qualified_trained:
+        print(f"[EVAL WARN] Running in SMOKE-TEST mode with {status_name}. Results must NOT be interpreted as forecasting skill.")
+    else:
+        print(f"[EVAL] Checkpoint '{checkpoint_path}' validated as trained model. All {len(model_keys)} parameters loaded.")
+
     return model, status
 
 
@@ -157,7 +282,8 @@ def evaluate_all(
     max_history_len: int = 4,
     batch_size: int = 16,
     device: str = "cpu",
-    strict_checkpoint: bool = False,
+    strict_checkpoint: bool = True,
+    smoke_test: bool = False,
     max_eval_samples: Optional[int] = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]]:
     """
@@ -169,10 +295,11 @@ def evaluate_all(
     test_df = df[df["partition"] == "TEST"].copy()
 
     print("=" * 70)
-    print("TC-GRAPHFORMER BASELINE & INFERENCE EVALUATION (PHASE 2E.4)")
+    print("TC-GRAPHFORMER BASELINE & INFERENCE EVALUATION (PHASE 2E.4.1)")
     print(f"Sample Index: {sample_index_csv}")
     print(f"Train samples: {len(train_df)}, Val samples: {len(val_df)}, Test samples: {len(test_df)}")
     print(f"Evaluation Mode: {'Historical Sequences' if use_sequences else 'Single Overpass'}")
+    print(f"Strict Checkpoint Mode: {strict_checkpoint} | Smoke-Test Override: {smoke_test}")
     print("=" * 70)
 
     # 1. Fit Tabular Linear Models on TRAIN partition ONLY
@@ -204,16 +331,25 @@ def evaluate_all(
     clim_mean_dv = {}
     for h in [6, 12, 18, 24]:
         s = train_df[f"intensity_change_{h}h_kt"].dropna()
-        clim_mean_dv[h] = float(s.mean()) if len(s) > 0 else 0.0
+        clim_mean_dv[h] = float(s.mean()) if len(s) > 0 else None
+
+    # Track climatology displacement vectors from TRAIN
+    train_track_clim = compute_train_track_climatology(sample_index_csv)
+    for h, vec in train_track_clim.items():
+        if vec is not None:
+            print(f"[CLIMATOLOGY] Track {h}h training mean displacement: dx={vec[0]:.2f} km, dy={vec[1]:.2f} km")
+        else:
+            print(f"[CLIMATOLOGY] Track {h}h training mean displacement unavailable.")
 
     # 2. Model Loading
     model, ckpt_info = load_model_for_evaluation(
         checkpoint_path=checkpoint_path,
         d_model=d_model,
         strict=strict_checkpoint,
+        smoke_test=smoke_test,
         device=device,
     )
-    is_trained = ckpt_info["is_trained"]
+    model_label = ckpt_info["model_label"]
 
     # 3. Partition Evaluations
     partitions = [("VAL", val_df), ("TEST", test_df)]
@@ -244,7 +380,6 @@ def evaluate_all(
 
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
 
-        # Batch accumulators
         v_true_all, v_pred_nn_all, v_mask_all = [], [], []
         p_true_all, p_pred_nn_all, p_mask_all = [], [], []
         s_true_all, s_pred_nn_all, s_mask_all = [], [], []
@@ -290,7 +425,6 @@ def evaluate_all(
 
                 targets = batch["targets"]
 
-                # Extract and accumulate
                 v_true_all.extend(targets["intensity"].cpu().numpy().tolist())
                 v_pred_nn_all.extend(preds["intensity"].cpu().numpy().tolist())
                 v_mask_all.extend((targets["intensity_mask"].cpu().numpy() > 0.5).tolist())
@@ -318,8 +452,6 @@ def evaluate_all(
                 sample_ids_all.extend(batch["sample_ids"])
                 storm_ids_all.extend(batch["storm_ids"])
 
-        model_label = "TC-GraphFormer" if is_trained else "TC-GraphFormer (Untrained Smoke-Test)"
-
         # Convert to numpy arrays
         v_true = np.array(v_true_all)
         v_pred_nn = np.array(v_pred_nn_all)
@@ -333,19 +465,18 @@ def evaluate_all(
         s_pred_nn = np.array(s_pred_nn_all)
         s_mask = np.array(s_mask_all)
 
-        dv_true = np.array(dv_true_all)  # (N, 4)
-        dv_pred_nn = np.array(dv_pred_nn_all)  # (N, 4)
-        dv_mask = np.array(dv_mask_all)  # (N, 4)
+        dv_true = np.array(dv_true_all)
+        dv_pred_nn = np.array(dv_pred_nn_all)
+        dv_mask = np.array(dv_mask_all)
 
         ri_true = np.array(ri_true_all)
         ri_prob_nn = np.array(ri_prob_nn_all)
         ri_mask = np.array(ri_mask_all)
 
-        tr_true = np.array(tr_true_all)  # (N, 4, 2)
-        tr_pred_nn = np.array(tr_pred_nn_all)  # (N, 4, 2)
-        tr_mask = np.array(tr_mask_all)  # (N, 4)
+        tr_true = np.array(tr_true_all)
+        tr_pred_nn = np.array(tr_pred_nn_all)
+        tr_mask = np.array(tr_mask_all)
 
-        # Align with metadata from part_df for linear baseline evaluation
         sub_df = part_df.set_index("sample_id").reindex(sample_ids_all)
 
         # --- A. Current Intensity (Wind Speed kt) ---
@@ -354,7 +485,6 @@ def evaluate_all(
             vp_nn = v_pred_nn[v_mask]
             vp_clim = np.full_like(vt, v_mean_train)
 
-            # Tabular linear fit
             speed_val = sub_df.loc[sub_df.index[v_mask], "storm_speed_mps"].fillna(5.0).values
             dist_val = sub_df.loc[sub_df.index[v_mask], "distance_to_land_km"].fillna(500.0).values
             X_v = np.column_stack([np.ones(len(vt)), speed_val, dist_val])
@@ -420,7 +550,7 @@ def evaluate_all(
                 "task": "Development Stage Classification",
                 "model": "Majority Class (TS)",
                 "n_samples": len(st),
-                "mae": round(100.0 - acc_maj, 2),  # error rate
+                "mae": round(100.0 - acc_maj, 2),
                 "rmse": 0.0,
                 "bias": 0.0,
                 "units": "error_rate_pct",
@@ -448,34 +578,40 @@ def evaluate_all(
             if n_targets > 0:
                 dvt = dv_true[m_h, h_idx]
                 dv_persist = np.zeros_like(dvt)
-                dv_clim = np.full_like(dvt, clim_mean_dv[h])
                 dv_nn = dv_pred_nn[m_h, h_idx]
 
-                mae_persist = float(np.mean(np.abs(dv_persist - dvt)))
-                rmse_persist = float(np.sqrt(np.mean((dv_persist - dvt) ** 2)))
+                mae_persist = round(float(np.mean(np.abs(dv_persist - dvt))), 2)
+                rmse_persist = round(float(np.sqrt(np.mean((dv_persist - dvt) ** 2))), 2)
 
-                mae_clim = float(np.mean(np.abs(dv_clim - dvt)))
-                rmse_clim = float(np.sqrt(np.mean((dv_clim - dvt) ** 2)))
+                if clim_mean_dv[h] is not None:
+                    dv_clim = np.full_like(dvt, clim_mean_dv[h])
+                    mae_clim = round(float(np.mean(np.abs(dv_clim - dvt))), 2)
+                    rmse_clim = round(float(np.sqrt(np.mean((dv_clim - dvt) ** 2))), 2)
+                    impr_clim = round(mae_clim - float(np.mean(np.abs(dv_nn - dvt))), 2)
+                else:
+                    mae_clim, rmse_clim, impr_clim = None, None, None
 
-                mae_nn = float(np.mean(np.abs(dv_nn - dvt)))
-                rmse_nn = float(np.sqrt(np.mean((dv_nn - dvt) ** 2)))
+                mae_nn = round(float(np.mean(np.abs(dv_nn - dvt))), 2)
+                rmse_nn = round(float(np.sqrt(np.mean((dv_nn - dvt) ** 2))), 2)
+                impr_persist = round(mae_persist - mae_nn, 2)
             else:
-                mae_persist, rmse_persist = 0.0, 0.0
-                mae_clim, rmse_clim = 0.0, 0.0
-                mae_nn, rmse_nn = 0.0, 0.0
+                mae_persist, rmse_persist, impr_persist = None, None, None
+                mae_clim, rmse_clim, impr_clim = None, None, None
+                mae_nn, rmse_nn = None, None
 
             horizon_records.append({
                 "partition": part_name,
                 "horizon_hours": f"Intensity_{h}h",
                 "n_valid_targets": n_targets,
-                "persistence_mae": round(mae_persist, 2),
-                "persistence_rmse": round(rmse_persist, 2),
-                "climatology_mae": round(mae_clim, 2),
-                "climatology_rmse": round(rmse_clim, 2),
-                "tc_graphformer_mae": round(mae_nn, 2),
-                "tc_graphformer_rmse": round(rmse_nn, 2),
-                "improvement_over_persist": round(mae_persist - mae_nn, 2),
-                "improvement_over_clim": round(mae_clim - mae_nn, 2),
+                "persistence_mae": mae_persist,
+                "persistence_rmse": rmse_persist,
+                "persistence_median_error": round(float(np.median(np.abs(dv_persist - dvt))), 2) if n_targets > 0 else None,
+                "climatology_mae": mae_clim,
+                "climatology_rmse": rmse_clim,
+                "tc_graphformer_mae": mae_nn,
+                "tc_graphformer_rmse": rmse_nn,
+                "improvement_over_persist": impr_persist,
+                "improvement_over_clim": impr_clim,
                 "units": "kt",
                 "checkpoint_status": ckpt_info["status"],
             })
@@ -494,7 +630,7 @@ def evaluate_all(
                 "task": "Rapid Intensification (24h >= 30kt)",
                 "model": "Training Climatology (Base Rate)",
                 "n_samples": len(rit),
-                "mae": round(brier_clim, 4),  # Brier score
+                "mae": round(brier_clim, 4),
                 "rmse": round(float(np.sqrt(brier_clim)), 4),
                 "bias": 0.0,
                 "units": "brier_score",
@@ -523,32 +659,49 @@ def evaluate_all(
                 true_vec = tr_true[m_tr, h_idx]  # (M, 2) in km
                 pred_vec = tr_pred_nn[m_tr, h_idx]  # (M, 2) in km
 
-                # Persistence error: storm assumes zero displacement [0, 0]
+                # 1. Persistence baseline: assumes zero displacement [0, 0]
                 persist_err_km = np.sqrt(true_vec[:, 0] ** 2 + true_vec[:, 1] ** 2)
-                persist_mean_km = float(np.mean(persist_err_km))
-                persist_median_km = float(np.median(persist_err_km))
+                persist_mae = round(float(np.mean(persist_err_km)), 2)
+                persist_rmse = round(float(np.sqrt(np.mean(persist_err_km ** 2))), 2)
+                persist_median = round(float(np.median(persist_err_km)), 2)
 
-                # TC-GraphFormer displacement vector error
+                # 2. Track Climatology baseline: training mean displacement vector (clim_dx, clim_dy)
+                clim_vec = train_track_clim.get(h)
+                if clim_vec is not None:
+                    clim_dx, clim_dy = clim_vec
+                    clim_err_km = np.sqrt((true_vec[:, 0] - clim_dx) ** 2 + (true_vec[:, 1] - clim_dy) ** 2)
+                    clim_mae = round(float(np.mean(clim_err_km)), 2)
+                    clim_rmse = round(float(np.sqrt(np.mean(clim_err_km ** 2))), 2)
+                else:
+                    clim_mae, clim_rmse = None, None
+
+                # 3. TC-GraphFormer displacement vector error
                 diff_vec = pred_vec - true_vec
                 nn_err_km = np.sqrt(diff_vec[:, 0] ** 2 + diff_vec[:, 1] ** 2)
-                nn_mean_km = float(np.mean(nn_err_km))
-                nn_rmse_km = float(np.sqrt(np.mean(nn_err_km ** 2)))
+                nn_mae = round(float(np.mean(nn_err_km)), 2)
+                nn_rmse = round(float(np.sqrt(np.mean(nn_err_km ** 2))), 2)
+
+                impr_persist = round(persist_mae - nn_mae, 2)
+                impr_clim = round(clim_mae - nn_mae, 2) if clim_mae is not None else None
             else:
-                persist_mean_km, persist_median_km = 0.0, 0.0
-                nn_mean_km, nn_rmse_km = 0.0, 0.0
+                persist_mae, persist_rmse, persist_median = None, None, None
+                clim_mae, clim_rmse = None, None
+                nn_mae, nn_rmse = None, None
+                impr_persist, impr_clim = None, None
 
             horizon_records.append({
                 "partition": part_name,
                 "horizon_hours": f"Track_{h}h",
                 "n_valid_targets": n_valid_tr,
-                "persistence_mae": round(persist_mean_km, 2),
-                "persistence_rmse": round(persist_median_km, 2),
-                "climatology_mae": 0.0,
-                "climatology_rmse": 0.0,
-                "tc_graphformer_mae": round(nn_mean_km, 2),
-                "tc_graphformer_rmse": round(nn_rmse_km, 2),
-                "improvement_over_persist": round(persist_mean_km - nn_mean_km, 2),
-                "improvement_over_clim": 0.0,
+                "persistence_mae": persist_mae,
+                "persistence_rmse": persist_rmse,
+                "persistence_median_error": persist_median,
+                "climatology_mae": clim_mae,
+                "climatology_rmse": clim_rmse,
+                "tc_graphformer_mae": nn_mae,
+                "tc_graphformer_rmse": nn_rmse,
+                "improvement_over_persist": impr_persist,
+                "improvement_over_clim": impr_clim,
                 "units": "km",
                 "checkpoint_status": ckpt_info["status"],
             })
@@ -598,6 +751,7 @@ def evaluate_all(
         "checkpoint": ckpt_info,
         "use_sequences": use_sequences,
         "max_history_len": max_history_len,
+        "train_track_climatology": {str(k): list(v) if v is not None else None for k, v in train_track_clim.items()},
         "partitions_evaluated": [p[0] for p in partitions],
         "total_baseline_records": len(baseline_records),
         "total_horizon_records": len(horizon_records),
@@ -624,7 +778,9 @@ def main():
     parser.add_argument("--max-history-len", type=int, default=4, help="Historical sequence length")
     parser.add_argument("--batch-size", type=int, default=16, help="Evaluation batch size")
     parser.add_argument("--device", default="cpu", help="Device to evaluate on ('cpu' or 'cuda')")
-    parser.add_argument("--strict-checkpoint", action="store_true", help="Raise error if checkpoint parameters do not match 100%")
+    parser.add_argument("--strict-checkpoint", action="store_true", default=True, help="Enforce trained-checkpoint validation (default True)")
+    parser.add_argument("--no-strict-checkpoint", action="store_false", dest="strict_checkpoint", help="Disable strict checkpoint check")
+    parser.add_argument("--smoke-test", action="store_true", default=False, help="Explicitly permit forward-pass smoke test with untrained or partial checkpoints")
     parser.add_argument("--max-eval-samples", type=int, default=None, help="Limit samples for fast smoke testing")
     args = parser.parse_args()
 
@@ -638,6 +794,7 @@ def main():
         batch_size=args.batch_size,
         device=args.device,
         strict_checkpoint=args.strict_checkpoint,
+        smoke_test=args.smoke_test,
         max_eval_samples=args.max_eval_samples,
     )
 

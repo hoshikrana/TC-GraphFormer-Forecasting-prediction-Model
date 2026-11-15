@@ -4,7 +4,8 @@ Trains jointly on wind speed, central pressure, development stage,
 intensity changes, rapid intensification, and track displacements.
 Supports both single-observation and causal historical sequence training,
 with verifiable pretrained backbone weight loading, YAML configuration parsing,
-and strict parameter and checkpoint validation.
+gradient accumulation, reliable full checkpoint resume (optimizer, scheduler, scaler),
+and strict parameter and checkpoint provenance validation.
 """
 
 import os
@@ -78,16 +79,32 @@ def validate_checkpoint_compatibility(
         )
         raise ValueError(err_msg)
 
+    # Check for training provenance
+    is_trained = (
+        ckpt.get("is_trained") is True
+        or ckpt.get("provenance", {}).get("is_trained") is True
+        or (
+            is_compatible
+            and ckpt.get("epoch", 0) >= 1
+            and ckpt.get("optimizer_state_dict") is not None
+            and ckpt.get("metrics") is not None
+        )
+    )
+
     return {
         "checkpoint_path": checkpoint_path,
         "is_compatible": is_compatible,
+        "is_trained": is_trained,
         "total_model_keys": len(model_keys),
         "matched_keys_count": len(matched),
         "missing_keys": missing,
         "shape_mismatches": mismatched_shapes,
         "unexpected_keys": unexpected,
         "epoch": ckpt.get("epoch", None),
+        "best_val_loss": ckpt.get("best_val_loss", None),
         "metrics": ckpt.get("metrics", {}),
+        "has_scheduler_state": ckpt.get("scheduler_state_dict") is not None,
+        "has_scaler_state": ckpt.get("scaler_state_dict") is not None,
     }
 
 
@@ -104,7 +121,6 @@ def load_pretrained_backbone(
     ckpt = torch.load(checkpoint_path, map_location=device)
     state = ckpt.get("model_state_dict", ckpt)
 
-    # Filter for backbone components (modality encoders and fusion)
     backbone_prefixes = ("ir_encoder.", "pmw_encoder.", "gprof_encoder.", "radar_encoder.", "env_encoder.", "fusion.")
     model_state = model.state_dict()
     model_keys = set(model_state.keys())
@@ -170,25 +186,32 @@ def run_multitask_training(
     weight_decay: float = 1e-4,
     d_model: int = 128,
     grad_clip_norm: float = 1.0,
+    accumulate_grad_batches: int = 1,
     max_train_samples: Optional[int] = None,
     max_val_samples: Optional[int] = None,
     use_sequences: bool = True,
     max_history_len: int = 4,
     max_history_hours: float = 72.0,
     num_workers: int = 0,
+    pin_memory: Optional[bool] = None,
+    persistent_workers: bool = False,
     pretrained_checkpoint: Optional[str] = None,
     resume_checkpoint: Optional[str] = None,
+    allow_legacy_resume: bool = False,
     checkpoint_dir: str = "checkpoints",
     summary_report: str = "reports/phase2e4/multitask_training_summary.json",
     device: Optional[str] = None,
+    cuda_device_id: Optional[int] = None,
     use_amp: Optional[bool] = None,
+    precision: str = "fp16",
     seed: int = 42,
     loss_weights: Optional[Dict[str, float]] = None,
     dry_run: bool = False,
 ) -> Dict[str, Any]:
     """
     Execute multi-task training and validation with full configuration validation,
-    provenance tracking, sequence dataloading, and loss weighting.
+    provenance tracking, sequence dataloading, loss weighting, gradient accumulation,
+    and complete resume recovery.
     """
     # 0. Reproducibility
     random.seed(seed)
@@ -208,6 +231,8 @@ def run_multitask_training(
         raise ValueError(f"d_model must be positive, got {d_model}")
     if grad_clip_norm <= 0:
         raise ValueError(f"grad_clip_norm must be positive, got {grad_clip_norm}")
+    if accumulate_grad_batches <= 0:
+        raise ValueError(f"accumulate_grad_batches must be positive, got {accumulate_grad_batches}")
     if max_history_len <= 0:
         raise ValueError(f"max_history_len must be positive, got {max_history_len}")
     if max_history_hours <= 0:
@@ -219,10 +244,16 @@ def run_multitask_training(
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    if device.startswith("cuda") and cuda_device_id is not None and torch.cuda.is_available():
+        torch.cuda.set_device(cuda_device_id)
+
     if use_amp is None:
         use_amp = device.startswith("cuda")
     else:
         use_amp = use_amp and device.startswith("cuda")
+
+    if pin_memory is None:
+        pin_memory = device.startswith("cuda")
 
     lw = loss_weights or {}
     ri_pos_weight = float(lw.get("ri_pos_weight", 33.53))
@@ -230,14 +261,15 @@ def run_multitask_training(
         raise ValueError(f"ri_pos_weight must be positive, got {ri_pos_weight}")
 
     print("=" * 70)
-    print("TC-GRAPHFORMER SUPERVISED MULTI-TASK TRAINING (PHASE 2E.4)")
+    print("TC-GRAPHFORMER SUPERVISED MULTI-TASK TRAINING (PHASE 2E.4.1)")
     print(f"Device: {device} | AMP: {use_amp} | d_model: {d_model} | Epochs: {epochs} | Batch size: {batch_size}")
+    print(f"Grad Accumulation: {accumulate_grad_batches} batches | Effective Batch Size: {batch_size * accumulate_grad_batches}")
     print(f"Mode: {'Historical Sequences' if use_sequences else 'Single Overpass'}")
     if use_sequences:
         print(f"History Config: max_history_len={max_history_len}, max_window={max_history_hours}h")
     print(f"Pretrained Init: {pretrained_checkpoint or 'Random Initialization (Scratch)'}")
     if resume_checkpoint:
-        print(f"Resume Checkpoint: {resume_checkpoint}")
+        print(f"Resume Checkpoint: {resume_checkpoint} (allow_legacy_resume={allow_legacy_resume})")
     print(f"Loss weights: intensity={lw.get('weight_intensity', 1.0)}, pressure={lw.get('weight_pressure', 0.5)}, "
           f"stage={lw.get('weight_stage', 0.5)}, dv={lw.get('weight_intensity_change', 1.0)}, "
           f"ri={lw.get('weight_ri', 2.0)}, track={lw.get('weight_track', 1.0)}, ri_pos_weight={ri_pos_weight}")
@@ -277,14 +309,14 @@ def run_multitask_training(
         )
         collate_fn = collate_multimodal_batch
 
-    pin_mem = device.startswith("cuda")
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
         collate_fn=collate_fn,
-        pin_memory=pin_mem,
+        pin_memory=pin_memory,
+        persistent_workers=(persistent_workers and num_workers > 0),
     )
     val_loader = DataLoader(
         val_dataset,
@@ -292,7 +324,8 @@ def run_multitask_training(
         shuffle=False,
         num_workers=num_workers,
         collate_fn=collate_fn,
-        pin_memory=pin_mem,
+        pin_memory=pin_memory,
+        persistent_workers=(persistent_workers and num_workers > 0),
     )
 
     # 3. Model & Checkpoint Loading
@@ -320,27 +353,59 @@ def run_multitask_training(
     start_epoch = 1
     best_val_loss = float("inf")
     training_history = []
+    ckpt_scaler_state = None
 
     if resume_checkpoint:
         compat = validate_checkpoint_compatibility(resume_checkpoint, model, strict=True, device=device)
         ckpt = torch.load(resume_checkpoint, map_location=device)
         model.load_state_dict(ckpt["model_state_dict"], strict=True)
-        if "optimizer_state_dict" in ckpt:
+        if "optimizer_state_dict" in ckpt and ckpt["optimizer_state_dict"] is not None:
             optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+            print(f"[RESUME] Restored optimizer state from {resume_checkpoint}")
+
+        # Restore scheduler state
+        if "scheduler_state_dict" in ckpt and ckpt["scheduler_state_dict"] is not None:
+            scheduler.load_state_dict(ckpt["scheduler_state_dict"])
+            print(f"[RESUME] Restored learning-rate scheduler state from {resume_checkpoint}")
+        elif not allow_legacy_resume:
+            raise ValueError(
+                f"Checkpoint '{resume_checkpoint}' lacks 'scheduler_state_dict' required for reliable resume! "
+                f"To override and perform a legacy partial resume without scheduler state, pass --allow-legacy-resume."
+            )
+        else:
+            print(f"[WARN] Checkpoint '{resume_checkpoint}' lacks scheduler state; continuing with fresh scheduler under --allow-legacy-resume.")
+
+        # Restore historical best validation loss
+        if "best_val_loss" in ckpt and ckpt["best_val_loss"] is not None:
+            best_val_loss = float(ckpt["best_val_loss"])
+        elif "metrics" in ckpt and "val_loss" in ckpt["metrics"]:
+            best_val_loss = float(ckpt["metrics"]["val_loss"])
+            print(f"[WARN] Checkpoint lacks 'best_val_loss'; falling back to current checkpoint val_loss: {best_val_loss}")
+        else:
+            best_val_loss = float("inf")
+
+        ckpt_scaler_state = ckpt.get("scaler_state_dict")
         start_epoch = ckpt.get("epoch", 0) + 1
-        best_val_loss = ckpt.get("metrics", {}).get("val_loss", float("inf"))
-        init_provenance = f"resumed_checkpoint ({resume_checkpoint}, start_epoch={start_epoch})"
-        print(f"[RESUME] Restored model and optimizer state from {resume_checkpoint} (resuming at epoch {start_epoch})")
+        init_provenance = f"resumed_checkpoint ({resume_checkpoint}, start_epoch={start_epoch}, best_val_loss={best_val_loss:.4f})"
+        print(f"[RESUME] Checkpoint verified. Resuming at epoch {start_epoch} (historical best_val_loss={best_val_loss:.4f})")
 
     trainer = TCGraphFormerTrainer(
         model=model,
         optimizer=optimizer,
         loss_fn=loss_fn,
+        scheduler=scheduler,
         device=device,
         checkpoint_dir=checkpoint_dir,
         use_amp=use_amp,
+        precision=precision,
         grad_clip_norm=grad_clip_norm,
+        accumulate_grad_batches=accumulate_grad_batches,
+        best_val_loss=best_val_loss,
     )
+
+    if resume_checkpoint and use_amp and ckpt_scaler_state is not None:
+        trainer.scaler.load_state_dict(ckpt_scaler_state)
+        print(f"[RESUME] Restored AMP GradScaler state from {resume_checkpoint}")
 
     if dry_run:
         print("[DRY-RUN] Validating data loading, batch collation, and single forward-backward execution...")
@@ -371,6 +436,7 @@ def run_multitask_training(
         is_best = val_loss < best_val_loss
         if is_best:
             best_val_loss = val_loss
+            trainer.best_val_loss = best_val_loss
 
         fn = f"multitask_epoch_{epoch:03d}.pt"
         saved_ckpt = trainer.save_checkpoint(
@@ -389,6 +455,7 @@ def run_multitask_training(
                     "weight_decay": weight_decay,
                     "d_model": d_model,
                     "grad_clip_norm": grad_clip_norm,
+                    "accumulate_grad_batches": accumulate_grad_batches,
                     "max_history_len": max_history_len,
                     "max_history_hours": max_history_hours,
                     "seed": seed,
@@ -408,7 +475,7 @@ def run_multitask_training(
         print(f"[Val]   Loss: {val_loss:.4f} | Wind MAE: {val_metrics['val_wind_mae_kt']} kt | Press MAE: {val_metrics['val_pressure_mae_hpa']} hPa | Stage Acc: {val_metrics['val_stage_acc_pct']}%")
 
     summary = {
-        "workflow": "Supervised Multi-Task Training (Phase 2E.4)",
+        "workflow": "Supervised Multi-Task Training (Phase 2E.4.1)",
         "initialization": init_provenance,
         "transfer_info": transfer_info,
         "use_sequences": use_sequences,
@@ -418,6 +485,7 @@ def run_multitask_training(
         "weight_decay": weight_decay,
         "d_model": d_model,
         "grad_clip_norm": grad_clip_norm,
+        "accumulate_grad_batches": accumulate_grad_batches,
         "loss_weights": lw,
         "best_val_loss": round(best_val_loss, 4),
         "history": training_history,
@@ -441,17 +509,23 @@ def parse_args():
     parser.add_argument("--weight-decay", type=float, default=None, help="Weight decay")
     parser.add_argument("--d-model", type=int, default=None, help="Model hidden dimension")
     parser.add_argument("--grad-clip-norm", type=float, default=None, help="Max gradient clipping norm")
+    parser.add_argument("--accumulate-grad-batches", type=int, default=None, help="Number of batches to accumulate gradients")
     parser.add_argument("--max-train-samples", type=int, default=None, help="Max train samples (for smoke-testing)")
     parser.add_argument("--max-val-samples", type=int, default=None, help="Max validation samples (for smoke-testing)")
     parser.add_argument("--pretrained-checkpoint", default=None, help="Path to pretrained backbone checkpoint")
     parser.add_argument("--resume-checkpoint", default=None, help="Path to checkpoint to resume training from")
+    parser.add_argument("--allow-legacy-resume", action="store_true", default=None, help="Allow resume from checkpoint lacking scheduler state")
     parser.add_argument("--single-obs", action="store_true", default=None, help="Use single-observation mode instead of sequences")
     parser.add_argument("--max-history-len", type=int, default=None, help="Max historical sequence length")
     parser.add_argument("--max-history-hours", type=float, default=None, help="Max historical lookback window in hours")
     parser.add_argument("--num-workers", type=int, default=None, help="DataLoader worker processes")
+    parser.add_argument("--pin-memory", action="store_true", default=None, help="Pin memory for DataLoader")
+    parser.add_argument("--persistent-workers", action="store_true", default=None, help="Use persistent workers for DataLoader")
     parser.add_argument("--checkpoint-dir", default=None, help="Directory for model checkpoints")
     parser.add_argument("--summary-report", default=None, help="Summary report JSON path")
     parser.add_argument("--device", default=None, help="Device to train on ('cuda', 'cpu')")
+    parser.add_argument("--cuda-device-id", type=int, default=None, help="CUDA device index")
+    parser.add_argument("--precision", default=None, choices=["fp16", "bf16", "fp32"], help="Floating-point precision ('fp16', 'bf16', 'fp32')")
     parser.add_argument("--use-amp", action="store_true", default=None, help="Enable automatic mixed precision")
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
     parser.add_argument("--dry-run", action="store_true", help="Perform smoke test of data loading and 1 forward/backward pass without full training")
@@ -494,17 +568,27 @@ def main():
     resolved_weight_decay = resolve_val(args.weight_decay, tr_cfg.get("weight_decay"), 1e-4)
     resolved_d_model = resolve_val(args.d_model, tr_cfg.get("d_model"), 128)
     resolved_grad_clip = resolve_val(args.grad_clip_norm, tr_cfg.get("grad_clip_norm") or tr_cfg.get("gradient_clip_val"), 1.0)
+    resolved_accum = resolve_val(args.accumulate_grad_batches, tr_cfg.get("accumulate_grad_batches"), 1)
     resolved_max_hist_len = resolve_val(args.max_history_len, tr_cfg.get("max_history_len"), 4)
     resolved_max_hist_hrs = resolve_val(args.max_history_hours, tr_cfg.get("max_history_hours"), 72.0)
     resolved_workers = resolve_val(args.num_workers, tr_cfg.get("num_workers") or mach_cfg.get("num_workers"), 0)
+    resolved_pin_mem = resolve_val(args.pin_memory, tr_cfg.get("pin_memory"), None)
+    resolved_persist = resolve_val(args.persistent_workers, tr_cfg.get("persistent_workers"), False)
     resolved_ckpt_dir = resolve_val(args.checkpoint_dir, tr_cfg.get("checkpoint_dir") or paths_cfg.get("checkpoints_dir"), "checkpoints")
     resolved_report = resolve_val(args.summary_report, tr_cfg.get("output_report") or tr_cfg.get("summary_report"), "reports/phase2e4/multitask_training_summary.json")
     resolved_device = resolve_val(args.device, mach_cfg.get("device"), None)
+    resolved_cuda_id = resolve_val(args.cuda_device_id, mach_cfg.get("cuda_device_id"), None)
+    resolved_precision = resolve_val(args.precision, mach_cfg.get("precision") or tr_cfg.get("precision"), "fp16")
     resolved_amp = resolve_val(args.use_amp, tr_cfg.get("mixed_precision"), None)
+    if resolved_amp is None and resolved_precision is not None:
+        resolved_amp = (resolved_precision in ("fp16", "bf16"))
+    elif resolved_precision == "fp32":
+        resolved_amp = False
     resolved_seed = resolve_val(args.seed, tr_cfg.get("seed"), 42)
     resolved_train_index = resolve_val(args.train_index, paths_cfg.get("sample_index_path"), "reports/pipeline/sample_index.csv")
     resolved_pretrained = resolve_val(args.pretrained_checkpoint, tr_cfg.get("pretrained_checkpoint"), None)
     resolved_resume = resolve_val(args.resume_checkpoint, tr_cfg.get("resume_checkpoint"), None)
+    resolved_allow_legacy = resolve_val(args.allow_legacy_resume, tr_cfg.get("allow_legacy_resume"), False)
 
     run_multitask_training(
         config_path=args.config,
@@ -515,18 +599,24 @@ def main():
         weight_decay=resolved_weight_decay,
         d_model=resolved_d_model,
         grad_clip_norm=resolved_grad_clip,
+        accumulate_grad_batches=resolved_accum,
         max_train_samples=args.max_train_samples,
         max_val_samples=args.max_val_samples,
         use_sequences=use_sequences,
         max_history_len=resolved_max_hist_len,
         max_history_hours=resolved_max_hist_hrs,
         num_workers=resolved_workers,
+        pin_memory=resolved_pin_mem,
+        persistent_workers=resolved_persist,
         pretrained_checkpoint=resolved_pretrained,
         resume_checkpoint=resolved_resume,
+        allow_legacy_resume=resolved_allow_legacy,
         checkpoint_dir=resolved_ckpt_dir,
         summary_report=resolved_report,
         device=resolved_device,
+        cuda_device_id=resolved_cuda_id,
         use_amp=resolved_amp,
+        precision=resolved_precision,
         seed=resolved_seed,
         loss_weights=loss_weights,
         dry_run=args.dry_run,

@@ -21,6 +21,7 @@ import sys
 import shutil
 import time
 import random
+import yaml
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -379,26 +380,89 @@ def save_storm_catalogue_csv(catalogue, path):
     print(f"[OK] Saved storm catalogue -> {path} ({len(catalogue)} storms)")
 
 
+def load_inventory_csv(path):
+    """Load S3 inventory from CSV."""
+    inventory = []
+    with open(path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            inventory.append({
+                "s3_key": row["s3_key"],
+                "size_bytes": int(row["size_bytes"]),
+                "season": int(row["season"]),
+                "basin": row["basin"],
+                "cyclone_number": row["cyclone_number"],
+                "storm_folder": row["storm_folder"],
+                "filename": row["filename"],
+                "instrument": row.get("instrument") or None,
+                "platform": row.get("platform") or None,
+                "is_environmental": row["is_environmental"].lower() in ("true", "1", "yes") if isinstance(row["is_environmental"], str) else bool(row["is_environmental"]),
+            })
+    return inventory
+
+
+def load_storm_catalogue_csv(path):
+    """Load storm catalogue from CSV."""
+    catalogue = []
+    with open(path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            catalogue.append({
+                "storm_folder": row["storm_folder"],
+                "storm_id": row["storm_id"],
+                "season": int(row["season"]),
+                "basin": row["basin"],
+                "cyclone_number": row["cyclone_number"],
+                "era": row.get("era") or classify_era(int(row["season"])),
+                "total_bytes": int(row["total_bytes"]),
+                "file_count": int(row["file_count"]),
+                "overpass_count": int(row["overpass_count"]),
+                "env_count": int(row["env_count"]),
+                "instruments": row.get("instruments", ""),
+                "platforms": row.get("platforms", ""),
+            })
+    return catalogue
+
+
 # ===========================================================================
 # Stratified Pilot Selection
 # ===========================================================================
 
-def stratified_select(catalogue, target_bytes, seed, nio_fraction=0.25):
+def stratified_select(
+    catalogue,
+    target_bytes,
+    seed,
+    nio_fraction=0.25,
+    basin_proportions=None,
+    era_proportions=None,
+    single_year_max_pct=20.0,
+    enforce_complete_storms=True,
+):
     """
     Perform stratified selection of complete storm folders.
 
     Strategy:
       1. Partition storms by (era, basin).
-      2. Reserve ~25% of budget for IO basin.
-      3. Distribute remaining ~75% across other basins.
-      4. Within each allocation, balance across eras (~25% each).
-      5. Within each (era, basin) cell, randomly select complete storm folders.
-      6. If a folder would exceed remaining budget, skip it and try another.
-      7. Never exceed target_bytes.
+      2. If basin_proportions is specified, allocate budget proportionally across basins.
+         Otherwise, reserve ~25% for IO basin and split remaining equally.
+      3. If era_proportions is specified, balance eras within each basin proportionally.
+         Otherwise, divide equally across available historical periods.
+      4. Within each (era, basin) cell, randomly select complete storm folders.
+      5. Never exceed target_bytes. Complete storms are strictly preserved.
 
     Returns (selected_storms, selection_report).
     """
     rng = random.Random(seed)
+
+    # Validate proportions if supplied
+    if basin_proportions:
+        total_bp = sum(basin_proportions.values())
+        if not (0.95 <= total_bp <= 1.05):
+            raise ValueError(f"Target basin proportions must sum to ~1.0 (got {total_bp:.4f})")
+    if era_proportions:
+        total_ep = sum(era_proportions.values())
+        if not (0.95 <= total_ep <= 1.05):
+            raise ValueError(f"Target era proportions must sum to ~1.0 (got {total_ep:.4f})")
 
     # Group storms by (era, basin)
     cells = defaultdict(list)
@@ -415,37 +479,53 @@ def stratified_select(catalogue, target_bytes, seed, nio_fraction=0.25):
     available_basins = sorted(set(s["basin"] for s in catalogue))
     available_eras = sorted(set(s["era"] for s in catalogue))
 
-    # Compute budgets
-    io_budget = int(target_bytes * nio_fraction) if "IO" in available_basins else 0
-    other_budget = target_bytes - io_budget
-
-    other_basins = [b for b in available_basins if b != "IO"]
-    num_other_basins = len(other_basins)
-
-    # Per-basin budget for non-IO basins (roughly equal)
+    # Compute per-basin budgets
     basin_budgets = {}
-    if "IO" in available_basins:
-        basin_budgets["IO"] = io_budget
-    if num_other_basins > 0:
-        per_other = other_budget // num_other_basins
-        for b in other_basins:
-            basin_budgets[b] = per_other
+    if basin_proportions:
+        norm_b = {b: float(basin_proportions.get(b, 0.0)) for b in available_basins}
+        sum_b = sum(norm_b.values())
+        if sum_b > 0:
+            basin_budgets = {b: int(target_bytes * (norm_b[b] / sum_b)) for b in available_basins}
+        else:
+            per_b = target_bytes // max(1, len(available_basins))
+            basin_budgets = {b: per_b for b in available_basins}
+    else:
+        io_budget = int(target_bytes * nio_fraction) if "IO" in available_basins else 0
+        other_budget = target_bytes - io_budget
+        other_basins = [b for b in available_basins if b != "IO"]
+        num_other_basins = len(other_basins)
+        if "IO" in available_basins:
+            basin_budgets["IO"] = io_budget
+        if num_other_basins > 0:
+            per_other = other_budget // num_other_basins
+            for b in other_basins:
+                basin_budgets[b] = per_other
 
-    # Per-era budget within each basin
-    num_eras = len(available_eras)
+    # Compute per-era budgets within each basin
     era_basin_budgets = {}
-    for basin, basin_total in basin_budgets.items():
-        per_era = basin_total // max(num_eras, 1)
-        for era in available_eras:
-            era_basin_budgets[(era, basin)] = per_era
+    if era_proportions:
+        norm_e = {e: float(era_proportions.get(e, 0.0)) for e in available_eras}
+        sum_e = sum(norm_e.values())
+        if sum_e > 0:
+            norm_e = {e: norm_e[e] / sum_e for e in available_eras}
+        else:
+            norm_e = {e: 1.0 / max(1, len(available_eras)) for e in available_eras}
+        for b, b_tot in basin_budgets.items():
+            for e in available_eras:
+                era_basin_budgets[(e, b)] = int(b_tot * norm_e[e])
+    else:
+        num_eras = len(available_eras)
+        for basin, basin_total in basin_budgets.items():
+            per_era = basin_total // max(num_eras, 1)
+            for era in available_eras:
+                era_basin_budgets[(era, basin)] = per_era
 
-    # Selection pass: iterate through cells and pick storms
+    # Selection pass 1: iterate through cells and pick storms up to cell budget
     selected = []
     selected_bytes = 0
     selected_folders = set()
     cell_used_bytes = defaultdict(int)
 
-    # First pass: try to fill each cell up to its budget
     for (era, basin) in sorted(era_basin_budgets.keys()):
         cell_budget = era_basin_budgets[(era, basin)]
         cell_storms = cells.get((era, basin), [])
@@ -456,11 +536,9 @@ def stratified_select(catalogue, target_bytes, seed, nio_fraction=0.25):
                 continue
             storm_bytes = storm["total_bytes"]
 
-            # Would adding this storm exceed the cell budget?
             if cell_used_bytes[(era, basin)] + storm_bytes > cell_budget:
                 continue
 
-            # Would adding this storm exceed total target?
             if selected_bytes + storm_bytes > target_bytes:
                 continue
 
@@ -469,35 +547,24 @@ def stratified_select(catalogue, target_bytes, seed, nio_fraction=0.25):
             selected_bytes += storm_bytes
             cell_used_bytes[(era, basin)] += storm_bytes
 
-    # Second pass: try to fill remaining budget from underrepresented cells
-    # This helps when some cells have large storms that didn't fit in the first pass
+    # Selection pass 2: deficit-based filling
     remaining = target_bytes - selected_bytes
     if remaining > 0:
-        # Collect all unselected storms, shuffle them
         unselected = [s for s in catalogue if s["storm_folder"] not in selected_folders]
         rng.shuffle(unselected)
 
-        # Try to add storms preferring underrepresented eras/basins
-        # Sort by (era representation deficit, basin representation deficit)
         era_bytes = defaultdict(int)
         basin_bytes_used = defaultdict(int)
         for s in selected:
             era_bytes[s["era"]] += s["total_bytes"]
             basin_bytes_used[s["basin"]] += s["total_bytes"]
 
-        target_per_era = target_bytes / max(num_eras, 1)
-        target_per_basin_io = io_budget
-        target_per_other = other_budget / max(num_other_basins, 1) if num_other_basins > 0 else 0
-
         def deficit_score(storm):
-            era_deficit = target_per_era - era_bytes.get(storm["era"], 0)
-            if storm["basin"] == "IO":
-                basin_deficit = target_per_basin_io - basin_bytes_used.get("IO", 0)
-            else:
-                basin_deficit = target_per_other - basin_bytes_used.get(storm["basin"], 0)
-            return era_deficit + basin_deficit
+            b_target = basin_budgets.get(storm["basin"], target_bytes / max(1, len(available_basins)))
+            b_def = b_target - basin_bytes_used.get(storm["basin"], 0)
+            e_def = (target_bytes / max(1, len(available_eras))) - era_bytes.get(storm["era"], 0)
+            return b_def + e_def
 
-        # Sort unselected by deficit (highest deficit first = most underrepresented)
         unselected.sort(key=deficit_score, reverse=True)
 
         for storm in unselected:
@@ -513,7 +580,7 @@ def stratified_select(catalogue, target_bytes, seed, nio_fraction=0.25):
             era_bytes[storm["era"]] += storm_bytes
             basin_bytes_used[storm["basin"]] += storm_bytes
 
-    # Third pass: greedy fill with any remaining storms that fit
+    # Selection pass 3: greedy fill with any remaining storms that fit
     remaining = target_bytes - selected_bytes
     if remaining > 0:
         leftover = [s for s in catalogue if s["storm_folder"] not in selected_folders]
@@ -530,12 +597,32 @@ def stratified_select(catalogue, target_bytes, seed, nio_fraction=0.25):
             selected_bytes += storm_bytes
 
     # Build selection report
-    report = build_selection_report(selected, catalogue, target_bytes, available_basins, available_eras)
+    report = build_selection_report(
+        selected,
+        catalogue,
+        target_bytes,
+        available_basins,
+        available_eras,
+        basin_proportions=basin_proportions,
+        era_proportions=era_proportions,
+        single_year_max_pct=single_year_max_pct,
+        enforce_complete_storms=enforce_complete_storms,
+    )
 
     return selected, report
 
 
-def build_selection_report(selected, catalogue, target_bytes, available_basins, available_eras):
+def build_selection_report(
+    selected,
+    catalogue,
+    target_bytes,
+    available_basins,
+    available_eras,
+    basin_proportions=None,
+    era_proportions=None,
+    single_year_max_pct=20.0,
+    enforce_complete_storms=True,
+):
     """Build a detailed report about the selection."""
 
     total_selected_bytes = sum(s["total_bytes"] for s in selected)
@@ -591,7 +678,7 @@ def build_selection_report(selected, catalogue, target_bytes, available_basins, 
     max_year_bytes = year_bytes[max_year] if max_year else 0
     max_year_pct = (max_year_bytes / total_selected_bytes * 100) if total_selected_bytes > 0 else 0
 
-    # NIO allocation check
+    # Basin stats and NIO allocation check
     io_bytes = basin_stats.get("IO", {}).get("bytes", 0)
     io_pct = (io_bytes / total_selected_bytes * 100) if total_selected_bytes > 0 else 0
 
@@ -602,17 +689,18 @@ def build_selection_report(selected, catalogue, target_bytes, available_basins, 
 
     # Limitations
     limitations = []
-    if total_selected_bytes < 18_000_000_000:
-        limitations.append(f"Selected {total_selected_bytes / 1e9:.2f} GB is below the 18 GB minimum target.")
+    min_bytes_expected = int(target_bytes * 0.85)
+    if total_selected_bytes < min_bytes_expected and target_bytes > 0:
+        limitations.append(f"Selected {total_selected_bytes / 1e9:.2f} GB is below 85% of target budget ({min_bytes_expected / 1e9:.2f} GB).")
     if len(distinct_eras) < len(available_eras):
         missing_eras = set(available_eras) - set(distinct_eras)
         limitations.append(f"Missing historical periods: {missing_eras}")
     if len(distinct_basins) < len(available_basins):
         missing_basins = set(available_basins) - set(distinct_basins)
         limitations.append(f"Missing basins: {missing_basins}")
-    if max_year_pct > 10:
-        limitations.append(f"Year {max_year} contributes {max_year_pct:.1f}% of selected bytes (target: <=10%).")
-    if abs(io_pct - 25) > 10:
+    if max_year_pct > single_year_max_pct:
+        limitations.append(f"Year {max_year} contributes {max_year_pct:.1f}% of selected bytes (target: <={single_year_max_pct}%).")
+    if not basin_proportions and abs(io_pct - 25) > 10:
         limitations.append(f"NIO allocation is {io_pct:.1f}% (target: ~25%).")
 
     report = {
@@ -645,6 +733,10 @@ def build_selection_report(selected, catalogue, target_bytes, available_basins, 
         "limitations": limitations,
         "available_basins_in_catalogue": sorted(available_basins),
         "available_eras_in_catalogue": sorted(available_eras),
+        "configured_basin_proportions": basin_proportions,
+        "configured_era_proportions": era_proportions,
+        "enforce_complete_storms": enforce_complete_storms,
+        "byte_budget_exceeded": (total_selected_bytes > target_bytes),
         "total_catalogue_storms": len([]),  # filled by caller
     }
 
@@ -690,6 +782,31 @@ def build_manifest(selected_storms, inventory, destination_base="data/raw/pilot"
             "storm_folder": row["storm_folder"],
         })
 
+    return manifest
+
+
+def build_manifest_from_catalogue(selected_storms, destination_base="data/raw/pilot"):
+    """
+    Construct manifest entries from catalogue summary when detailed inventory is not available.
+    """
+    manifest = []
+    for s in selected_storms:
+        sf = s["storm_folder"]
+        rel = f"{s['season']}/{s['basin']}/{s['cyclone_number']}"
+        local_dest = os.path.join(destination_base, rel.replace("/", os.sep))
+        manifest.append({
+            "s3_key": f"{PREFIX}{sf}/",
+            "size_bytes": s["total_bytes"],
+            "season": s["season"],
+            "basin": s["basin"],
+            "cyclone_number": s["cyclone_number"],
+            "storm_id": s["storm_id"],
+            "instrument": s.get("instruments", ""),
+            "platform": s.get("platforms", ""),
+            "is_environmental": False,
+            "local_destination": local_dest,
+            "storm_folder": sf,
+        })
     return manifest
 
 
@@ -1316,40 +1433,87 @@ def cmd_audit(args):
 
 def cmd_plan(args):
     """Execute the 'plan' command: inventory + stratified selection + manifest."""
-    target_bytes = int(args.target_gb * 1e9)
-    seed = args.seed
-    reports_dir = args.reports_dir
+    cfg = {}
+    if getattr(args, "config", None):
+        if not os.path.exists(args.config):
+            print(f"[ERROR] Configuration file not found: {args.config}", file=sys.stderr)
+            return 1
+        with open(args.config, "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
 
+    acq_cfg = cfg.get("acquisition", {})
+    paths_cfg = cfg.get("paths", {})
+    strat_cfg = cfg.get("stratification_criteria", {})
+
+    # Parameter resolution: CLI explicit > YAML config > fallback default
+    if getattr(args, "target_gb", None) is not None:
+        target_bytes = int(args.target_gb * 1e9)
+    elif "target_bytes" in acq_cfg:
+        target_bytes = int(acq_cfg["target_bytes"])
+    elif "target_gb" in acq_cfg:
+        target_bytes = int(acq_cfg["target_gb"] * 1e9)
+    else:
+        target_bytes = DEFAULT_TARGET_BYTES
+
+    seed = args.seed if getattr(args, "seed", None) is not None else acq_cfg.get("seed", DEFAULT_SEED)
+    reports_dir = args.reports_dir if getattr(args, "reports_dir", None) is not None else paths_cfg.get("acquisition_reports_dir", "reports")
     os.makedirs(reports_dir, exist_ok=True)
 
-    # Step 1: S3 inventory
-    print("\n" + "=" * 70)
-    print("PHASE 1: S3 INVENTORY")
-    print("=" * 70)
-    listing_lines = run_s3_listing()
-    inventory = build_inventory(listing_lines)
+    manifest_path = args.manifest if getattr(args, "manifest", None) is not None else paths_cfg.get("manifest_csv", os.path.join(reports_dir, "pilot_manifest.csv"))
+    inventory_path = paths_cfg.get("inventory_csv", os.path.join(reports_dir, "s3_inventory.csv"))
+    catalogue_path = paths_cfg.get("catalogue_csv", os.path.join(reports_dir, "storm_catalogue.csv"))
+    txt_path = paths_cfg.get("plan_summary_text", os.path.join(reports_dir, "pilot_plan_summary.txt"))
+    json_path = paths_cfg.get("plan_summary_json", os.path.join(reports_dir, "pilot_plan_summary.json"))
+    raw_dest = paths_cfg.get("raw_destination_dir", "data/raw/pilot")
 
-    inventory_path = os.path.join(reports_dir, "s3_inventory.csv")
-    save_inventory_csv(inventory, inventory_path)
+    basin_proportions = strat_cfg.get("basins", {}).get("target_proportions")
+    era_proportions = strat_cfg.get("eras", {}).get("target_proportions")
+    single_year_max_pct = strat_cfg.get("single_year_max_pct", 20.0)
+    enforce_complete_storms = acq_cfg.get("enforce_complete_storms", True)
 
-    # Step 2: Storm catalogue
-    print("\n" + "=" * 70)
-    print("PHASE 2: STORM CATALOGUE")
-    print("=" * 70)
-    catalogue = build_storm_catalogue(inventory)
-    catalogue_path = os.path.join(reports_dir, "storm_catalogue.csv")
-    save_storm_catalogue_csv(catalogue, catalogue_path)
+    inventory = None
+    catalogue = None
 
-    total_nc_bytes = sum(row["size_bytes"] for row in inventory)
+    if getattr(args, "catalogue_csv", None) and os.path.exists(args.catalogue_csv):
+        print(f"[CATALOGUE] Loading pre-existing catalogue from {args.catalogue_csv}")
+        catalogue = load_storm_catalogue_csv(args.catalogue_csv)
+    elif getattr(args, "inventory_csv", None) and os.path.exists(args.inventory_csv):
+        print(f"[INVENTORY] Loading pre-existing inventory from {args.inventory_csv}")
+        inventory = load_inventory_csv(args.inventory_csv)
+        catalogue = build_storm_catalogue(inventory)
+    else:
+        # Step 1: S3 inventory
+        print("\n" + "=" * 70)
+        print("PHASE 1: S3 INVENTORY")
+        print("=" * 70)
+        listing_lines = run_s3_listing()
+        inventory = build_inventory(listing_lines)
+        save_inventory_csv(inventory, inventory_path)
+
+        # Step 2: Storm catalogue
+        print("\n" + "=" * 70)
+        print("PHASE 2: STORM CATALOGUE")
+        print("=" * 70)
+        catalogue = build_storm_catalogue(inventory)
+        save_storm_catalogue_csv(catalogue, catalogue_path)
+
+    total_nc_bytes = sum(s["total_bytes"] for s in catalogue)
     print(f"[CATALOGUE] {len(catalogue)} storm folders, "
-          f"{len(inventory)} NetCDF files, "
           f"{total_nc_bytes / 1e9:.2f} GB total")
 
     # Step 3: Stratified selection
     print("\n" + "=" * 70)
-    print("PHASE 3: STRATIFIED PILOT SELECTION")
+    print("PHASE 3: STRATIFIED SELECTION")
     print("=" * 70)
-    selected_storms, report = stratified_select(catalogue, target_bytes, seed)
+    selected_storms, report = stratified_select(
+        catalogue=catalogue,
+        target_bytes=target_bytes,
+        seed=seed,
+        basin_proportions=basin_proportions,
+        era_proportions=era_proportions,
+        single_year_max_pct=single_year_max_pct,
+        enforce_complete_storms=enforce_complete_storms,
+    )
     report["total_catalogue_storms"] = len(catalogue)
 
     available_basins = sorted(set(s["basin"] for s in catalogue))
@@ -1367,19 +1531,23 @@ def cmd_plan(args):
     print("\n" + "=" * 70)
     print("PHASE 4: MANIFEST GENERATION")
     print("=" * 70)
-    manifest = build_manifest(selected_storms, inventory)
-    manifest_path = os.path.join(reports_dir, "pilot_manifest.csv")
+    if inventory is not None:
+        manifest = build_manifest(selected_storms, inventory, destination_base=raw_dest)
+    else:
+        manifest = build_manifest_from_catalogue(selected_storms, destination_base=raw_dest)
+
+    os.makedirs(os.path.dirname(manifest_path) or ".", exist_ok=True)
     save_manifest_csv(manifest, manifest_path)
 
     # Step 5: Save summaries
     summary_text = generate_plan_summary_text(report)
 
-    txt_path = os.path.join(reports_dir, "pilot_plan_summary.txt")
+    os.makedirs(os.path.dirname(txt_path) or ".", exist_ok=True)
     with open(txt_path, "w", encoding="utf-8") as f:
         f.write(summary_text)
     print(f"[OK] Saved plan summary text -> {txt_path}")
 
-    json_path = os.path.join(reports_dir, "pilot_plan_summary.json")
+    os.makedirs(os.path.dirname(json_path) or ".", exist_ok=True)
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, default=str)
     print(f"[OK] Saved plan summary JSON -> {json_path}")
@@ -1485,12 +1653,20 @@ Examples:
 
     # Plan command
     plan_parser = subparsers.add_parser("plan", help="Discover S3 files and produce a balanced pilot manifest")
-    plan_parser.add_argument("--target-gb", type=float, default=20.0,
-                             help="Target size in decimal GB (default: 20)")
-    plan_parser.add_argument("--seed", type=int, default=DEFAULT_SEED,
-                             help="Random seed for deterministic selection (default: 42)")
-    plan_parser.add_argument("--reports-dir", default="reports",
-                             help="Directory for output reports (default: reports)")
+    plan_parser.add_argument("--config", default=None,
+                             help="Path to YAML acquisition configuration file")
+    plan_parser.add_argument("--target-gb", type=float, default=None,
+                             help="Target size in decimal GB")
+    plan_parser.add_argument("--seed", type=int, default=None,
+                             help="Random seed for deterministic selection")
+    plan_parser.add_argument("--reports-dir", default=None,
+                             help="Directory for output reports")
+    plan_parser.add_argument("--manifest", default=None,
+                             help="Output path for manifest CSV (overrides config/default)")
+    plan_parser.add_argument("--inventory-csv", default=None,
+                             help="Path to pre-existing S3 inventory CSV (offline planning)")
+    plan_parser.add_argument("--catalogue-csv", default=None,
+                             help="Path to pre-existing storm catalogue CSV (offline planning)")
 
     # Download command
     dl_parser = subparsers.add_parser("download", help="Download files from an approved manifest")

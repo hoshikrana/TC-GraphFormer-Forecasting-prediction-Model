@@ -26,22 +26,32 @@ class TCGraphFormerTrainer:
         model: nn.Module,
         optimizer: torch.optim.Optimizer,
         loss_fn: Optional[MultiTaskLoss] = None,
+        scheduler: Optional[Any] = None,
         device: str = "cpu",
         checkpoint_dir: str = "checkpoints",
         use_amp: bool = False,
+        precision: str = "fp16",
         grad_clip_norm: float = 1.0,
+        accumulate_grad_batches: int = 1,
+        best_val_loss: float = float("inf"),
     ):
         self.model = model.to(device)
         self.optimizer = optimizer
+        self.scheduler = scheduler
         self.loss_fn = loss_fn if loss_fn is not None else MultiTaskLoss().to(device)
         self.device = device
         self.checkpoint_dir = checkpoint_dir
+        self.precision = precision.lower() if precision else "fp16"
         self.use_amp = use_amp and (device.startswith("cuda"))
+        self.amp_dtype = torch.bfloat16 if self.precision == "bf16" else torch.float16
         self.grad_clip_norm = grad_clip_norm
-        self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
+        self.accumulate_grad_batches = max(1, int(accumulate_grad_batches))
+        # GradScaler is primarily used for fp16; bf16 has wider dynamic range
+        scaler_enabled = self.use_amp and (self.precision != "bf16")
+        self.scaler = torch.cuda.amp.GradScaler(enabled=scaler_enabled)
 
         os.makedirs(checkpoint_dir, exist_ok=True)
-        self.best_val_loss = float("inf")
+        self.best_val_loss = best_val_loss
         self.history = []
 
     def _forward_batch(self, batch: Dict[str, Any]) -> Dict[str, torch.Tensor]:
@@ -84,33 +94,39 @@ class TCGraphFormerTrainer:
         return preds
 
     def train_epoch(self, dataloader: DataLoader, epoch: int) -> Dict[str, float]:
-        """Execute one training epoch with gradient norm tracking."""
+        """Execute one training epoch with gradient accumulation and norm tracking."""
         self.model.train()
         total_loss = 0.0
         total_samples = 0
         loss_accum = {}
 
         start_time = time.time()
+        self.optimizer.zero_grad()
+        num_batches = len(dataloader)
 
         for batch_idx, batch in enumerate(dataloader):
             targets = {k: v.to(self.device) for k, v in batch["targets"].items() if isinstance(v, torch.Tensor)}
+            is_accum_step = ((batch_idx + 1) % self.accumulate_grad_batches == 0) or ((batch_idx + 1) == num_batches)
 
-            self.optimizer.zero_grad()
-
-            with torch.cuda.amp.autocast(enabled=self.use_amp):
+            with torch.cuda.amp.autocast(enabled=self.use_amp, dtype=self.amp_dtype):
                 preds = self._forward_batch(batch)
                 loss, loss_dict = self.loss_fn(preds, targets)
+                loss_scaled = loss / self.accumulate_grad_batches
 
             if self.use_amp:
-                self.scaler.scale(loss).backward()
-                self.scaler.unscale_(self.optimizer)
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
-                self.scaler.step(self.optimizer)
-                self.scaler.update()
+                self.scaler.scale(loss_scaled).backward()
+                if is_accum_step:
+                    self.scaler.unscale_(self.optimizer)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
+                    self.optimizer.zero_grad()
             else:
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
-                self.optimizer.step()
+                loss_scaled.backward()
+                if is_accum_step:
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
+                    self.optimizer.step()
+                    self.optimizer.zero_grad()
 
             B = batch["ir"].size(0)
             total_samples += B
@@ -308,18 +324,38 @@ class TCGraphFormerTrainer:
         filename: str = None,
         extra_metadata: Dict[str, Any] = None,
     ) -> str:
-        """Serialize model weights, optimizer state, metrics, and provenance metadata."""
+        """
+        Serialize model weights, optimizer state, scheduler state, AMP scaler state,
+        historical best validation loss, metrics, and explicit training provenance.
+        """
         if filename is None:
             filename = f"checkpoint_epoch_{epoch:03d}.pt"
+
+        if is_best and "val_loss" in metrics:
+            self.best_val_loss = float(metrics["val_loss"])
 
         filepath = os.path.join(self.checkpoint_dir, filename)
         state = {
             "epoch": epoch,
             "model_state_dict": self.model.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
+            "scheduler_state_dict": self.scheduler.state_dict() if self.scheduler is not None else None,
+            "scaler_state_dict": self.scaler.state_dict() if (self.use_amp and self.scaler is not None) else None,
+            "best_val_loss": self.best_val_loss,
             "metrics": metrics,
             "d_model": getattr(self.model, "d_model", 128),
             "device": self.device,
+            "precision": self.precision,
+            "is_trained": True,
+            "provenance": {
+                "workflow": "supervised_multitask_training",
+                "is_trained": True,
+                "epoch": epoch,
+                "best_val_loss": self.best_val_loss,
+                "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "has_scheduler_state": self.scheduler is not None,
+                "has_scaler_state": (self.use_amp and self.scaler is not None),
+            },
             "extra_metadata": extra_metadata or {},
         }
         torch.save(state, filepath)
