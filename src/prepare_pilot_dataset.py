@@ -479,30 +479,30 @@ def stratified_select(
     available_basins = sorted(set(s["basin"] for s in catalogue))
     available_eras = sorted(set(s["era"] for s in catalogue))
 
-    # Compute per-basin budgets
+    # Compute per-basin budgets and normalized proportions
     basin_budgets = {}
     if basin_proportions:
         norm_b = {b: float(basin_proportions.get(b, 0.0)) for b in available_basins}
         sum_b = sum(norm_b.values())
         if sum_b > 0:
-            basin_budgets = {b: int(target_bytes * (norm_b[b] / sum_b)) for b in available_basins}
+            norm_b = {b: norm_b[b] / sum_b for b in available_basins}
         else:
-            per_b = target_bytes // max(1, len(available_basins))
-            basin_budgets = {b: per_b for b in available_basins}
+            norm_b = {b: 1.0 / max(1, len(available_basins)) for b in available_basins}
+        basin_budgets = {b: int(target_bytes * norm_b[b]) for b in available_basins}
     else:
-        io_budget = int(target_bytes * nio_fraction) if "IO" in available_basins else 0
-        other_budget = target_bytes - io_budget
-        other_basins = [b for b in available_basins if b != "IO"]
-        num_other_basins = len(other_basins)
+        norm_b = {}
         if "IO" in available_basins:
-            basin_budgets["IO"] = io_budget
-        if num_other_basins > 0:
-            per_other = other_budget // num_other_basins
+            norm_b["IO"] = float(nio_fraction) if nio_fraction is not None else 0.25
+            other_basins = [b for b in available_basins if b != "IO"]
+            rem_frac = max(0.0, 1.0 - norm_b["IO"])
             for b in other_basins:
-                basin_budgets[b] = per_other
+                norm_b[b] = rem_frac / max(1, len(other_basins))
+        else:
+            for b in available_basins:
+                norm_b[b] = 1.0 / max(1, len(available_basins))
+        basin_budgets = {b: int(target_bytes * norm_b[b]) for b in available_basins}
 
-    # Compute per-era budgets within each basin
-    era_basin_budgets = {}
+    # Compute per-era budgets within each basin and normalized proportions
     if era_proportions:
         norm_e = {e: float(era_proportions.get(e, 0.0)) for e in available_eras}
         sum_e = sum(norm_e.values())
@@ -510,21 +510,23 @@ def stratified_select(
             norm_e = {e: norm_e[e] / sum_e for e in available_eras}
         else:
             norm_e = {e: 1.0 / max(1, len(available_eras)) for e in available_eras}
-        for b, b_tot in basin_budgets.items():
-            for e in available_eras:
-                era_basin_budgets[(e, b)] = int(b_tot * norm_e[e])
     else:
-        num_eras = len(available_eras)
-        for basin, basin_total in basin_budgets.items():
-            per_era = basin_total // max(num_eras, 1)
-            for era in available_eras:
-                era_basin_budgets[(era, basin)] = per_era
+        norm_e = {e: 1.0 / max(1, len(available_eras)) for e in available_eras}
+
+    era_basin_budgets = {}
+    for b, b_tot in basin_budgets.items():
+        for e in available_eras:
+            era_basin_budgets[(e, b)] = int(b_tot * norm_e[e])
+
+    # Single-year concentration limit (in bytes)
+    max_single_year_bytes = int(target_bytes * (single_year_max_pct / 100.0)) if single_year_max_pct > 0 else 0
 
     # Selection pass 1: iterate through cells and pick storms up to cell budget
     selected = []
     selected_bytes = 0
     selected_folders = set()
     cell_used_bytes = defaultdict(int)
+    year_bytes = defaultdict(int)
 
     for (era, basin) in sorted(era_basin_budgets.keys()):
         cell_budget = era_basin_budgets[(era, basin)]
@@ -535,6 +537,7 @@ def stratified_select(
             if sf in selected_folders:
                 continue
             storm_bytes = storm["total_bytes"]
+            s_year = storm.get("season", storm.get("year"))
 
             if cell_used_bytes[(era, basin)] + storm_bytes > cell_budget:
                 continue
@@ -542,16 +545,19 @@ def stratified_select(
             if selected_bytes + storm_bytes > target_bytes:
                 continue
 
+            if max_single_year_bytes > 0 and (year_bytes[s_year] + storm_bytes > max_single_year_bytes):
+                continue
+
             selected.append(storm)
             selected_folders.add(sf)
             selected_bytes += storm_bytes
             cell_used_bytes[(era, basin)] += storm_bytes
+            year_bytes[s_year] += storm_bytes
 
-    # Selection pass 2: deficit-based filling
+    # Selection pass 2: iterative deficit-based filling (preserving configured era and basin proportions)
     remaining = target_bytes - selected_bytes
     if remaining > 0:
         unselected = [s for s in catalogue if s["storm_folder"] not in selected_folders]
-        rng.shuffle(unselected)
 
         era_bytes = defaultdict(int)
         basin_bytes_used = defaultdict(int)
@@ -559,42 +565,109 @@ def stratified_select(
             era_bytes[s["era"]] += s["total_bytes"]
             basin_bytes_used[s["basin"]] += s["total_bytes"]
 
-        def deficit_score(storm):
-            b_target = basin_budgets.get(storm["basin"], target_bytes / max(1, len(available_basins)))
-            b_def = b_target - basin_bytes_used.get(storm["basin"], 0)
-            e_def = (target_bytes / max(1, len(available_eras))) - era_bytes.get(storm["era"], 0)
-            return b_def + e_def
+        while selected_bytes < target_bytes:
+            best_storm = None
+            best_score = -float("inf")
 
-        unselected.sort(key=deficit_score, reverse=True)
+            for storm in unselected:
+                sf = storm["storm_folder"]
+                if sf in selected_folders:
+                    continue
+                storm_bytes = storm["total_bytes"]
+                if selected_bytes + storm_bytes > target_bytes:
+                    continue
 
-        for storm in unselected:
-            sf = storm["storm_folder"]
-            if sf in selected_folders:
-                continue
-            storm_bytes = storm["total_bytes"]
-            if selected_bytes + storm_bytes > target_bytes:
-                continue
-            selected.append(storm)
+                s_year = storm.get("season", storm.get("year"))
+                year_violation = (max_single_year_bytes > 0 and (year_bytes[s_year] + storm_bytes > max_single_year_bytes))
+
+                b_target = basin_budgets.get(storm["basin"], target_bytes * norm_b.get(storm["basin"], 0))
+                b_def = b_target - basin_bytes_used.get(storm["basin"], 0)
+                e_target = target_bytes * norm_e.get(storm["era"], 0)
+                e_def = e_target - era_bytes.get(storm["era"], 0)
+                score = b_def + e_def
+
+                if year_violation:
+                    score -= 1e12
+
+                # Deterministic tie-breaker using storm_folder
+                score += (hash(sf) % 1000) / 10000.0
+
+                if score > best_score:
+                    best_score = score
+                    best_storm = storm
+
+            if best_storm is None or best_score <= -1e11:
+                break
+
+            sf = best_storm["storm_folder"]
+            storm_bytes = best_storm["total_bytes"]
+            s_year = best_storm.get("season", best_storm.get("year"))
+
+            selected.append(best_storm)
             selected_folders.add(sf)
             selected_bytes += storm_bytes
-            era_bytes[storm["era"]] += storm_bytes
-            basin_bytes_used[storm["basin"]] += storm_bytes
+            era_bytes[best_storm["era"]] += storm_bytes
+            basin_bytes_used[best_storm["basin"]] += storm_bytes
+            year_bytes[s_year] += storm_bytes
 
-    # Selection pass 3: greedy fill with any remaining storms that fit
+    # Selection pass 3: greedy fill with any remaining storms sorted by deficit score
     remaining = target_bytes - selected_bytes
     if remaining > 0:
         leftover = [s for s in catalogue if s["storm_folder"] not in selected_folders]
-        rng.shuffle(leftover)
-        for storm in leftover:
-            sf = storm["storm_folder"]
-            if sf in selected_folders:
-                continue
-            storm_bytes = storm["total_bytes"]
-            if selected_bytes + storm_bytes > target_bytes:
-                continue
-            selected.append(storm)
+
+        while selected_bytes < target_bytes:
+            best_storm = None
+            best_score = -float("inf")
+
+            for storm in leftover:
+                sf = storm["storm_folder"]
+                if sf in selected_folders:
+                    continue
+                storm_bytes = storm["total_bytes"]
+                if selected_bytes + storm_bytes > target_bytes:
+                    continue
+
+                s_year = storm.get("season", storm.get("year"))
+                year_violation = (max_single_year_bytes > 0 and (year_bytes[s_year] + storm_bytes > max_single_year_bytes))
+
+                b_target = basin_budgets.get(storm["basin"], target_bytes * norm_b.get(storm["basin"], 0))
+                b_def = b_target - basin_bytes_used.get(storm["basin"], 0)
+                e_target = target_bytes * norm_e.get(storm["era"], 0)
+                e_def = e_target - era_bytes.get(storm["era"], 0)
+                score = b_def + e_def
+
+                if year_violation:
+                    score -= 1e12
+
+                score += (hash(sf) % 1000) / 10000.0
+
+                if score > best_score:
+                    best_score = score
+                    best_storm = storm
+
+            if best_storm is None:
+                # If no candidate fits without year violation, relax year violation to fill remaining budget
+                for storm in leftover:
+                    sf = storm["storm_folder"]
+                    if sf in selected_folders:
+                        continue
+                    if selected_bytes + storm["total_bytes"] <= target_bytes:
+                        best_storm = storm
+                        break
+
+            if best_storm is None:
+                break
+
+            sf = best_storm["storm_folder"]
+            storm_bytes = best_storm["total_bytes"]
+            s_year = best_storm.get("season", best_storm.get("year"))
+
+            selected.append(best_storm)
             selected_folders.add(sf)
             selected_bytes += storm_bytes
+            era_bytes[best_storm["era"]] += storm_bytes
+            basin_bytes_used[best_storm["basin"]] += storm_bytes
+            year_bytes[s_year] += storm_bytes
 
     # Build selection report
     report = build_selection_report(
@@ -605,6 +678,7 @@ def stratified_select(
         available_eras,
         basin_proportions=basin_proportions,
         era_proportions=era_proportions,
+        nio_fraction=nio_fraction,
         single_year_max_pct=single_year_max_pct,
         enforce_complete_storms=enforce_complete_storms,
     )
@@ -620,6 +694,7 @@ def build_selection_report(
     available_eras,
     basin_proportions=None,
     era_proportions=None,
+    nio_fraction=0.25,
     single_year_max_pct=20.0,
     enforce_complete_storms=True,
 ):
@@ -644,6 +719,50 @@ def build_selection_report(
         era_stats[s["era"]]["storms"] += 1
         era_stats[s["era"]]["bytes"] += s["total_bytes"]
         era_stats[s["era"]]["files"] += s["file_count"]
+
+    # Target proportions calculation
+    if basin_proportions:
+        norm_b_sum = sum(basin_proportions.values())
+        norm_b_targets = {b: (basin_proportions.get(b, 0.0) / norm_b_sum * 100.0) if norm_b_sum > 0 else 0.0 for b in available_basins}
+        if "IO" in basin_proportions:
+            nio_target_pct = (basin_proportions["IO"] / norm_b_sum * 100.0) if norm_b_sum > 0 else 25.0
+        else:
+            nio_target_pct = 0.0
+    else:
+        norm_b_targets = {}
+        target_nio_frac = float(nio_fraction) if nio_fraction is not None else 0.25
+        if "IO" in available_basins:
+            norm_b_targets["IO"] = target_nio_frac * 100.0
+            other_b = [b for b in available_basins if b != "IO"]
+            rem_pct = max(0.0, 100.0 - norm_b_targets["IO"])
+            for b in other_b:
+                norm_b_targets[b] = rem_pct / max(1, len(other_b))
+        else:
+            for b in available_basins:
+                norm_b_targets[b] = 100.0 / max(1, len(available_basins))
+        nio_target_pct = norm_b_targets.get("IO", target_nio_frac * 100.0)
+
+    if era_proportions:
+        norm_e_sum = sum(era_proportions.values())
+        norm_e_targets = {e: (era_proportions.get(e, 0.0) / norm_e_sum * 100.0) if norm_e_sum > 0 else 0.0 for e in available_eras}
+    else:
+        norm_e_targets = {e: 100.0 / max(1, len(available_eras)) for e in available_eras}
+
+    # Populate target_pct, achieved_pct, deviation_pct in basin_stats
+    for b in available_basins:
+        t_pct = norm_b_targets.get(b, 0.0)
+        a_pct = (basin_stats[b]["bytes"] / total_selected_bytes * 100.0) if total_selected_bytes > 0 else 0.0
+        basin_stats[b]["target_pct"] = round(t_pct, 2)
+        basin_stats[b]["achieved_pct"] = round(a_pct, 2)
+        basin_stats[b]["deviation_pct"] = round(a_pct - t_pct, 2)
+
+    # Populate target_pct, achieved_pct, deviation_pct in era_stats
+    for e in available_eras:
+        t_pct = norm_e_targets.get(e, 0.0)
+        a_pct = (era_stats[e]["bytes"] / total_selected_bytes * 100.0) if total_selected_bytes > 0 else 0.0
+        era_stats[e]["target_pct"] = round(t_pct, 2)
+        era_stats[e]["achieved_pct"] = round(a_pct, 2)
+        era_stats[e]["deviation_pct"] = round(a_pct - t_pct, 2)
 
     # Per-year
     year_bytes = defaultdict(int)
@@ -681,6 +800,7 @@ def build_selection_report(
     # Basin stats and NIO allocation check
     io_bytes = basin_stats.get("IO", {}).get("bytes", 0)
     io_pct = (io_bytes / total_selected_bytes * 100) if total_selected_bytes > 0 else 0
+    nio_achieved = abs(io_pct - nio_target_pct) <= 10.0
 
     # Distinct seasons
     distinct_seasons = sorted(set(s["season"] for s in selected))
@@ -700,8 +820,8 @@ def build_selection_report(
         limitations.append(f"Missing basins: {missing_basins}")
     if max_year_pct > single_year_max_pct:
         limitations.append(f"Year {max_year} contributes {max_year_pct:.1f}% of selected bytes (target: <={single_year_max_pct}%).")
-    if not basin_proportions and abs(io_pct - 25) > 10:
-        limitations.append(f"NIO allocation is {io_pct:.1f}% (target: ~25%).")
+    if abs(io_pct - nio_target_pct) > 10.0:
+        limitations.append(f"NIO allocation is {io_pct:.1f}% (target: {nio_target_pct:.1f}% ± 10%).")
 
     report = {
         "target_bytes": target_bytes,
@@ -726,10 +846,14 @@ def build_selection_report(
         "year_bytes": dict(sorted(year_bytes.items())),
         "instruments": dict(sorted(instruments.items())),
         "platforms": dict(sorted(platforms.items())),
+        "nio_target_pct": round(nio_target_pct, 2),
         "nio_pct": round(io_pct, 2),
-        "nio_achieved": abs(io_pct - 25) <= 10,
+        "nio_achieved": nio_achieved,
+        "basin_proportions_target": {b: round(norm_b_targets.get(b, 0.0), 2) for b in available_basins},
+        "era_proportions_target": {e: round(norm_e_targets.get(e, 0.0), 2) for e in available_eras},
         "largest_single_year": max_year,
         "largest_single_year_pct": round(max_year_pct, 2),
+        "single_year_max_pct": single_year_max_pct,
         "limitations": limitations,
         "available_basins_in_catalogue": sorted(available_basins),
         "available_eras_in_catalogue": sorted(available_eras),
@@ -870,21 +994,31 @@ def generate_plan_summary_text(report):
     lines.append(f"  Basins represented:      {report['distinct_basins_count']}")
     lines.append("")
 
-    lines.append("3. STORMS BY BASIN")
+    lines.append("3. STORMS BY BASIN (Target vs Achieved)")
     lines.append("-" * w)
+    lines.append(f"  {'Basin':6s} | {'Name':26s} | {'Storms':6s} | {'Selected':10s} | {'Achieved':8s} | {'Target':8s} | {'Deviation':9s}")
+    lines.append("  " + "-" * (w - 4))
     for basin, stats in sorted(report["basin_stats"].items()):
-        pct = (stats["bytes"] / report["selected_bytes"] * 100) if report["selected_bytes"] > 0 else 0
         basin_name = BASIN_NAMES.get(basin, basin)
-        lines.append(f"  {basin} ({basin_name:30s}): {stats['storms']:4d} storms, "
-                      f"{stats['bytes'] / 1e9:8.3f} GB ({pct:5.1f}%), {stats['files']} files")
+        achieved = stats.get("achieved_pct", (stats["bytes"] / report["selected_bytes"] * 100) if report["selected_bytes"] > 0 else 0)
+        target = stats.get("target_pct", 0.0)
+        dev = stats.get("deviation_pct", achieved - target)
+        sign = "+" if dev > 0 else ""
+        lines.append(f"  {basin:6s} | {basin_name:26s} | {stats['storms']:6d} | "
+                     f"{stats['bytes'] / 1e9:7.3f} GB | {achieved:7.2f}% | {target:7.2f}% | {sign}{dev:7.2f}%")
     lines.append("")
 
-    lines.append("4. STORMS BY HISTORICAL ERA")
+    lines.append("4. STORMS BY HISTORICAL ERA (Target vs Achieved)")
     lines.append("-" * w)
+    lines.append(f"  {'Era':14s} | {'Storms':6s} | {'Selected':10s} | {'Achieved':8s} | {'Target':8s} | {'Deviation':9s}")
+    lines.append("  " + "-" * (w - 4))
     for era, stats in sorted(report["era_stats"].items()):
-        pct = (stats["bytes"] / report["selected_bytes"] * 100) if report["selected_bytes"] > 0 else 0
-        lines.append(f"  {era:12s}: {stats['storms']:4d} storms, "
-                      f"{stats['bytes'] / 1e9:8.3f} GB ({pct:5.1f}%), {stats['files']} files")
+        achieved = stats.get("achieved_pct", (stats["bytes"] / report["selected_bytes"] * 100) if report["selected_bytes"] > 0 else 0)
+        target = stats.get("target_pct", 0.0)
+        dev = stats.get("deviation_pct", achieved - target)
+        sign = "+" if dev > 0 else ""
+        lines.append(f"  {era:14s} | {stats['storms']:6d} | {stats['bytes'] / 1e9:7.3f} GB | "
+                     f"{achieved:7.2f}% | {target:7.2f}% | {sign}{dev:7.2f}%")
     lines.append("")
 
     lines.append("5. ERA x BASIN MATRIX (Storm Count / GB)")
@@ -923,8 +1057,10 @@ def generate_plan_summary_text(report):
 
     lines.append("8. NIO ALLOCATION")
     lines.append("-" * w)
-    lines.append(f"  NIO (IO) percentage of selected bytes: {report['nio_pct']:.2f}%")
-    lines.append(f"  NIO allocation achieved (within 10% of 25%): {'YES' if report['nio_achieved'] else 'NO'}")
+    nio_t = report.get('nio_target_pct', 25.0)
+    lines.append(f"  NIO (IO) target percentage:          {nio_t:.2f}%")
+    lines.append(f"  NIO (IO) achieved percentage:        {report['nio_pct']:.2f}%")
+    lines.append(f"  NIO allocation achieved (within 10% of {nio_t:.1f}%): {'YES' if report['nio_achieved'] else 'NO'}")
     lines.append("")
 
     lines.append("9. YEAR CONCENTRATION")
@@ -947,8 +1083,8 @@ def generate_plan_summary_text(report):
     lines.append(f"  [{'✓' if report['distinct_basins_count'] > 1 else 'X'}] Multiple basins: {report['distinct_basins_count']}")
     lines.append(f"  [{'✓' if report['selected_bytes'] <= report['target_bytes'] else 'X'}] Within target budget")
     lines.append(f"  [{'✓' if report['selected_bytes'] >= 18_000_000_000 else '!'} ] At least 18 GB selected")
-    lines.append(f"  [{'✓' if report['nio_achieved'] else '!'}] NIO allocation ~25%")
-    lines.append(f"  [{'✓' if report['largest_single_year_pct'] <= 10 else '!'}] No single year > 10%")
+    lines.append(f"  [{'✓' if report['nio_achieved'] else '!'}] NIO allocation ~{report.get('nio_target_pct', 25.0):.0f}%")
+    lines.append(f"  [{'✓' if report['largest_single_year_pct'] <= report.get('single_year_max_pct', 20.0) else '!'}] No single year > {report.get('single_year_max_pct', 20.0):.0f}%")
     lines.append("")
 
     lines.append("=" * w)

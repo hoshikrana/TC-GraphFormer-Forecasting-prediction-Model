@@ -25,7 +25,7 @@ from typing import Dict, Any
 # Ensure project root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.training.trainer import TCGraphFormerTrainer
+from src.training.trainer import TCGraphFormerTrainer, restore_checkpoint_state
 from src.training.train_multitask import (
     load_yaml_config,
     validate_checkpoint_compatibility,
@@ -34,6 +34,7 @@ from src.training.train_multitask import (
 from src.evaluation.evaluate_baselines import (
     load_model_for_evaluation,
     compute_train_track_climatology,
+    compute_track_errors,
 )
 from src.prepare_pilot_dataset import (
     stratified_select,
@@ -128,19 +129,18 @@ class TestPhase2E41Corrections(unittest.TestCase):
         fresh_optimizer = torch.optim.AdamW(fresh_model.parameters(), lr=1e-3, weight_decay=1e-4)
         fresh_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(fresh_optimizer, T_max=10, eta_min=1e-5)
 
-        # Restore states
-        fresh_model.load_state_dict(ckpt["model_state_dict"])
-        fresh_optimizer.load_state_dict(ckpt["optimizer_state_dict"])
-        fresh_scheduler.load_state_dict(ckpt["scheduler_state_dict"])
-
         fresh_trainer = TCGraphFormerTrainer(
             model=fresh_model,
             optimizer=fresh_optimizer,
             scheduler=fresh_scheduler,
             device="cpu",
             checkpoint_dir=self.tmp_dir,
-            best_val_loss=ckpt["best_val_loss"],
         )
+
+        # Restore states using production restore_checkpoint
+        res = fresh_trainer.restore_checkpoint(ckpt_path)
+        self.assertEqual(res["epoch"], 3)
+        self.assertEqual(res["next_epoch"], 4)
 
         # Verify exact weight match
         for p1, p2 in zip(model.parameters(), fresh_model.parameters()):
@@ -156,88 +156,67 @@ class TestPhase2E41Corrections(unittest.TestCase):
     def test_02_checkpoint_resume_legacy_rejection(self):
         """Verify checkpoints lacking scheduler state raise ValueError unless allow_legacy_resume=True."""
         model = SimpleDummyModel(d_model=32)
+        opt = torch.optim.AdamW(model.parameters(), lr=1e-3)
         legacy_ckpt_path = os.path.join(self.tmp_dir, "legacy_no_scheduler.pt")
 
         torch.save({
             "model_state_dict": model.state_dict(),
-            "optimizer_state_dict": {},
+            "optimizer_state_dict": opt.state_dict(),
             "scheduler_state_dict": None,  # Missing scheduler
             "epoch": 2,
             "best_val_loss": 0.95,
             "is_trained": True,
         }, legacy_ckpt_path)
 
-        ckpt = torch.load(legacy_ckpt_path, map_location="cpu")
-        sched_state = ckpt.get("scheduler_state_dict")
+        fresh_trainer = TCGraphFormerTrainer(
+            model=model,
+            optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
+            scheduler=torch.optim.lr_scheduler.CosineAnnealingLR(torch.optim.AdamW(model.parameters(), lr=1e-3), T_max=10),
+            device="cpu",
+            checkpoint_dir=self.tmp_dir,
+        )
 
-        # Without allow_legacy_resume, missing scheduler state must raise ValueError
-        allow_legacy_resume = False
-        if sched_state is None and not allow_legacy_resume:
-            with self.assertRaises(ValueError):
-                raise ValueError("Checkpoint lacks learning-rate scheduler state. Use --allow-legacy-resume to override.")
+        # Without allow_legacy_resume, missing scheduler state must raise ValueError from production code
+        with self.assertRaises(ValueError) as ctx:
+            fresh_trainer.restore_checkpoint(legacy_ckpt_path, allow_legacy_resume=False)
+        self.assertIn("scheduler_state_dict", str(ctx.exception))
 
         # With allow_legacy_resume=True, it is permitted
-        allow_legacy_resume = True
-        self.assertTrue(allow_legacy_resume)
+        res = fresh_trainer.restore_checkpoint(legacy_ckpt_path, allow_legacy_resume=True)
+        self.assertTrue(res["is_legacy_resume"])
+        self.assertEqual(res["epoch"], 2)
 
     # -----------------------------------------------------------------------
     # 2. Track Evaluation Metrics: True RMSE & Climatology Baseline
     # -----------------------------------------------------------------------
     def test_03_track_metrics_true_rmse_and_climatology(self):
         """Verify track persistence MAE/RMSE calculations (true RMSE != median) and training climatology."""
-        # Known ground truth displacements for 2 samples:
-        # Sample 1: target (dx=30 km, dy=40 km) -> Euclidean error = 50.0 km
-        # Sample 2: target (dx=60 km, dy=80 km) -> Euclidean error = 100.0 km
-        t_errors = np.array([50.0, 100.0])
+        # True displacement and prediction vectors for 2 samples
+        # Sample 1: true=(30, 40) km [norm 50], pred=(0, 0) km -> persistence err 50, diff err 50
+        # Sample 2: true=(60, 80) km [norm 100], pred=(0, 0) km -> persistence err 100, diff err 100
+        true_vec = np.array([[30.0, 40.0], [60.0, 80.0]])
+        pred_vec = np.zeros_like(true_vec)
+        clim_vec = (20.0, 30.0)
 
-        mae = float(np.mean(t_errors))
-        rmse = float(np.sqrt(np.mean(t_errors ** 2)))
-        median = float(np.median(t_errors))
+        errs = compute_track_errors(true_vec, pred_vec, clim_vec=clim_vec)
+        self.assertAlmostEqual(errs["persist_mae"], 75.0, places=2)
+        self.assertAlmostEqual(errs["persist_rmse"], 79.06, places=2)
+        self.assertNotEqual(errs["persist_rmse"], errs["persist_median"])
 
-        # True mathematical values:
-        # MAE = (50 + 100) / 2 = 75.0 km
-        # MSE = (2500 + 10000) / 2 = 6250.0 -> RMSE = sqrt(6250) = 79.05694... km
-        # Median = 75.0 km
-        self.assertAlmostEqual(mae, 75.0, places=4)
-        self.assertAlmostEqual(rmse, 79.05694, places=4)
-        self.assertNotEqual(rmse, median, "RMSE must not be assigned median error!")
-
-        # Climatology vector test:
-        # Training valid displacements: (10, 20) and (30, 40) -> mean (clim_dx=20, clim_dy=30)
-        train_dx = np.array([10.0, 30.0])
-        train_dy = np.array([20.0, 40.0])
-        clim_dx = float(np.mean(train_dx))
-        clim_dy = float(np.mean(train_dy))
-        self.assertEqual(clim_dx, 20.0)
-        self.assertEqual(clim_dy, 30.0)
-
-        # Evaluate against validation targets: (20, 30) and (50, 70)
-        val_targets = [(20.0, 30.0), (50.0, 70.0)]
-        clim_errors = [
-            np.sqrt((tgt[0] - clim_dx) ** 2 + (tgt[1] - clim_dy) ** 2)
-            for tgt in val_targets
-        ]
-        # Target 1 error: sqrt((20-20)^2 + (30-30)^2) = 0.0 km
-        # Target 2 error: sqrt((50-20)^2 + (70-30)^2) = sqrt(900 + 1600) = 50.0 km
-        clim_mae = float(np.mean(clim_errors))
-        clim_rmse = float(np.sqrt(np.mean(np.array(clim_errors) ** 2)))
-
-        self.assertAlmostEqual(clim_mae, 25.0, places=4)
-        self.assertAlmostEqual(clim_rmse, np.sqrt(1250.0), places=4)
-        self.assertGreater(clim_rmse, 0.0, "Climatology baseline must not be hardcoded to 0.0!")
+        # Climatology errors:
+        # Sample 1: true (30, 40) vs clim (20, 30) -> diff (10, 10) -> norm sqrt(200) = 14.142 km
+        # Sample 2: true (60, 80) vs clim (20, 30) -> diff (40, 50) -> norm sqrt(4100) = 64.031 km
+        # Mean = (14.142 + 64.031) / 2 = 39.09 km
+        self.assertAlmostEqual(errs["clim_mae"], 39.09, delta=0.1)
+        self.assertGreater(errs["clim_rmse"], 0.0)
 
     def test_04_track_metrics_zero_valid_targets_handling(self):
         """Verify that when n_valid_targets == 0, metrics are represented as None/null rather than 0.0."""
-        # Simulated horizon with no valid observations
-        val_errors = []
-        n_valid = len(val_errors)
-        self.assertEqual(n_valid, 0)
-
-        mae = float(np.mean(val_errors)) if n_valid > 0 else None
-        rmse = float(np.sqrt(np.mean(np.array(val_errors)**2))) if n_valid > 0 else None
-
-        self.assertIsNone(mae, "Missing target horizon MAE should be None, not 0.0")
-        self.assertIsNone(rmse, "Missing target horizon RMSE should be None, not 0.0")
+        errs = compute_track_errors(np.empty((0, 2)), np.empty((0, 2)), clim_vec=(20.0, 30.0))
+        self.assertIsNone(errs["persist_mae"], "Missing target horizon MAE should be None, not 0.0")
+        self.assertIsNone(errs["persist_rmse"], "Missing target horizon RMSE should be None, not 0.0")
+        self.assertIsNone(errs["nn_mae"], "Missing target horizon NN MAE should be None, not 0.0")
+        self.assertIsNone(errs["nn_rmse"], "Missing target horizon NN RMSE should be None, not 0.0")
 
     # -----------------------------------------------------------------------
     # 3. Checkpoint Provenance & Strict Evaluation

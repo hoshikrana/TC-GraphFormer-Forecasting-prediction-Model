@@ -27,7 +27,7 @@ from src.data.dataset import TCPRIMEDDataset, TCPRIMEDSequenceDataset
 from src.data.collate import collate_multimodal_batch, collate_sequence_batch
 from src.models.tc_graphformer import TCGraphFormer
 from src.training.losses import MultiTaskLoss
-from src.training.trainer import TCGraphFormerTrainer
+from src.training.trainer import TCGraphFormerTrainer, restore_checkpoint_state
 
 
 def validate_checkpoint_compatibility(
@@ -79,16 +79,14 @@ def validate_checkpoint_compatibility(
         )
         raise ValueError(err_msg)
 
-    # Check for training provenance
+    # Check for verifiable training provenance (strictly requiring supervised_multitask_training and epoch >= 1)
     is_trained = (
-        ckpt.get("is_trained") is True
-        or ckpt.get("provenance", {}).get("is_trained") is True
-        or (
-            is_compatible
-            and ckpt.get("epoch", 0) >= 1
-            and ckpt.get("optimizer_state_dict") is not None
-            and ckpt.get("metrics") is not None
-        )
+        is_compatible
+        and (ckpt.get("is_trained") is True)
+        and isinstance(ckpt.get("provenance"), dict)
+        and (ckpt.get("provenance", {}).get("workflow") == "supervised_multitask_training")
+        and (ckpt.get("provenance", {}).get("is_trained") is True)
+        and (ckpt.get("epoch", 0) >= 1)
     )
 
     return {
@@ -353,41 +351,6 @@ def run_multitask_training(
     start_epoch = 1
     best_val_loss = float("inf")
     training_history = []
-    ckpt_scaler_state = None
-
-    if resume_checkpoint:
-        compat = validate_checkpoint_compatibility(resume_checkpoint, model, strict=True, device=device)
-        ckpt = torch.load(resume_checkpoint, map_location=device)
-        model.load_state_dict(ckpt["model_state_dict"], strict=True)
-        if "optimizer_state_dict" in ckpt and ckpt["optimizer_state_dict"] is not None:
-            optimizer.load_state_dict(ckpt["optimizer_state_dict"])
-            print(f"[RESUME] Restored optimizer state from {resume_checkpoint}")
-
-        # Restore scheduler state
-        if "scheduler_state_dict" in ckpt and ckpt["scheduler_state_dict"] is not None:
-            scheduler.load_state_dict(ckpt["scheduler_state_dict"])
-            print(f"[RESUME] Restored learning-rate scheduler state from {resume_checkpoint}")
-        elif not allow_legacy_resume:
-            raise ValueError(
-                f"Checkpoint '{resume_checkpoint}' lacks 'scheduler_state_dict' required for reliable resume! "
-                f"To override and perform a legacy partial resume without scheduler state, pass --allow-legacy-resume."
-            )
-        else:
-            print(f"[WARN] Checkpoint '{resume_checkpoint}' lacks scheduler state; continuing with fresh scheduler under --allow-legacy-resume.")
-
-        # Restore historical best validation loss
-        if "best_val_loss" in ckpt and ckpt["best_val_loss"] is not None:
-            best_val_loss = float(ckpt["best_val_loss"])
-        elif "metrics" in ckpt and "val_loss" in ckpt["metrics"]:
-            best_val_loss = float(ckpt["metrics"]["val_loss"])
-            print(f"[WARN] Checkpoint lacks 'best_val_loss'; falling back to current checkpoint val_loss: {best_val_loss}")
-        else:
-            best_val_loss = float("inf")
-
-        ckpt_scaler_state = ckpt.get("scaler_state_dict")
-        start_epoch = ckpt.get("epoch", 0) + 1
-        init_provenance = f"resumed_checkpoint ({resume_checkpoint}, start_epoch={start_epoch}, best_val_loss={best_val_loss:.4f})"
-        print(f"[RESUME] Checkpoint verified. Resuming at epoch {start_epoch} (historical best_val_loss={best_val_loss:.4f})")
 
     trainer = TCGraphFormerTrainer(
         model=model,
@@ -403,25 +366,32 @@ def run_multitask_training(
         best_val_loss=best_val_loss,
     )
 
-    if resume_checkpoint and use_amp and ckpt_scaler_state is not None:
-        trainer.scaler.load_state_dict(ckpt_scaler_state)
-        print(f"[RESUME] Restored AMP GradScaler state from {resume_checkpoint}")
+    if resume_checkpoint:
+        res = trainer.restore_checkpoint(resume_checkpoint, allow_legacy_resume=allow_legacy_resume)
+        start_epoch = res["next_epoch"]
+        best_val_loss = res["best_val_loss"]
+        init_provenance = f"resumed_checkpoint ({resume_checkpoint}, start_epoch={start_epoch}, best_val_loss={best_val_loss:.4f})"
+        print(f"[RESUME] Checkpoint verified. Resuming at epoch {start_epoch} (historical best_val_loss={best_val_loss:.4f})")
 
     if dry_run:
-        print("[DRY-RUN] Validating data loading, batch collation, and single forward-backward execution...")
-        if len(train_loader) > 0:
-            sample_batch = next(iter(train_loader))
-            preds = trainer._forward_batch(sample_batch)
-            targets = {k: v.to(device) for k, v in sample_batch["targets"].items() if isinstance(v, torch.Tensor)}
-            loss, loss_dict = loss_fn(preds, targets)
-            loss.backward()
-            optimizer.zero_grad()
-            print(f"[DRY-RUN] Forward & backward pass verified successfully! Loss: {loss.item():.4f}")
+        print("[DRY-RUN] Validating data loading, batch collation, and train_epoch execution (with accumulation & optimizer step)...")
+        dry_batches = []
+        for i, b in enumerate(train_loader):
+            dry_batches.append(b)
+            if i + 1 >= max(4, accumulate_grad_batches * 2):
+                break
+        train_metrics = {}
+        if dry_batches:
+            train_metrics = trainer.train_epoch(dry_batches, epoch=1)
+            print(f"[DRY-RUN] train_epoch verified successfully! Loss: {train_metrics.get('loss', 0.0):.4f}, "
+                  f"Optimizer Steps: {train_metrics.get('optimizer_steps', 0)}")
         return {
             "status": "dry_run_success",
             "device": device,
             "train_samples": len(train_dataset),
             "val_samples": len(val_dataset),
+            "dry_batches_evaluated": len(dry_batches),
+            "train_metrics": train_metrics,
         }
 
     # 4. Training Loop

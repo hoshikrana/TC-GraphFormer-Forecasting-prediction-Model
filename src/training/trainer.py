@@ -103,15 +103,21 @@ class TCGraphFormerTrainer:
         start_time = time.time()
         self.optimizer.zero_grad()
         num_batches = len(dataloader)
+        optimizer_steps = 0
 
         for batch_idx, batch in enumerate(dataloader):
             targets = {k: v.to(self.device) for k, v in batch["targets"].items() if isinstance(v, torch.Tensor)}
-            is_accum_step = ((batch_idx + 1) % self.accumulate_grad_batches == 0) or ((batch_idx + 1) == num_batches)
+            
+            # Accurate accumulation group sizing (handles incomplete final group)
+            group_start = (batch_idx // self.accumulate_grad_batches) * self.accumulate_grad_batches
+            group_end = min(num_batches, group_start + self.accumulate_grad_batches)
+            actual_group_size = max(1, group_end - group_start)
+            is_accum_step = (batch_idx + 1 == group_end)
 
             with torch.cuda.amp.autocast(enabled=self.use_amp, dtype=self.amp_dtype):
                 preds = self._forward_batch(batch)
                 loss, loss_dict = self.loss_fn(preds, targets)
-                loss_scaled = loss / self.accumulate_grad_batches
+                loss_scaled = loss / actual_group_size
 
             if self.use_amp:
                 self.scaler.scale(loss_scaled).backward()
@@ -121,12 +127,14 @@ class TCGraphFormerTrainer:
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
                     self.optimizer.zero_grad()
+                    optimizer_steps += 1
             else:
                 loss_scaled.backward()
                 if is_accum_step:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
                     self.optimizer.step()
                     self.optimizer.zero_grad()
+                    optimizer_steps += 1
 
             B = batch["ir"].size(0)
             total_samples += B
@@ -138,6 +146,9 @@ class TCGraphFormerTrainer:
         avg_loss = total_loss / max(1, total_samples)
         metrics = {k: round(v / max(1, total_samples), 4) for k, v in loss_accum.items()}
         metrics["epoch"] = epoch
+        metrics["optimizer_steps"] = optimizer_steps
+        metrics["total_batches"] = num_batches
+        metrics["accumulate_grad_batches"] = self.accumulate_grad_batches
         metrics["epoch_time_sec"] = round(time.time() - start_time, 2)
         return metrics
 
@@ -368,3 +379,171 @@ class TCGraphFormerTrainer:
         torch.save(state, latest_path)
 
         return filepath
+
+    def restore_checkpoint(self, checkpoint_path: str, allow_legacy_resume: bool = False) -> Dict[str, Any]:
+        """Restore model, optimizer, scheduler, and AMP scaler state from checkpoint."""
+        res = restore_checkpoint_state(
+            checkpoint_path=checkpoint_path,
+            model=self.model,
+            optimizer=self.optimizer,
+            scheduler=self.scheduler,
+            scaler=self.scaler,
+            use_amp=self.use_amp,
+            precision=self.precision,
+            allow_legacy_resume=allow_legacy_resume,
+            device=self.device,
+        )
+        self.best_val_loss = res["best_val_loss"]
+        return res
+
+
+def restore_checkpoint_state(
+    checkpoint_path: str,
+    model: nn.Module,
+    optimizer: Optional[torch.optim.Optimizer] = None,
+    scheduler: Optional[Any] = None,
+    scaler: Optional[Any] = None,
+    use_amp: bool = False,
+    precision: str = "fp16",
+    allow_legacy_resume: bool = False,
+    device: str = "cpu",
+) -> Dict[str, Any]:
+    """
+    Safely restore complete checkpoint state for model training resumption.
+    Strictly requires and restores:
+      - Model parameters (strictly compatible)
+      - Optimizer state (unless allow_legacy_resume=True)
+      - Learning-rate scheduler state (unless allow_legacy_resume=True)
+      - Historical best validation loss (unless allow_legacy_resume=True)
+      - AMP GradScaler state when using fp16 AMP (unless allow_legacy_resume=True)
+      - Training epoch and provenance metadata
+
+    Raises ValueError if any required state is missing, preventing silent loss
+    of training momentum, learning rate progression, or historical best records.
+    """
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
+
+    ckpt = torch.load(checkpoint_path, map_location=device)
+    if not isinstance(ckpt, dict):
+        raise ValueError(f"Invalid checkpoint format in '{checkpoint_path}': expected dict, got {type(ckpt)}")
+
+    is_legacy_resume = False
+
+    # 1. Model State
+    state = ckpt.get("model_state_dict", ckpt)
+    model_state = model.state_dict()
+    model_keys = set(model_state.keys())
+    ckpt_keys = set(state.keys())
+
+    matched_keys = []
+    mismatched_shapes = []
+    for k in ckpt_keys:
+        if k in model_keys:
+            if model_state[k].shape == state[k].shape:
+                matched_keys.append(k)
+            else:
+                mismatched_shapes.append(k)
+
+    missing_keys = sorted(list(model_keys - set(matched_keys)))
+    if missing_keys or mismatched_shapes:
+        raise ValueError(
+            f"Checkpoint '{checkpoint_path}' is incompatible with model! "
+            f"Missing keys: {len(missing_keys)}, Shape mismatches: {len(mismatched_shapes)}."
+        )
+    model.load_state_dict(state, strict=True)
+
+    # 2. Training Epoch
+    epoch = ckpt.get("epoch")
+    if epoch is None:
+        if not allow_legacy_resume:
+            raise ValueError(
+                f"Checkpoint '{checkpoint_path}' lacks 'epoch' required for safe resume! "
+                f"Pass allow_legacy_resume=True to override."
+            )
+        epoch = 0
+        is_legacy_resume = True
+
+    # 3. Optimizer State
+    opt_state = ckpt.get("optimizer_state_dict")
+    has_valid_opt = (
+        opt_state is not None
+        and isinstance(opt_state, dict)
+        and "param_groups" in opt_state
+    )
+    if optimizer is not None:
+        if has_valid_opt:
+            optimizer.load_state_dict(opt_state)
+        elif not allow_legacy_resume:
+            raise ValueError(
+                f"Checkpoint '{checkpoint_path}' lacks 'optimizer_state_dict' required for safe resume! "
+                f"Resuming without optimizer state loses momentum and variance buffers. "
+                f"Pass allow_legacy_resume=True to override."
+            )
+        else:
+            is_legacy_resume = True
+            print(f"[WARN] Checkpoint '{checkpoint_path}' lacks optimizer state; continuing with fresh optimizer under legacy resume.")
+
+    # 4. Scheduler State
+    sched_state = ckpt.get("scheduler_state_dict")
+    has_valid_sched = (
+        sched_state is not None
+        and isinstance(sched_state, dict)
+        and len(sched_state) > 0
+    )
+    if scheduler is not None:
+        if has_valid_sched:
+            scheduler.load_state_dict(sched_state)
+        elif not allow_legacy_resume:
+            raise ValueError(
+                f"Checkpoint '{checkpoint_path}' lacks 'scheduler_state_dict' required for safe resume! "
+                f"Resuming without scheduler state resets the learning rate progression. "
+                f"Pass allow_legacy_resume=True to override."
+            )
+        else:
+            is_legacy_resume = True
+            print(f"[WARN] Checkpoint '{checkpoint_path}' lacks scheduler state; continuing with fresh scheduler under legacy resume.")
+
+    # 5. Historical Best Validation Loss
+    best_val_loss = ckpt.get("best_val_loss")
+    if best_val_loss is not None:
+        best_val_loss = float(best_val_loss)
+    elif not allow_legacy_resume:
+        raise ValueError(
+            f"Checkpoint '{checkpoint_path}' lacks historical 'best_val_loss' required for safe resume! "
+            f"Falling back to current validation loss or infinity can overwrite earlier best models. "
+            f"Pass allow_legacy_resume=True to override."
+        )
+    else:
+        is_legacy_resume = True
+        if "metrics" in ckpt and "val_loss" in ckpt["metrics"]:
+            best_val_loss = float(ckpt["metrics"]["val_loss"])
+            print(f"[WARN] Checkpoint lacks 'best_val_loss'; falling back to current checkpoint val_loss ({best_val_loss:.4f}) under legacy resume.")
+        else:
+            best_val_loss = float("inf")
+            print(f"[WARN] Checkpoint lacks 'best_val_loss'; falling back to infinity under legacy resume.")
+
+    # 6. AMP GradScaler State
+    scaler_state = ckpt.get("scaler_state_dict")
+    requires_scaler = use_amp and (precision.lower() == "fp16")
+    if scaler is not None and requires_scaler:
+        if scaler_state is not None:
+            scaler.load_state_dict(scaler_state)
+        elif not allow_legacy_resume:
+            raise ValueError(
+                f"Checkpoint '{checkpoint_path}' lacks 'scaler_state_dict' required for fp16 AMP resume! "
+                f"Pass allow_legacy_resume=True to override."
+            )
+        else:
+            is_legacy_resume = True
+            print(f"[WARN] Checkpoint lacks scaler state; continuing with fresh scaler under legacy resume.")
+
+    return {
+        "epoch": int(epoch),
+        "next_epoch": int(epoch) + 1,
+        "best_val_loss": best_val_loss,
+        "is_legacy_resume": is_legacy_resume,
+        "metrics": ckpt.get("metrics", {}),
+        "provenance": ckpt.get("provenance", {}),
+        "precision": ckpt.get("precision", precision),
+    }

@@ -26,6 +26,7 @@ import math
 import json
 import argparse
 from typing import Tuple, Dict, Any, List, Optional
+import yaml
 import numpy as np
 import pandas as pd
 import torch
@@ -168,6 +169,62 @@ def compute_train_track_climatology(
     return climatology_vectors
 
 
+def compute_track_errors(
+    true_vec: np.ndarray,
+    pred_vec: np.ndarray,
+    clim_vec: Optional[Tuple[float, float]] = None,
+) -> Dict[str, Optional[float]]:
+    """
+    Compute rigorous Euclidean error metrics for future track displacement (km).
+    Calculates true mathematical RMSE (sqrt of mean squared euclidean error),
+    MAE, median error for persistence baseline, training climatology baseline,
+    and TC-GraphFormer model predictions.
+    """
+    if len(true_vec) == 0:
+        return {
+            "persist_mae": None, "persist_rmse": None, "persist_median": None,
+            "clim_mae": None, "clim_rmse": None,
+            "nn_mae": None, "nn_rmse": None,
+            "impr_persist": None, "impr_clim": None,
+        }
+
+    # 1. Persistence baseline: assumes zero displacement [0, 0]
+    persist_err_km = np.sqrt(true_vec[:, 0] ** 2 + true_vec[:, 1] ** 2)
+    persist_mae = round(float(np.mean(persist_err_km)), 2)
+    persist_rmse = round(float(np.sqrt(np.mean(persist_err_km ** 2))), 2)
+    persist_median = round(float(np.median(persist_err_km)), 2)
+
+    # 2. Climatology baseline: training mean displacement vector (clim_dx, clim_dy)
+    if clim_vec is not None:
+        clim_dx, clim_dy = clim_vec
+        clim_err_km = np.sqrt((true_vec[:, 0] - clim_dx) ** 2 + (true_vec[:, 1] - clim_dy) ** 2)
+        clim_mae = round(float(np.mean(clim_err_km)), 2)
+        clim_rmse = round(float(np.sqrt(np.mean(clim_err_km ** 2))), 2)
+    else:
+        clim_mae, clim_rmse = None, None
+
+    # 3. Model displacement vector error
+    diff_vec = pred_vec - true_vec
+    nn_err_km = np.sqrt(diff_vec[:, 0] ** 2 + diff_vec[:, 1] ** 2)
+    nn_mae = round(float(np.mean(nn_err_km)), 2)
+    nn_rmse = round(float(np.sqrt(np.mean(nn_err_km ** 2))), 2)
+
+    impr_persist = round(persist_mae - nn_mae, 2)
+    impr_clim = round(clim_mae - nn_mae, 2) if clim_mae is not None else None
+
+    return {
+        "persist_mae": persist_mae,
+        "persist_rmse": persist_rmse,
+        "persist_median": persist_median,
+        "clim_mae": clim_mae,
+        "clim_rmse": clim_rmse,
+        "nn_mae": nn_mae,
+        "nn_rmse": nn_rmse,
+        "impr_persist": impr_persist,
+        "impr_clim": impr_clim,
+    }
+
+
 def load_model_for_evaluation(
     checkpoint_path: Optional[str] = None,
     d_model: int = 128,
@@ -218,16 +275,13 @@ def load_model_for_evaluation(
     missing = sorted(list(model_keys - set(matched.keys())))
     is_compatible = (len(missing) == 0 and len(mismatches) == 0)
 
-    # Verifiable training provenance check
+    # Verifiable training provenance check (strictly requiring supervised_multitask_training and epoch >= 1)
     has_training_provenance = (
-        ckpt.get("is_trained") is True
-        or ckpt.get("provenance", {}).get("is_trained") is True
-        or (
-            is_compatible
-            and ckpt.get("epoch", 0) >= 1
-            and ckpt.get("optimizer_state_dict") is not None
-            and ckpt.get("metrics") is not None
-        )
+        isinstance(ckpt.get("provenance"), dict)
+        and (ckpt.get("is_trained") is True)
+        and (ckpt.get("provenance", {}).get("workflow") == "supervised_multitask_training")
+        and (ckpt.get("provenance", {}).get("is_trained") is True)
+        and (ckpt.get("epoch", 0) >= 1)
     )
 
     is_qualified_trained = is_compatible and has_training_provenance
@@ -658,31 +712,16 @@ def evaluate_all(
             if n_valid_tr > 0:
                 true_vec = tr_true[m_tr, h_idx]  # (M, 2) in km
                 pred_vec = tr_pred_nn[m_tr, h_idx]  # (M, 2) in km
-
-                # 1. Persistence baseline: assumes zero displacement [0, 0]
-                persist_err_km = np.sqrt(true_vec[:, 0] ** 2 + true_vec[:, 1] ** 2)
-                persist_mae = round(float(np.mean(persist_err_km)), 2)
-                persist_rmse = round(float(np.sqrt(np.mean(persist_err_km ** 2))), 2)
-                persist_median = round(float(np.median(persist_err_km)), 2)
-
-                # 2. Track Climatology baseline: training mean displacement vector (clim_dx, clim_dy)
-                clim_vec = train_track_clim.get(h)
-                if clim_vec is not None:
-                    clim_dx, clim_dy = clim_vec
-                    clim_err_km = np.sqrt((true_vec[:, 0] - clim_dx) ** 2 + (true_vec[:, 1] - clim_dy) ** 2)
-                    clim_mae = round(float(np.mean(clim_err_km)), 2)
-                    clim_rmse = round(float(np.sqrt(np.mean(clim_err_km ** 2))), 2)
-                else:
-                    clim_mae, clim_rmse = None, None
-
-                # 3. TC-GraphFormer displacement vector error
-                diff_vec = pred_vec - true_vec
-                nn_err_km = np.sqrt(diff_vec[:, 0] ** 2 + diff_vec[:, 1] ** 2)
-                nn_mae = round(float(np.mean(nn_err_km)), 2)
-                nn_rmse = round(float(np.sqrt(np.mean(nn_err_km ** 2))), 2)
-
-                impr_persist = round(persist_mae - nn_mae, 2)
-                impr_clim = round(clim_mae - nn_mae, 2) if clim_mae is not None else None
+                track_errs = compute_track_errors(true_vec, pred_vec, clim_vec=train_track_clim.get(h))
+                persist_mae = track_errs["persist_mae"]
+                persist_rmse = track_errs["persist_rmse"]
+                persist_median = track_errs["persist_median"]
+                clim_mae = track_errs["clim_mae"]
+                clim_rmse = track_errs["clim_rmse"]
+                nn_mae = track_errs["nn_mae"]
+                nn_rmse = track_errs["nn_rmse"]
+                impr_persist = track_errs["impr_persist"]
+                impr_clim = track_errs["impr_clim"]
             else:
                 persist_mae, persist_rmse, persist_median = None, None, None
                 clim_mae, clim_rmse = None, None
@@ -770,6 +809,7 @@ def evaluate_all(
 
 def main():
     parser = argparse.ArgumentParser(description="TC-GraphFormer Baseline & Inference Evaluation Engine")
+    parser.add_argument("--config", default=None, help="Path to GPU node or pipeline YAML configuration")
     parser.add_argument("--sample-index", default="reports/pipeline/sample_index.csv", help="Sample index CSV")
     parser.add_argument("--checkpoint", default="checkpoints/best_checkpoint.pt", help="Path to model checkpoint")
     parser.add_argument("--d-model", type=int, default=128, help="Model hidden dimension")
@@ -784,15 +824,45 @@ def main():
     parser.add_argument("--max-eval-samples", type=int, default=None, help="Limit samples for fast smoke testing")
     args = parser.parse_args()
 
+    sample_index = args.sample_index
+    checkpoint = args.checkpoint
+    output_dir = args.output_dir
+    device = args.device
+    d_model = args.d_model
+
+    if args.config:
+        if not os.path.exists(args.config):
+            raise FileNotFoundError(f"Configuration file not found: {args.config}")
+        with open(args.config, "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+        paths_cfg = cfg.get("paths", {})
+        eval_cfg = cfg.get("evaluation", {})
+        mach_cfg = cfg.get("machine", {})
+        mod_cfg = cfg.get("model", {})
+
+        if args.sample_index == "reports/pipeline/sample_index.csv" and "sample_index_path" in paths_cfg:
+            sample_index = paths_cfg["sample_index_path"]
+        if args.checkpoint == "checkpoints/best_checkpoint.pt" and "checkpoints_dir" in paths_cfg:
+            checkpoint = os.path.join(paths_cfg["checkpoints_dir"], "best_checkpoint.pt")
+        if args.output_dir == "reports/phase2e4":
+            if "output_dir" in eval_cfg:
+                output_dir = eval_cfg["output_dir"]
+            elif "evaluation_output_dir" in paths_cfg:
+                output_dir = paths_cfg["evaluation_output_dir"]
+        if args.device == "cpu" and "device" in mach_cfg:
+            device = mach_cfg["device"]
+        if args.d_model == 128 and "d_model" in mod_cfg:
+            d_model = mod_cfg["d_model"]
+
     evaluate_all(
-        sample_index_csv=args.sample_index,
-        checkpoint_path=args.checkpoint,
-        d_model=args.d_model,
-        output_dir=args.output_dir,
+        sample_index_csv=sample_index,
+        checkpoint_path=checkpoint,
+        d_model=d_model,
+        output_dir=output_dir,
         use_sequences=not args.single_obs,
         max_history_len=args.max_history_len,
         batch_size=args.batch_size,
-        device=args.device,
+        device=device,
         strict_checkpoint=args.strict_checkpoint,
         smoke_test=args.smoke_test,
         max_eval_samples=args.max_eval_samples,
