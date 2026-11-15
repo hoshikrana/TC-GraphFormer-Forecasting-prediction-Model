@@ -41,13 +41,17 @@ stratification_criteria:
       "2010-2019": 0.35 # GPM core and modern constellation
       "2020+": 0.20     # Recent high-resolution observations
   single_year_max_pct: 20.0 # Prevent temporal clustering
+  enforce_single_year_cap: true # Hard cap enforcement: never relax in Pass 3
 
 modality_requirements:
-  require_environmental: true # Require matching ERA5 reanalysis for every storm
-  prioritize_radar_overpasses: true # Prioritize DPR / PR overpasses where available
-  min_sensors_per_storm: 2 # Require multi-sensor coverage per lifecycle
+  # Criteria evaluated from S3 file catalogue metadata during acquisition planning:
+  require_environmental: true # Require matching ERA5 reanalysis for every storm (env_count >= 1)
+  prioritize_radar_overpasses: true # Prioritize DPR / PR overpasses where available in catalogue
+  min_sensors_per_storm: 2 # Require multi-sensor coverage per lifecycle in catalogue
 
 forecasting_targets:
+  # NOTE: Forecasting targets below are post-processing validation criteria evaluated
+  # during raw NetCDF ingestion and sample indexing, not planning-enforced by S3 catalogue.
   horizons_hours: [6, 12, 18, 24]
   require_intensity_change: true
   require_rapid_intensification_samples: true

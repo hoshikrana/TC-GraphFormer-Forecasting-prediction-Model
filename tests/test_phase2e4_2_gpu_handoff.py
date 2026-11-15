@@ -203,11 +203,15 @@ class TestPhase2E42GPUHandoff(unittest.TestCase):
         self.assertIn("best_val_loss", str(ctx.exception))
 
         # 1e. Missing AMP GradScaler state when precision='fp16' and use_amp=True
+        no_scaler = dict(base_state)
+        p_no_scaler = os.path.join(self.tmp_dir, "no_scaler.pt")
+        torch.save(no_scaler, p_no_scaler)
         scaler = torch.cuda.amp.GradScaler(enabled=False)
         with self.assertRaises(ValueError) as ctx:
             restore_checkpoint_state(
-                p_no_epoch, model, opt, sched, scaler=scaler, use_amp=True, precision="fp16", allow_legacy_resume=False
+                p_no_scaler, model, opt, sched, scaler=scaler, use_amp=True, precision="fp16", allow_legacy_resume=False
             )
+        self.assertIn("scaler_state_dict", str(ctx.exception))
 
         # 1f. allow_legacy_resume=True overrides missing scheduler and best_val_loss safely
         legacy_res = restore_checkpoint_state(p_no_sched, model, opt, sched, allow_legacy_resume=True)

@@ -226,14 +226,22 @@ def verify_staging(
     return all_passed
 
 
-def main():
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Verify dataset transfer with SHA-256 digests.")
     parser.add_argument("manifest_pos", nargs="?", default=None, help="Optional positional path to staging manifest JSON")
     parser.add_argument("--manifest", default="staging/staging_manifest.json", help="Path to staging manifest JSON")
     parser.add_argument("--base-dir", default=".", help="Base directory where staged data is located")
     parser.add_argument("--transfer-root", action="append", dest="transfer_roots", default=None, help="Root directory to scan for unexpected extra files")
     parser.add_argument("--output", default="reports/transfer_validation_report.json", help="Path to output validation JSON")
-    args = parser.parse_args()
+    return parser
+
+
+def parse_args(args=None):
+    return build_parser().parse_args(args)
+
+
+def main():
+    args = parse_args()
 
     target_manifest = args.manifest_pos if args.manifest_pos is not None else args.manifest
     success = verify_staging(

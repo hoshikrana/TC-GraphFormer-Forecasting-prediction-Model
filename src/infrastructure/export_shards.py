@@ -143,7 +143,7 @@ def create_staging_manifest(
     return manifest_output_path
 
 
-if __name__ == "__main__":
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Export staging manifest with SHA-256 hashes.")
     parser.add_argument("--processed-dir", default="data/processed/pilot", help="Processed containers directory")
     parser.add_argument("--split-manifest", default="reports/pipeline/storm_split_manifest.csv", help="Storm split CSV")
@@ -151,8 +151,15 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", default="staging", help="Output staging directory")
     parser.add_argument("--manifest-name", default="staging_manifest.json", help="Manifest JSON filename")
     parser.add_argument("--dataset-name", default=None, help="Descriptive name for dataset")
-    args = parser.parse_args()
+    return parser
 
+
+def parse_args(args=None):
+    return build_parser().parse_args(args)
+
+
+if __name__ == "__main__":
+    args = parse_args()
     create_staging_manifest(
         processed_dir=args.processed_dir,
         split_manifest_path=args.split_manifest,

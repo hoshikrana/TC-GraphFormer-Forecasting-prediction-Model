@@ -19,6 +19,7 @@ paths:
   checkpoints_dir: "checkpoints/tcprimed_100gb"
   logs_dir: "logs/training_100gb"
   reports_dir: "reports/phase2e4_100gb"
+  training_summary_path: "reports/phase2e4_100gb/multitask_training_summary.json"
   evaluation_output_dir: "reports/evaluation_100gb"
 
 capabilities:
@@ -38,3 +39,4 @@ training:
   mixed_precision: true
   pin_memory: true
   persistent_workers: true
+  output_report: "reports/phase2e4_100gb/multitask_training_summary.json"

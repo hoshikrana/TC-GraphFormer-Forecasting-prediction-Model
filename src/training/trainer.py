@@ -94,7 +94,7 @@ class TCGraphFormerTrainer:
         return preds
 
     def train_epoch(self, dataloader: DataLoader, epoch: int) -> Dict[str, float]:
-        """Execute one training epoch with gradient accumulation and norm tracking."""
+        """Execute one training epoch with sample-weighted gradient accumulation and norm tracking."""
         self.model.train()
         total_loss = 0.0
         total_samples = 0
@@ -105,43 +105,91 @@ class TCGraphFormerTrainer:
         num_batches = len(dataloader)
         optimizer_steps = 0
 
+        # Import MultiTaskLoss check
+        from src.training.losses import MultiTaskLoss
+
+        group_batches = []
         for batch_idx, batch in enumerate(dataloader):
-            targets = {k: v.to(self.device) for k, v in batch["targets"].items() if isinstance(v, torch.Tensor)}
-            
-            # Accurate accumulation group sizing (handles incomplete final group)
-            group_start = (batch_idx // self.accumulate_grad_batches) * self.accumulate_grad_batches
-            group_end = min(num_batches, group_start + self.accumulate_grad_batches)
-            actual_group_size = max(1, group_end - group_start)
-            is_accum_step = (batch_idx + 1 == group_end)
+            group_batches.append(batch)
+            is_last_batch = (batch_idx + 1 == num_batches)
 
-            with torch.cuda.amp.autocast(enabled=self.use_amp, dtype=self.amp_dtype):
-                preds = self._forward_batch(batch)
-                loss, loss_dict = self.loss_fn(preds, targets)
-                loss_scaled = loss / actual_group_size
+            if len(group_batches) == self.accumulate_grad_batches or is_last_batch:
+                group_total_samples = sum(b["ir"].size(0) for b in group_batches)
 
-            if self.use_amp:
-                self.scaler.scale(loss_scaled).backward()
-                if is_accum_step:
+                # Precompute valid target counts across group for MultiTaskLoss
+                group_target_counts = None
+                if isinstance(self.loss_fn, MultiTaskLoss):
+                    group_target_counts = {}
+                    for b in group_batches:
+                        tgts = b.get("targets", {})
+                        if "intensity_mask" in tgts:
+                            group_target_counts["intensity"] = group_target_counts.get("intensity", 0.0) + float(tgts["intensity_mask"].sum().item())
+                        elif "intensity" in tgts:
+                            group_target_counts["intensity"] = group_target_counts.get("intensity", 0.0) + float(tgts["intensity"].size(0))
+
+                        if "pressure_mask" in tgts:
+                            group_target_counts["pressure"] = group_target_counts.get("pressure", 0.0) + float(tgts["pressure_mask"].sum().item())
+                        elif "pressure" in tgts:
+                            group_target_counts["pressure"] = group_target_counts.get("pressure", 0.0) + float(tgts["pressure"].size(0))
+
+                        if "stage_mask" in tgts:
+                            group_target_counts["stage"] = group_target_counts.get("stage", 0.0) + float(tgts["stage_mask"].sum().item())
+                        elif "stage" in tgts:
+                            group_target_counts["stage"] = group_target_counts.get("stage", 0.0) + float(tgts["stage"].size(0))
+
+                        if "intensity_change_mask" in tgts:
+                            group_target_counts["intensity_change"] = group_target_counts.get("intensity_change", 0.0) + float(tgts["intensity_change_mask"].sum().item())
+                        elif "intensity_change" in tgts:
+                            group_target_counts["intensity_change"] = group_target_counts.get("intensity_change", 0.0) + float(tgts["intensity_change"].numel())
+
+                        if "ri_mask" in tgts:
+                            group_target_counts["rapid_intensification"] = group_target_counts.get("rapid_intensification", 0.0) + float(tgts["ri_mask"].sum().item())
+                        elif "rapid_intensification" in tgts:
+                            group_target_counts["rapid_intensification"] = group_target_counts.get("rapid_intensification", 0.0) + float(tgts["rapid_intensification"].size(0))
+
+                        if "track_mask" in tgts:
+                            group_target_counts["track_displacement"] = group_target_counts.get("track_displacement", 0.0) + float(tgts["track_mask"].sum().item() * 2.0)
+                        elif "track_displacement" in tgts:
+                            group_target_counts["track_displacement"] = group_target_counts.get("track_displacement", 0.0) + float(tgts["track_displacement"].numel())
+
+                for b in group_batches:
+                    targets = {k: v.to(self.device) for k, v in b["targets"].items() if isinstance(v, torch.Tensor)}
+                    B = b["ir"].size(0)
+
+                    with torch.cuda.amp.autocast(enabled=self.use_amp, dtype=self.amp_dtype):
+                        preds = self._forward_batch(b)
+                        if isinstance(self.loss_fn, MultiTaskLoss):
+                            loss, loss_dict = self.loss_fn(preds, targets, group_target_counts=group_target_counts)
+                            loss_scaled = loss
+                        else:
+                            loss, loss_dict = self.loss_fn(preds, targets)
+                            loss_scaled = loss * (B / max(1, group_total_samples))
+
+                    if self.use_amp:
+                        self.scaler.scale(loss_scaled).backward()
+                    else:
+                        loss_scaled.backward()
+
+                    total_samples += B
+                    total_loss += loss.item() * B
+                    for k, v in loss_dict.items():
+                        loss_accum[k] = loss_accum.get(k, 0.0) + v * B
+
+                # Step optimizer once for the entire accumulation group
+                if self.use_amp:
                     self.scaler.unscale_(self.optimizer)
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
                     self.optimizer.zero_grad()
                     optimizer_steps += 1
-            else:
-                loss_scaled.backward()
-                if is_accum_step:
+                else:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
                     self.optimizer.step()
                     self.optimizer.zero_grad()
                     optimizer_steps += 1
 
-            B = batch["ir"].size(0)
-            total_samples += B
-            total_loss += loss.item() * B
-
-            for k, v in loss_dict.items():
-                loss_accum[k] = loss_accum.get(k, 0.0) + v * B
+                group_batches = []
 
         avg_loss = total_loss / max(1, total_samples)
         metrics = {k: round(v / max(1, total_samples), 4) for k, v in loss_accum.items()}

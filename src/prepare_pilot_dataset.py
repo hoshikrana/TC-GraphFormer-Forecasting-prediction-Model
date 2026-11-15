@@ -13,6 +13,7 @@ Usage:
 
 import argparse
 import csv
+import hashlib
 import json
 import os
 import re
@@ -424,6 +425,15 @@ def load_storm_catalogue_csv(path):
     return catalogue
 
 
+def deterministic_tie_breaker(seed: int, storm_folder: str) -> float:
+    """
+    Deterministic cross-process tie-breaker using SHA-256.
+    Ensures identical float scoring across separate Python processes regardless of PYTHONHASHSEED.
+    """
+    digest = hashlib.sha256(f"{seed}:{storm_folder}".encode("utf-8")).hexdigest()
+    return (int(digest[:8], 16) % 1000) / 10000.0
+
+
 # ===========================================================================
 # Stratified Pilot Selection
 # ===========================================================================
@@ -437,6 +447,7 @@ def stratified_select(
     era_proportions=None,
     single_year_max_pct=20.0,
     enforce_complete_storms=True,
+    enforce_single_year_cap=False,
 ):
     """
     Perform stratified selection of complete storm folders.
@@ -579,6 +590,8 @@ def stratified_select(
 
                 s_year = storm.get("season", storm.get("year"))
                 year_violation = (max_single_year_bytes > 0 and (year_bytes[s_year] + storm_bytes > max_single_year_bytes))
+                if enforce_single_year_cap and year_violation:
+                    continue
 
                 b_target = basin_budgets.get(storm["basin"], target_bytes * norm_b.get(storm["basin"], 0))
                 b_def = b_target - basin_bytes_used.get(storm["basin"], 0)
@@ -589,8 +602,8 @@ def stratified_select(
                 if year_violation:
                     score -= 1e12
 
-                # Deterministic tie-breaker using storm_folder
-                score += (hash(sf) % 1000) / 10000.0
+                # Deterministic cross-process tie-breaker using SHA-256
+                score += deterministic_tie_breaker(seed, sf)
 
                 if score > best_score:
                     best_score = score
@@ -629,6 +642,8 @@ def stratified_select(
 
                 s_year = storm.get("season", storm.get("year"))
                 year_violation = (max_single_year_bytes > 0 and (year_bytes[s_year] + storm_bytes > max_single_year_bytes))
+                if enforce_single_year_cap and year_violation:
+                    continue
 
                 b_target = basin_budgets.get(storm["basin"], target_bytes * norm_b.get(storm["basin"], 0))
                 b_def = b_target - basin_bytes_used.get(storm["basin"], 0)
@@ -639,14 +654,14 @@ def stratified_select(
                 if year_violation:
                     score -= 1e12
 
-                score += (hash(sf) % 1000) / 10000.0
+                score += deterministic_tie_breaker(seed, sf)
 
                 if score > best_score:
                     best_score = score
                     best_storm = storm
 
-            if best_storm is None:
-                # If no candidate fits without year violation, relax year violation to fill remaining budget
+            if best_storm is None and not enforce_single_year_cap:
+                # If no candidate fits without year violation and hard cap is disabled, relax year violation to fill remaining budget
                 for storm in leftover:
                     sf = storm["storm_folder"]
                     if sf in selected_folders:
@@ -655,7 +670,7 @@ def stratified_select(
                         best_storm = storm
                         break
 
-            if best_storm is None:
+            if best_storm is None or (enforce_single_year_cap and best_score <= -1e11):
                 break
 
             sf = best_storm["storm_folder"]
@@ -681,6 +696,7 @@ def stratified_select(
         nio_fraction=nio_fraction,
         single_year_max_pct=single_year_max_pct,
         enforce_complete_storms=enforce_complete_storms,
+        enforce_single_year_cap=enforce_single_year_cap,
     )
 
     return selected, report
@@ -697,6 +713,7 @@ def build_selection_report(
     nio_fraction=0.25,
     single_year_max_pct=20.0,
     enforce_complete_storms=True,
+    enforce_single_year_cap=False,
 ):
     """Build a detailed report about the selection."""
 
@@ -810,7 +827,33 @@ def build_selection_report(
     # Limitations
     limitations = []
     min_bytes_expected = int(target_bytes * 0.85)
-    if total_selected_bytes < min_bytes_expected and target_bytes > 0:
+    unfilled_bytes = max(0, target_bytes - total_selected_bytes)
+    unfilled_budget_reason = None
+    max_single_year_bytes = int(target_bytes * (single_year_max_pct / 100.0)) if single_year_max_pct > 0 else 0
+    selected_folders = set(s["storm_folder"] for s in selected)
+
+    if unfilled_bytes > 0:
+        if enforce_single_year_cap:
+            blocked_by_year_cap = any(
+                (s["storm_folder"] not in selected_folders)
+                and (s["total_bytes"] <= unfilled_bytes)
+                and (max_single_year_bytes > 0 and (year_bytes[s.get("season", s.get("year"))] + s["total_bytes"] > max_single_year_bytes))
+                for s in catalogue
+            )
+            if blocked_by_year_cap:
+                unfilled_budget_reason = (
+                    f"Unfilled budget of {unfilled_bytes / 1e9:.2f} GB ({unfilled_bytes:,} bytes): "
+                    f"single-year concentration cap ({single_year_max_pct}%) strictly enforced and candidate storms from other years exhausted."
+                )
+        if not unfilled_budget_reason and total_selected_bytes < min_bytes_expected and target_bytes > 0:
+            unfilled_budget_reason = (
+                f"Selected {total_selected_bytes / 1e9:.2f} GB is below 85% of target budget ({min_bytes_expected / 1e9:.2f} GB) "
+                f"due to limited qualifying candidate storms in catalogue."
+            )
+    if unfilled_budget_reason:
+        limitations.append(unfilled_budget_reason)
+
+    if total_selected_bytes < min_bytes_expected and target_bytes > 0 and not unfilled_budget_reason:
         limitations.append(f"Selected {total_selected_bytes / 1e9:.2f} GB is below 85% of target budget ({min_bytes_expected / 1e9:.2f} GB).")
     if len(distinct_eras) < len(available_eras):
         missing_eras = set(available_eras) - set(distinct_eras)
@@ -830,6 +873,8 @@ def build_selection_report(
         "selected_gb_decimal": round(total_selected_bytes / 1e9, 4),
         "selected_gib": round(total_selected_bytes / (1024**3), 4),
         "utilization_pct": round(total_selected_bytes / target_bytes * 100, 2) if target_bytes > 0 else 0,
+        "unfilled_bytes": unfilled_bytes,
+        "unfilled_budget_reason": unfilled_budget_reason,
         "total_storms": total_storms,
         "total_files": total_files,
         "total_overpass_files": total_overpasses,
@@ -854,6 +899,7 @@ def build_selection_report(
         "largest_single_year": max_year,
         "largest_single_year_pct": round(max_year_pct, 2),
         "single_year_max_pct": single_year_max_pct,
+        "enforce_single_year_cap": enforce_single_year_cap,
         "limitations": limitations,
         "available_basins_in_catalogue": sorted(available_basins),
         "available_eras_in_catalogue": sorted(available_eras),
@@ -861,6 +907,22 @@ def build_selection_report(
         "configured_era_proportions": era_proportions,
         "enforce_complete_storms": enforce_complete_storms,
         "byte_budget_exceeded": (total_selected_bytes > target_bytes),
+        "planning_enforced_criteria": {
+            "enforce_complete_storms": enforce_complete_storms,
+            "enforce_single_year_cap": enforce_single_year_cap,
+            "single_year_max_pct": single_year_max_pct,
+            "basin_stratification": True,
+            "era_stratification": True,
+            "catalogue_metadata_only": True,
+            "note": "Planning selection enforces complete lifecycles, basin/era balance, single-year caps, and file presence strictly from S3 catalogue metadata.",
+        },
+        "post_processing_validation_criteria": {
+            "forecasting_horizons_hours": [6, 12, 18, 24],
+            "intensity_change_verified_at": "preprocessing/sample_index",
+            "rapid_intensification_verified_at": "preprocessing/sample_index",
+            "physical_valid_masks_verified_at": "dataset_loading",
+            "note": "Multitask forecasting horizons, RI occurrence, and valid-pixel masks are validated during NetCDF ingestion and sample indexing, not at S3 catalogue planning.",
+        },
         "total_catalogue_storms": len([]),  # filled by caller
     }
 
@@ -1085,6 +1147,20 @@ def generate_plan_summary_text(report):
     lines.append(f"  [{'✓' if report['selected_bytes'] >= 18_000_000_000 else '!'} ] At least 18 GB selected")
     lines.append(f"  [{'✓' if report['nio_achieved'] else '!'}] NIO allocation ~{report.get('nio_target_pct', 25.0):.0f}%")
     lines.append(f"  [{'✓' if report['largest_single_year_pct'] <= report.get('single_year_max_pct', 20.0) else '!'}] No single year > {report.get('single_year_max_pct', 20.0):.0f}%")
+    lines.append("")
+
+    lines.append("12. PLANNING VS POST-PROCESSING CRITERIA")
+    lines.append("-" * w)
+    lines.append("  Planning-Enforced (S3 Acquisition):")
+    lines.append("    * Complete storm lifecycle preservation (never split storm files)")
+    lines.append("    * Basin stratification targets")
+    lines.append("    * Historical era stratification targets")
+    lines.append("    * Single-year concentration cap enforcement")
+    lines.append("    * Environmental and overpass file presence from catalogue metadata")
+    lines.append("  Post-Processing Validation (Verified During Preprocessing / Indexing):")
+    lines.append("    * Best-track intensity change and RI labels (evaluated from NetCDF variables)")
+    lines.append("    * Multitask forecasting horizons (6h, 12h, 18h, 24h)")
+    lines.append("    * Physical valid-pixel mask coverage and QC filtering")
     lines.append("")
 
     lines.append("=" * w)
@@ -1606,6 +1682,7 @@ def cmd_plan(args):
     era_proportions = strat_cfg.get("eras", {}).get("target_proportions")
     single_year_max_pct = strat_cfg.get("single_year_max_pct", 20.0)
     enforce_complete_storms = acq_cfg.get("enforce_complete_storms", True)
+    enforce_single_year_cap = strat_cfg.get("enforce_single_year_cap", True)
 
     inventory = None
     catalogue = None
@@ -1649,6 +1726,7 @@ def cmd_plan(args):
         era_proportions=era_proportions,
         single_year_max_pct=single_year_max_pct,
         enforce_complete_storms=enforce_complete_storms,
+        enforce_single_year_cap=enforce_single_year_cap,
     )
     report["total_catalogue_storms"] = len(catalogue)
 

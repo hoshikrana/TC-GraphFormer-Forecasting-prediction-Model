@@ -810,59 +810,60 @@ def evaluate_all(
 def main():
     parser = argparse.ArgumentParser(description="TC-GraphFormer Baseline & Inference Evaluation Engine")
     parser.add_argument("--config", default=None, help="Path to GPU node or pipeline YAML configuration")
-    parser.add_argument("--sample-index", default="reports/pipeline/sample_index.csv", help="Sample index CSV")
-    parser.add_argument("--checkpoint", default="checkpoints/best_checkpoint.pt", help="Path to model checkpoint")
-    parser.add_argument("--d-model", type=int, default=128, help="Model hidden dimension")
-    parser.add_argument("--output-dir", default="reports/phase2e4", help="Output directory for reports")
+    parser.add_argument("--sample-index", default=None, help="Sample index CSV")
+    parser.add_argument("--checkpoint", default=None, help="Path to model checkpoint")
+    parser.add_argument("--d-model", type=int, default=None, help="Model hidden dimension")
+    parser.add_argument("--output-dir", default=None, help="Output directory for reports")
     parser.add_argument("--single-obs", action="store_true", help="Use single-observation mode instead of sequences")
-    parser.add_argument("--max-history-len", type=int, default=4, help="Historical sequence length")
-    parser.add_argument("--batch-size", type=int, default=16, help="Evaluation batch size")
-    parser.add_argument("--device", default="cpu", help="Device to evaluate on ('cpu' or 'cuda')")
+    parser.add_argument("--max-history-len", type=int, default=None, help="Historical sequence length")
+    parser.add_argument("--batch-size", type=int, default=None, help="Evaluation batch size")
+    parser.add_argument("--device", default=None, help="Device to evaluate on ('cpu' or 'cuda')")
     parser.add_argument("--strict-checkpoint", action="store_true", default=True, help="Enforce trained-checkpoint validation (default True)")
     parser.add_argument("--no-strict-checkpoint", action="store_false", dest="strict_checkpoint", help="Disable strict checkpoint check")
     parser.add_argument("--smoke-test", action="store_true", default=False, help="Explicitly permit forward-pass smoke test with untrained or partial checkpoints")
     parser.add_argument("--max-eval-samples", type=int, default=None, help="Limit samples for fast smoke testing")
     args = parser.parse_args()
 
-    sample_index = args.sample_index
-    checkpoint = args.checkpoint
-    output_dir = args.output_dir
-    device = args.device
-    d_model = args.d_model
-
+    # Load configuration file if provided
+    cfg = {}
     if args.config:
         if not os.path.exists(args.config):
             raise FileNotFoundError(f"Configuration file not found: {args.config}")
         with open(args.config, "r", encoding="utf-8") as f:
             cfg = yaml.safe_load(f) or {}
-        paths_cfg = cfg.get("paths", {})
-        eval_cfg = cfg.get("evaluation", {})
-        mach_cfg = cfg.get("machine", {})
-        mod_cfg = cfg.get("model", {})
 
-        if args.sample_index == "reports/pipeline/sample_index.csv" and "sample_index_path" in paths_cfg:
-            sample_index = paths_cfg["sample_index_path"]
-        if args.checkpoint == "checkpoints/best_checkpoint.pt" and "checkpoints_dir" in paths_cfg:
-            checkpoint = os.path.join(paths_cfg["checkpoints_dir"], "best_checkpoint.pt")
-        if args.output_dir == "reports/phase2e4":
-            if "output_dir" in eval_cfg:
-                output_dir = eval_cfg["output_dir"]
-            elif "evaluation_output_dir" in paths_cfg:
-                output_dir = paths_cfg["evaluation_output_dir"]
-        if args.device == "cpu" and "device" in mach_cfg:
-            device = mach_cfg["device"]
-        if args.d_model == 128 and "d_model" in mod_cfg:
-            d_model = mod_cfg["d_model"]
+    paths_cfg = cfg.get("paths", {})
+    eval_cfg = cfg.get("evaluation", {})
+    mach_cfg = cfg.get("machine", {})
+    mod_cfg = cfg.get("model", {})
+    tr_cfg = cfg.get("training", {})
+
+    # Helper to resolve parameter priority: CLI explicit > YAML config > fallback default
+    def resolve_val(cli_val, yaml_val, default):
+        if cli_val is not None:
+            return cli_val
+        if yaml_val is not None:
+            return yaml_val
+        return default
+
+    resolved_sample_index = resolve_val(args.sample_index, paths_cfg.get("sample_index_path"), "reports/pipeline/sample_index.csv")
+    yaml_ckpt = os.path.join(paths_cfg["checkpoints_dir"], "best_checkpoint.pt") if "checkpoints_dir" in paths_cfg else None
+    resolved_checkpoint = resolve_val(args.checkpoint, yaml_ckpt, "checkpoints/best_checkpoint.pt")
+    resolved_output_dir = resolve_val(args.output_dir, eval_cfg.get("output_dir") or paths_cfg.get("evaluation_output_dir"), "reports/phase2e4")
+    resolved_device = resolve_val(args.device, mach_cfg.get("device"), "cpu")
+    resolved_d_model = resolve_val(args.d_model, mod_cfg.get("d_model"), 128)
+    resolved_batch_size = resolve_val(args.batch_size, eval_cfg.get("batch_size") or tr_cfg.get("batch_size"), 16)
+    resolved_max_hist_len = resolve_val(args.max_history_len, eval_cfg.get("max_history_len") or tr_cfg.get("max_history_len"), 4)
 
     evaluate_all(
-        sample_index_csv=sample_index,
-        checkpoint_path=checkpoint,
-        d_model=d_model,
-        output_dir=output_dir,
+        sample_index_csv=resolved_sample_index,
+        checkpoint_path=resolved_checkpoint,
+        d_model=resolved_d_model,
+        output_dir=resolved_output_dir,
         use_sequences=not args.single_obs,
-        max_history_len=args.max_history_len,
-        batch_size=args.batch_size,
-        device=device,
+        max_history_len=resolved_max_hist_len,
+        batch_size=resolved_batch_size,
+        device=resolved_device,
         strict_checkpoint=args.strict_checkpoint,
         smoke_test=args.smoke_test,
         max_eval_samples=args.max_eval_samples,
