@@ -11,7 +11,7 @@ import hashlib
 import argparse
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 
 def compute_sha256(filepath: str, block_size: int = 65536) -> str:
@@ -43,7 +43,6 @@ def verify_staging(
 
     total_files = len(files)
     passed_files = 0
-    failed_files = 0
     missing_files = 0
     size_mismatches = 0
     hash_mismatches = 0
@@ -51,18 +50,16 @@ def verify_staging(
     verification_results = {}
 
     for idx, (rel_path, info) in enumerate(files.items(), 1):
-        # Resolve target path relative to base_dir
         expected_size = info["size_bytes"]
         expected_hash = info["sha256"]
-        
-        # Check relative path directly or under base_dir
+
         candidate_paths = [
             os.path.join(base_dir, rel_path),
             rel_path,
             os.path.join(base_dir, info.get("filename", "")),
             os.path.join(base_dir, "data", rel_path),
         ]
-        
+
         actual_path = None
         for cand in candidate_paths:
             if os.path.exists(cand):
@@ -148,13 +145,18 @@ def verify_staging(
     return all_passed
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Verify dataset transfer with SHA-256 digests.")
+    parser.add_argument("manifest_pos", nargs="?", default=None, help="Optional positional path to staging manifest JSON")
     parser.add_argument("--manifest", default="staging/staging_manifest.json", help="Path to staging manifest JSON")
     parser.add_argument("--base-dir", default=".", help="Base directory where staged data is located")
     parser.add_argument("--output", default="reports/transfer_validation_report.json", help="Path to output validation JSON")
     args = parser.parse_args()
 
-    success = verify_staging(args.manifest, args.base_dir, args.output)
+    target_manifest = args.manifest_pos if args.manifest_pos is not None else args.manifest
+    success = verify_staging(target_manifest, args.base_dir, args.output)
     sys.exit(0 if success else 1)
 
+
+if __name__ == "__main__":
+    main()

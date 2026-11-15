@@ -1,6 +1,7 @@
 """
 Export Staging Shards for Remote GPU Compute Node Transfer.
-Computes cryptographic SHA-256 checksums and creates staging_manifest.json.
+Computes cryptographic SHA-256 checksums and creates staging_manifest.json
+for any configurable processed directory and manifest targets.
 """
 
 import os
@@ -11,7 +12,7 @@ import shutil
 import argparse
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 
 def compute_sha256(filepath: str, block_size: int = 65536) -> str:
@@ -28,14 +29,17 @@ def create_staging_manifest(
     split_manifest_path: str = "reports/pipeline/storm_split_manifest.csv",
     sample_index_path: str = "reports/pipeline/sample_index.csv",
     output_dir: str = "staging",
-    manifest_name: str = "staging_manifest.json"
+    manifest_name: str = "staging_manifest.json",
+    dataset_name: Optional[str] = None,
 ) -> str:
     """
     Index all processed storm NetCDF files, compute SHA-256, and produce staging manifest.
+    Supports arbitrary processed and metadata roots without hardcoding pilot directories.
     """
     os.makedirs(output_dir, exist_ok=True)
     processed_path = Path(processed_dir)
-    
+    proc_posix = processed_path.as_posix().rstrip("/")
+
     # Load storm split mapping if available
     storm_to_split = {}
     if os.path.exists(split_manifest_path):
@@ -60,8 +64,8 @@ def create_staging_manifest(
     print(f"[EXPORT] Found {len(nc_files)} processed NetCDF storm containers in {processed_dir}")
 
     for idx, nc_file in enumerate(nc_files, 1):
-        rel_path = nc_file.relative_to(Path(processed_dir)).as_posix()
-        full_rel_path = f"data/processed/pilot/{rel_path}"
+        rel_path = nc_file.relative_to(processed_path).as_posix()
+        full_rel_path = f"{proc_posix}/{rel_path}"
         size_bytes = nc_file.stat().st_size
         total_bytes += size_bytes
         digest = compute_sha256(str(nc_file))
@@ -100,11 +104,14 @@ def create_staging_manifest(
                 "sha256": digest,
             }
 
+    d_name = dataset_name or f"NOAA TC PRIMED v01r01-final ({processed_path.name} Staging)"
+
     staging_data = {
-        "manifest_version": "1.0.0",
-        "dataset_name": "NOAA TC PRIMED v01r01-final (Pilot Staging)",
+        "manifest_version": "1.1.0",
+        "dataset_name": d_name,
         "source_machine": "Machine A (Workstation)",
         "target_machine": "Machine B (Remote GPU Node)",
+        "processed_dir": proc_posix,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "summary": {
             "total_files": len(files_manifest),
@@ -120,8 +127,8 @@ def create_staging_manifest(
         },
         "transfer_instructions": [
             "1. AnyDesk note: AnyDesk is a desktop streaming client; it does not connect Python directly to remote GPUs.",
-            "2. Transfer this staging/ folder and data/processed/pilot/ to Machine B via AnyDesk File Transfer, SFTP/SCP, or external SSD.",
-            "3. On Machine B, run: python src/infrastructure/verify_transfer.py staging/staging_manifest.json",
+            f"2. Transfer this {output_dir}/ folder and {proc_posix}/ to Machine B via AnyDesk File Transfer, SFTP/SCP, or external SSD.",
+            f"3. On Machine B, run: python src/infrastructure/verify_transfer.py --manifest {os.path.join(output_dir, manifest_name)}",
             "4. verify_transfer.py recalculates SHA-256 checksums to guarantee 100% bitwise data integrity before initiating GPU training.",
         ],
         "files": files_manifest,
@@ -143,6 +150,7 @@ if __name__ == "__main__":
     parser.add_argument("--sample-index", default="reports/pipeline/sample_index.csv", help="Sample index CSV")
     parser.add_argument("--output-dir", default="staging", help="Output staging directory")
     parser.add_argument("--manifest-name", default="staging_manifest.json", help="Manifest JSON filename")
+    parser.add_argument("--dataset-name", default=None, help="Descriptive name for dataset")
     args = parser.parse_args()
 
     create_staging_manifest(
@@ -151,4 +159,5 @@ if __name__ == "__main__":
         sample_index_path=args.sample_index,
         output_dir=args.output_dir,
         manifest_name=args.manifest_name,
+        dataset_name=args.dataset_name,
     )

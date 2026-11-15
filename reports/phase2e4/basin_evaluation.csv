@@ -1,0 +1,3 @@
+partition,basin,valid_intensity_targets,tc_graphformer_wind_mae_kt,mean_wind_kt,checkpoint_status
+VAL,AL,2,19.84,20.0,partially_matched_checkpoint
+TEST,CP,2,43.01,43.0,partially_matched_checkpoint

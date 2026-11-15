@@ -1,0 +1,13 @@
+partition,task,model,n_samples,mae,rmse,bias,units,checkpoint_status,notes
+VAL,Current Intensity (v_max),Climatology (Train Mean),2,18.19,18.19,18.19,kt,partially_matched_checkpoint,
+VAL,Current Intensity (v_max),Linear Regression,2,19.09,19.09,19.09,kt,partially_matched_checkpoint,
+VAL,Current Intensity (v_max),TC-GraphFormer (Untrained Smoke-Test),2,19.84,19.84,-19.84,kt,partially_matched_checkpoint,
+VAL,Development Stage Classification,Majority Class (TS),2,100.0,0.0,0.0,error_rate_pct,baseline_climatology,Accuracy: 0.00%
+VAL,Development Stage Classification,TC-GraphFormer (Untrained Smoke-Test),2,0.0,0.0,0.0,error_rate_pct,partially_matched_checkpoint,Accuracy: 100.00%
+TEST,Current Intensity (v_max),Climatology (Train Mean),2,4.81,5.67,-4.81,kt,partially_matched_checkpoint,
+TEST,Current Intensity (v_max),Linear Regression,2,7.2,7.52,-7.2,kt,partially_matched_checkpoint,
+TEST,Current Intensity (v_max),TC-GraphFormer (Untrained Smoke-Test),2,43.01,43.11,-43.01,kt,partially_matched_checkpoint,
+TEST,Development Stage Classification,Majority Class (TS),2,100.0,0.0,0.0,error_rate_pct,baseline_climatology,Accuracy: 0.00%
+TEST,Development Stage Classification,TC-GraphFormer (Untrained Smoke-Test),2,100.0,0.0,0.0,error_rate_pct,partially_matched_checkpoint,Accuracy: 0.00%
+TEST,Rapid Intensification (24h >= 30kt),Training Climatology (Base Rate),1,0.0008,0.0283,0.0,brier_score,baseline_climatology,"PR-AUC: 0.0000, Base Rate: 0.029"
+TEST,Rapid Intensification (24h >= 30kt),TC-GraphFormer (Untrained Smoke-Test),1,0.2422,0.4921,0.0,brier_score,partially_matched_checkpoint,"PR-AUC: 0.0000, Prec@0.5: 0.0000, Rec@0.5: 0.0000"

@@ -1,0 +1,32 @@
+{
+  "evaluation_timestamp_utc": "2026-11-15T18:00:26.390819+00:00",
+  "sample_index": "reports/pipeline/sample_index.csv",
+  "checkpoint": {
+    "is_trained": false,
+    "checkpoint_path": "checkpoints/best_checkpoint.pt",
+    "status": "partially_matched_checkpoint",
+    "matched_keys": 168,
+    "total_keys": 333,
+    "missing_keys_count": 165,
+    "shape_mismatches_count": 151,
+    "epoch": 1,
+    "metrics": {
+      "val_loss": 80.5334,
+      "val_wind_mae_kt": 24.87,
+      "val_pressure_mae_hpa": 1004.68,
+      "val_stage_acc_pct": 75.0,
+      "val_dv_mae_kt": 5.04,
+      "val_ri_acc_pct": 100.0,
+      "total_val_samples": 8
+    }
+  },
+  "use_sequences": true,
+  "max_history_len": 4,
+  "partitions_evaluated": [
+    "VAL",
+    "TEST"
+  ],
+  "total_baseline_records": 12,
+  "total_horizon_records": 16,
+  "total_basin_records": 2
+}

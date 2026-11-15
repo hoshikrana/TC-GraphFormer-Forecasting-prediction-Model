@@ -1,0 +1,58 @@
+# TC PRIMED 100 GB Dataset Acquisition Configuration
+# Target: NOAA TC PRIMED v01r01-final (100 GB Decimal Budget)
+# Role: Specification and configuration for future large-scale stratified dataset acquisition on high-resource machine
+
+acquisition:
+  dataset_name: "NOAA TC PRIMED v01r01-final (100 GB Expansion)"
+  bucket: "noaa-nesdis-tcprimed-pds"
+  prefix: "v01r01/final/"
+  target_bytes: 100000000000 # 100 GB decimal (100 * 10^9 bytes)
+  target_gb: 100.0
+  seed: 42
+  workers: 8
+  max_retries: 5
+  retry_delay_sec: 5
+  enforce_complete_storms: true # Never select partial storm files
+
+paths:
+  raw_destination_dir: "data/raw/tcprimed_100gb"
+  processed_destination_dir: "data/processed/tcprimed_100gb"
+  acquisition_reports_dir: "reports/acquisition_100gb"
+  pipeline_reports_dir: "reports/pipeline_100gb"
+  inventory_csv: "reports/acquisition_100gb/s3_inventory_100gb.csv"
+  catalogue_csv: "reports/acquisition_100gb/storm_catalogue_100gb.csv"
+  manifest_csv: "reports/acquisition_100gb/tcprimed_100gb_manifest.csv"
+  plan_summary_json: "reports/acquisition_100gb/acquisition_plan_report.json"
+  plan_summary_text: "reports/acquisition_100gb/acquisition_plan_report.txt"
+
+stratification_criteria:
+  basins:
+    target_proportions:
+      IO: 0.15 # North Indian Ocean (priority emphasis for diversity)
+      WP: 0.30 # Western North Pacific (high volume, intense typhoons)
+      AL: 0.25 # North Atlantic (high quality best-track & reconnaissance)
+      EP: 0.20 # Eastern North Pacific (frequent rapid intensification)
+      SH: 0.08 # Southern Hemisphere (cross-equatorial representation)
+      CP: 0.02 # Central North Pacific
+  eras:
+    target_proportions:
+      "1987-1999": 0.20 # Early SSM/I and TRMM era
+      "2000-2009": 0.25 # Multi-satellite era
+      "2010-2019": 0.35 # GPM core and modern constellation
+      "2020+": 0.20     # Recent high-resolution observations
+  single_year_max_pct: 20.0 # Prevent temporal clustering
+
+modality_requirements:
+  require_environmental: true # Require matching ERA5 reanalysis for every storm
+  prioritize_radar_overpasses: true # Prioritize DPR / PR overpasses where available
+  min_sensors_per_storm: 2 # Require multi-sensor coverage per lifecycle
+
+forecasting_targets:
+  horizons_hours: [6, 12, 18, 24]
+  require_intensity_change: true
+  require_rapid_intensification_samples: true
+  ri_threshold_kt: 30.0
+
+execution_policy:
+  auto_download: false # Safeguard: planning only until executed explicitly on Machine B
+  dry_run_validation: true
