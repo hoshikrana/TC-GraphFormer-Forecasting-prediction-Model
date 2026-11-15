@@ -41,6 +41,17 @@ class MultiTaskLoss(nn.Module):
 
         self.register_buffer("ri_weight", torch.tensor([ri_pos_weight], dtype=torch.float32))
 
+    @property
+    def task_weights(self) -> Dict[str, float]:
+        return {
+            "intensity": self.w_v,
+            "pressure": self.w_p,
+            "stage": self.w_s,
+            "intensity_change": self.w_dv,
+            "ri": self.w_ri,
+            "track": self.w_track,
+        }
+
     def forward(
         self,
         preds: Dict[str, torch.Tensor],
@@ -61,32 +72,40 @@ class MultiTaskLoss(nn.Module):
         v_true = targets["intensity"]
         v_mask = targets.get("intensity_mask", torch.ones_like(v_true))
         diff_v = F.smooth_l1_loss(v_pred, v_true, reduction="none", beta=1.0)
-        n_v = group_target_counts.get("intensity") if (group_target_counts and "intensity" in group_target_counts) else v_mask.sum().clamp(min=1.0)
-        loss_v = (diff_v * v_mask).sum() / max(1.0, float(n_v))
+        unreduced_v = (diff_v * v_mask).sum()
+        batch_valid_v = v_mask.sum()
+        n_v = group_target_counts.get("intensity") if (group_target_counts and "intensity" in group_target_counts) else batch_valid_v.clamp(min=1.0)
+        loss_v = unreduced_v / max(1.0, float(n_v))
 
         # 2. Central Pressure Loss (Huber, scaled down by 10 to balance gradient magnitudes, masked)
         p_pred = preds["pressure"] / 10.0
         p_true = targets["pressure"] / 10.0
         p_mask = targets.get("pressure_mask", torch.ones_like(p_true))
         diff_p = F.smooth_l1_loss(p_pred, p_true, reduction="none", beta=1.0)
-        n_p = group_target_counts.get("pressure") if (group_target_counts and "pressure" in group_target_counts) else p_mask.sum().clamp(min=1.0)
-        loss_p = (diff_p * p_mask).sum() / max(1.0, float(n_p))
+        unreduced_p = (diff_p * p_mask).sum()
+        batch_valid_p = p_mask.sum()
+        n_p = group_target_counts.get("pressure") if (group_target_counts and "pressure" in group_target_counts) else batch_valid_p.clamp(min=1.0)
+        loss_p = unreduced_p / max(1.0, float(n_p))
 
         # 3. Development Stage Classification Loss (Cross Entropy, masked for valid stages)
         stage_logits = preds["stage_logits"] # (B, 5) or (B, 6)
         s_true = targets["stage"]
         s_mask = targets.get("stage_mask", torch.ones_like(s_true, dtype=torch.float32))
         ce_s = F.cross_entropy(stage_logits, s_true, reduction="none")
-        n_s = group_target_counts.get("stage") if (group_target_counts and "stage" in group_target_counts) else s_mask.sum().clamp(min=1.0)
-        loss_s = (ce_s * s_mask).sum() / max(1.0, float(n_s))
+        unreduced_s = (ce_s * s_mask).sum()
+        batch_valid_s = s_mask.sum()
+        n_s = group_target_counts.get("stage") if (group_target_counts and "stage" in group_target_counts) else batch_valid_s.clamp(min=1.0)
+        loss_s = unreduced_s / max(1.0, float(n_s))
 
         # 4. Multi-Horizon Intensity Change Loss (Masked Smooth L1)
         dv_pred = preds["intensity_change"] # (B, 4)
         dv_true = targets["intensity_change"] # (B, 4)
         dv_mask = targets["intensity_change_mask"] # (B, 4)
         diff_dv = F.smooth_l1_loss(dv_pred, dv_true, reduction="none", beta=1.0)
-        n_dv = group_target_counts.get("intensity_change") if (group_target_counts and "intensity_change" in group_target_counts) else dv_mask.sum().clamp(min=1.0)
-        loss_dv = (diff_dv * dv_mask).sum() / max(1.0, float(n_dv))
+        unreduced_dv = (diff_dv * dv_mask).sum()
+        batch_valid_dv = dv_mask.sum()
+        n_dv = group_target_counts.get("intensity_change") if (group_target_counts and "intensity_change" in group_target_counts) else batch_valid_dv.clamp(min=1.0)
+        loss_dv = unreduced_dv / max(1.0, float(n_dv))
 
         # 5. Rapid Intensification Loss (Masked BCE with Logits)
         ri_pred = preds["ri_logits"] # (B,)
@@ -95,8 +114,10 @@ class MultiTaskLoss(nn.Module):
         ri_bce = F.binary_cross_entropy_with_logits(
             ri_pred, ri_true, pos_weight=self.ri_weight, reduction="none"
         )
-        n_ri = group_target_counts.get("rapid_intensification") if (group_target_counts and "rapid_intensification" in group_target_counts) else ri_mask.sum().clamp(min=1.0)
-        loss_ri = (ri_bce * ri_mask).sum() / max(1.0, float(n_ri))
+        unreduced_ri = (ri_bce * ri_mask).sum()
+        batch_valid_ri = ri_mask.sum()
+        n_ri = group_target_counts.get("rapid_intensification") if (group_target_counts and "rapid_intensification" in group_target_counts) else batch_valid_ri.clamp(min=1.0)
+        loss_ri = unreduced_ri / max(1.0, float(n_ri))
 
         # 6. Future Track Displacement Loss (Masked Smooth L1 on [dx, dy] in km scaled by 100km)
         if "track_delta" in preds and "track_displacement" in targets:
@@ -108,12 +129,17 @@ class MultiTaskLoss(nn.Module):
             elif track_mask.dim() == 2:
                 track_mask = track_mask.unsqueeze(-1)
             diff_tr = F.smooth_l1_loss(track_pred, track_true, reduction="none", beta=1.0)
-            n_tr = group_target_counts.get("track_displacement") if (group_target_counts and "track_displacement" in group_target_counts) else (track_mask.sum() * 2.0).clamp(min=1.0)
-            loss_track = (diff_tr * track_mask).sum() / max(1.0, float(n_tr))
+            unreduced_tr = (diff_tr * track_mask).sum()
+            batch_valid_tr = track_mask.sum() * 2.0
+            n_tr = group_target_counts.get("track_displacement") if (group_target_counts and "track_displacement" in group_target_counts) else batch_valid_tr.clamp(min=1.0)
+            loss_track = unreduced_tr / max(1.0, float(n_tr))
             valid_tr_count = float(track_mask.sum().item())
         else:
             loss_track = torch.tensor(0.0, device=preds["intensity"].device)
+            unreduced_tr = torch.tensor(0.0, device=preds["intensity"].device)
+            batch_valid_tr = torch.tensor(0.0, device=preds["intensity"].device)
             valid_tr_count = 0.0
+            n_tr = 0.0
 
         # Total Weighted Multi-Task Loss
         total_loss = (
@@ -136,11 +162,28 @@ class MultiTaskLoss(nn.Module):
             "loss_intensity_change": float(loss_dv.detach().item()),
             "loss_ri": float(loss_ri.detach().item()),
             "loss_track": float(loss_track.detach().item()),
-            "valid_v_count": _to_float(n_v),
-            "valid_p_count": _to_float(n_p),
-            "valid_s_count": _to_float(n_s),
-            "valid_dv_count": _to_float(n_dv),
-            "valid_ri_count": _to_float(n_ri),
+            "unreduced_loss_intensity": float(unreduced_v.detach().item()),
+            "unreduced_loss_pressure": float(unreduced_p.detach().item()),
+            "unreduced_loss_stage": float(unreduced_s.detach().item()),
+            "unreduced_loss_intensity_change": float(unreduced_dv.detach().item()),
+            "unreduced_loss_ri": float(unreduced_ri.detach().item()),
+            "unreduced_loss_track": float(unreduced_tr.detach().item()),
+            "valid_intensity_count": float(batch_valid_v.detach().item()),
+            "valid_pressure_count": float(batch_valid_p.detach().item()),
+            "valid_stage_count": float(batch_valid_s.detach().item()),
+            "valid_intensity_change_count": float(batch_valid_dv.detach().item()),
+            "valid_ri_count": float(batch_valid_ri.detach().item()),
+            "valid_track_count": float(batch_valid_tr.detach().item()),
+            "norm_v_count": _to_float(n_v),
+            "norm_p_count": _to_float(n_p),
+            "norm_s_count": _to_float(n_s),
+            "norm_dv_count": _to_float(n_dv),
+            "norm_ri_count": _to_float(n_ri),
+            "norm_tr_count": _to_float(n_tr) if hasattr(n_tr, "item") else float(n_tr),
+            "valid_v_count": float(batch_valid_v.detach().item()),
+            "valid_p_count": float(batch_valid_p.detach().item()),
+            "valid_s_count": float(batch_valid_s.detach().item()),
+            "valid_dv_count": float(batch_valid_dv.detach().item()),
             "valid_tr_count": valid_tr_count,
         }
         return total_loss, loss_dict

@@ -469,7 +469,8 @@ def run_multitask_training(
     return summary
 
 
-def parse_args():
+def build_parser():
+    """Build argument parser for multi-task training CLI."""
     parser = argparse.ArgumentParser(description="TC-GraphFormer Supervised Multi-Task Training")
     parser.add_argument("--config", default=None, help="Path to YAML training configuration file")
     parser.add_argument("--train-index", default=None, help="Path to sample index CSV")
@@ -484,39 +485,49 @@ def parse_args():
     parser.add_argument("--max-val-samples", type=int, default=None, help="Max validation samples (for smoke-testing)")
     parser.add_argument("--pretrained-checkpoint", default=None, help="Path to pretrained backbone checkpoint")
     parser.add_argument("--resume-checkpoint", default=None, help="Path to checkpoint to resume training from")
-    parser.add_argument("--allow-legacy-resume", action="store_true", default=None, help="Allow resume from checkpoint lacking scheduler state")
-    parser.add_argument("--single-obs", action="store_true", default=None, help="Use single-observation mode instead of sequences")
+    parser.add_argument("--allow-legacy-resume", dest="allow_legacy_resume", action="store_true", default=None, help="Allow resume from checkpoint lacking scheduler state")
+    parser.add_argument("--no-allow-legacy-resume", dest="allow_legacy_resume", action="store_false", help="Disallow resume from legacy checkpoint")
+    parser.add_argument("--single-obs", dest="use_sequences", action="store_false", default=None, help="Use single-observation mode instead of sequences")
+    parser.add_argument("--use-sequences", dest="use_sequences", action="store_true", default=None, help="Use sequences mode")
     parser.add_argument("--max-history-len", type=int, default=None, help="Max historical sequence length")
     parser.add_argument("--max-history-hours", type=float, default=None, help="Max historical lookback window in hours")
     parser.add_argument("--num-workers", type=int, default=None, help="DataLoader worker processes")
-    parser.add_argument("--pin-memory", action="store_true", default=None, help="Pin memory for DataLoader")
-    parser.add_argument("--persistent-workers", action="store_true", default=None, help="Use persistent workers for DataLoader")
+    parser.add_argument("--pin-memory", dest="pin_memory", action="store_true", default=None, help="Pin memory for DataLoader")
+    parser.add_argument("--no-pin-memory", dest="pin_memory", action="store_false", help="Disable pinned memory")
+    parser.add_argument("--persistent-workers", dest="persistent_workers", action="store_true", default=None, help="Use persistent workers for DataLoader")
+    parser.add_argument("--no-persistent-workers", dest="persistent_workers", action="store_false", help="Disable persistent workers")
     parser.add_argument("--checkpoint-dir", default=None, help="Directory for model checkpoints")
     parser.add_argument("--summary-report", default=None, help="Summary report JSON path")
     parser.add_argument("--device", default=None, help="Device to train on ('cuda', 'cpu')")
     parser.add_argument("--cuda-device-id", type=int, default=None, help="CUDA device index")
     parser.add_argument("--precision", default=None, choices=["fp16", "bf16", "fp32"], help="Floating-point precision ('fp16', 'bf16', 'fp32')")
-    parser.add_argument("--use-amp", action="store_true", default=None, help="Enable automatic mixed precision")
+    parser.add_argument("--use-amp", dest="use_amp", action="store_true", default=None, help="Enable automatic mixed precision")
+    parser.add_argument("--no-amp", dest="use_amp", action="store_false", help="Disable automatic mixed precision")
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
     parser.add_argument("--dry-run", action="store_true", help="Perform smoke test of data loading and 1 forward/backward pass without full training")
-    return parser.parse_args()
+    return parser
 
 
-def main():
-    args = parse_args()
+def parse_args():
+    return build_parser().parse_args()
 
-    # Load configuration file if provided
-    cfg = {}
-    if args.config:
-        cfg = load_yaml_config(args.config)
 
-    # Extract sub-sections
+def resolve_training_config(args, cfg=None):
+    """
+    Resolve training parameters across CLI explicit args, YAML configuration, and defaults.
+    Priority: CLI explicit flag > YAML config > fallback default.
+    """
+    if cfg is None:
+        cfg = {}
+        config_path = getattr(args, "config", None)
+        if config_path:
+            cfg = load_yaml_config(config_path)
+
     tr_cfg = cfg.get("training", {})
     loss_weights = cfg.get("loss_weights", {})
     mach_cfg = cfg.get("machine", {})
     paths_cfg = cfg.get("paths", {})
 
-    # Helper to resolve parameter priority: CLI explicit > YAML config > fallback default
     def resolve_val(cli_val, yaml_val, default):
         if cli_val is not None:
             return cli_val
@@ -524,72 +535,110 @@ def main():
             return yaml_val
         return default
 
-    # Sequence mode logic: CLI --single-obs forces False, else check YAML, default True
-    if args.single_obs is True:
-        use_sequences = False
-    elif "use_sequences" in tr_cfg:
-        use_sequences = bool(tr_cfg["use_sequences"])
-    else:
-        use_sequences = True
+    # Sequence mode logic: CLI explicit > YAML > default True
+    yaml_use_seq = tr_cfg.get("use_sequences", True)
+    use_sequences = resolve_val(getattr(args, "use_sequences", None), yaml_use_seq, True)
 
-    resolved_epochs = resolve_val(args.epochs, tr_cfg.get("epochs") or tr_cfg.get("max_epochs"), 5)
-    resolved_batch_size = resolve_val(args.batch_size, tr_cfg.get("batch_size"), 16)
-    resolved_lr = resolve_val(args.lr, tr_cfg.get("learning_rate") or tr_cfg.get("lr"), 1e-4)
-    resolved_weight_decay = resolve_val(args.weight_decay, tr_cfg.get("weight_decay"), 1e-4)
-    resolved_d_model = resolve_val(args.d_model, tr_cfg.get("d_model"), 128)
-    resolved_grad_clip = resolve_val(args.grad_clip_norm, tr_cfg.get("grad_clip_norm") or tr_cfg.get("gradient_clip_val"), 1.0)
-    resolved_accum = resolve_val(args.accumulate_grad_batches, tr_cfg.get("accumulate_grad_batches"), 1)
-    resolved_max_hist_len = resolve_val(args.max_history_len, tr_cfg.get("max_history_len"), 4)
-    resolved_max_hist_hrs = resolve_val(args.max_history_hours, tr_cfg.get("max_history_hours"), 72.0)
-    resolved_workers = resolve_val(args.num_workers, tr_cfg.get("num_workers") or mach_cfg.get("num_workers"), 0)
-    resolved_pin_mem = resolve_val(args.pin_memory, tr_cfg.get("pin_memory"), None)
-    resolved_persist = resolve_val(args.persistent_workers, tr_cfg.get("persistent_workers"), False)
-    resolved_ckpt_dir = resolve_val(args.checkpoint_dir, tr_cfg.get("checkpoint_dir") or paths_cfg.get("checkpoints_dir"), "checkpoints")
-    resolved_report = resolve_val(args.summary_report, tr_cfg.get("output_report") or tr_cfg.get("summary_report"), "reports/phase2e4/multitask_training_summary.json")
-    resolved_device = resolve_val(args.device, mach_cfg.get("device"), None)
-    resolved_cuda_id = resolve_val(args.cuda_device_id, mach_cfg.get("cuda_device_id"), None)
-    resolved_precision = resolve_val(args.precision, mach_cfg.get("precision") or tr_cfg.get("precision"), "fp16")
-    resolved_amp = resolve_val(args.use_amp, tr_cfg.get("mixed_precision"), None)
+    resolved_epochs = resolve_val(getattr(args, "epochs", None), tr_cfg.get("epochs") or tr_cfg.get("max_epochs"), 5)
+    resolved_batch_size = resolve_val(getattr(args, "batch_size", None), tr_cfg.get("batch_size"), 16)
+    resolved_lr = resolve_val(getattr(args, "lr", None), tr_cfg.get("learning_rate") or tr_cfg.get("lr"), 1e-4)
+    resolved_weight_decay = resolve_val(getattr(args, "weight_decay", None), tr_cfg.get("weight_decay"), 1e-4)
+    resolved_d_model = resolve_val(getattr(args, "d_model", None), tr_cfg.get("d_model"), 128)
+    resolved_grad_clip = resolve_val(getattr(args, "grad_clip_norm", None), tr_cfg.get("grad_clip_norm") or tr_cfg.get("gradient_clip_val"), 1.0)
+    resolved_accum = resolve_val(getattr(args, "accumulate_grad_batches", None), tr_cfg.get("accumulate_grad_batches"), 1)
+    resolved_max_hist_len = resolve_val(getattr(args, "max_history_len", None), tr_cfg.get("max_history_len"), 4)
+    resolved_max_hist_hrs = resolve_val(getattr(args, "max_history_hours", None), tr_cfg.get("max_history_hours"), 72.0)
+
+    # Worker count resolution: 0 must not be overridden by mach_cfg
+    tr_workers = tr_cfg.get("num_workers")
+    yaml_workers = tr_workers if tr_workers is not None else mach_cfg.get("num_workers")
+    resolved_workers = resolve_val(getattr(args, "num_workers", None), yaml_workers, 0)
+
+    resolved_pin_mem = resolve_val(getattr(args, "pin_memory", None), tr_cfg.get("pin_memory"), None)
+    resolved_persist = resolve_val(getattr(args, "persistent_workers", None), tr_cfg.get("persistent_workers"), False)
+    resolved_ckpt_dir = resolve_val(getattr(args, "checkpoint_dir", None), tr_cfg.get("checkpoint_dir") or paths_cfg.get("checkpoints_dir"), "checkpoints")
+    resolved_report = resolve_val(getattr(args, "summary_report", None), tr_cfg.get("output_report") or tr_cfg.get("summary_report"), "reports/phase2e4/multitask_training_summary.json")
+    resolved_device = resolve_val(getattr(args, "device", None), mach_cfg.get("device"), None)
+    resolved_cuda_id = resolve_val(getattr(args, "cuda_device_id", None), mach_cfg.get("cuda_device_id"), None)
+    resolved_precision = resolve_val(getattr(args, "precision", None), mach_cfg.get("precision") or tr_cfg.get("precision"), "fp16")
+    resolved_amp = resolve_val(getattr(args, "use_amp", None), tr_cfg.get("mixed_precision"), None)
     if resolved_amp is None and resolved_precision is not None:
         resolved_amp = (resolved_precision in ("fp16", "bf16"))
     elif resolved_precision == "fp32":
         resolved_amp = False
-    resolved_seed = resolve_val(args.seed, tr_cfg.get("seed"), 42)
-    resolved_train_index = resolve_val(args.train_index, paths_cfg.get("sample_index_path"), "reports/pipeline/sample_index.csv")
-    resolved_pretrained = resolve_val(args.pretrained_checkpoint, tr_cfg.get("pretrained_checkpoint"), None)
-    resolved_resume = resolve_val(args.resume_checkpoint, tr_cfg.get("resume_checkpoint"), None)
-    resolved_allow_legacy = resolve_val(args.allow_legacy_resume, tr_cfg.get("allow_legacy_resume"), False)
+    resolved_seed = resolve_val(getattr(args, "seed", None), tr_cfg.get("seed"), 42)
+    resolved_train_index = resolve_val(getattr(args, "train_index", None), paths_cfg.get("sample_index_path"), "reports/pipeline/sample_index.csv")
+    resolved_pretrained = resolve_val(getattr(args, "pretrained_checkpoint", None), tr_cfg.get("pretrained_checkpoint"), None)
+    resolved_resume = resolve_val(getattr(args, "resume_checkpoint", None), tr_cfg.get("resume_checkpoint"), None)
+    resolved_allow_legacy = resolve_val(getattr(args, "allow_legacy_resume", None), tr_cfg.get("allow_legacy_resume"), False)
+
+    return {
+        "config_path": getattr(args, "config", None),
+        "train_index": resolved_train_index,
+        "epochs": resolved_epochs,
+        "batch_size": resolved_batch_size,
+        "lr": resolved_lr,
+        "weight_decay": resolved_weight_decay,
+        "d_model": resolved_d_model,
+        "grad_clip_norm": resolved_grad_clip,
+        "accumulate_grad_batches": resolved_accum,
+        "max_train_samples": getattr(args, "max_train_samples", None),
+        "max_val_samples": getattr(args, "max_val_samples", None),
+        "use_sequences": use_sequences,
+        "max_history_len": resolved_max_hist_len,
+        "max_history_hours": resolved_max_hist_hrs,
+        "num_workers": resolved_workers,
+        "pin_memory": resolved_pin_mem,
+        "persistent_workers": resolved_persist,
+        "pretrained_checkpoint": resolved_pretrained,
+        "resume_checkpoint": resolved_resume,
+        "allow_legacy_resume": resolved_allow_legacy,
+        "checkpoint_dir": resolved_ckpt_dir,
+        "summary_report": resolved_report,
+        "device": resolved_device,
+        "cuda_device_id": resolved_cuda_id,
+        "use_amp": resolved_amp,
+        "precision": resolved_precision,
+        "seed": resolved_seed,
+        "loss_weights": loss_weights,
+        "dry_run": getattr(args, "dry_run", False),
+    }
+
+
+def main():
+    args = parse_args()
+    resolved = resolve_training_config(args)
 
     run_multitask_training(
-        config_path=args.config,
-        train_index=resolved_train_index,
-        epochs=resolved_epochs,
-        batch_size=resolved_batch_size,
-        lr=resolved_lr,
-        weight_decay=resolved_weight_decay,
-        d_model=resolved_d_model,
-        grad_clip_norm=resolved_grad_clip,
-        accumulate_grad_batches=resolved_accum,
-        max_train_samples=args.max_train_samples,
-        max_val_samples=args.max_val_samples,
-        use_sequences=use_sequences,
-        max_history_len=resolved_max_hist_len,
-        max_history_hours=resolved_max_hist_hrs,
-        num_workers=resolved_workers,
-        pin_memory=resolved_pin_mem,
-        persistent_workers=resolved_persist,
-        pretrained_checkpoint=resolved_pretrained,
-        resume_checkpoint=resolved_resume,
-        allow_legacy_resume=resolved_allow_legacy,
-        checkpoint_dir=resolved_ckpt_dir,
-        summary_report=resolved_report,
-        device=resolved_device,
-        cuda_device_id=resolved_cuda_id,
-        use_amp=resolved_amp,
-        precision=resolved_precision,
-        seed=resolved_seed,
-        loss_weights=loss_weights,
-        dry_run=args.dry_run,
+        config_path=resolved["config_path"],
+        train_index=resolved["train_index"],
+        epochs=resolved["epochs"],
+        batch_size=resolved["batch_size"],
+        lr=resolved["lr"],
+        weight_decay=resolved["weight_decay"],
+        d_model=resolved["d_model"],
+        grad_clip_norm=resolved["grad_clip_norm"],
+        accumulate_grad_batches=resolved["accumulate_grad_batches"],
+        max_train_samples=resolved["max_train_samples"],
+        max_val_samples=resolved["max_val_samples"],
+        use_sequences=resolved["use_sequences"],
+        max_history_len=resolved["max_history_len"],
+        max_history_hours=resolved["max_history_hours"],
+        num_workers=resolved["num_workers"],
+        pin_memory=resolved["pin_memory"],
+        persistent_workers=resolved["persistent_workers"],
+        pretrained_checkpoint=resolved["pretrained_checkpoint"],
+        resume_checkpoint=resolved["resume_checkpoint"],
+        allow_legacy_resume=resolved["allow_legacy_resume"],
+        checkpoint_dir=resolved["checkpoint_dir"],
+        summary_report=resolved["summary_report"],
+        device=resolved["device"],
+        cuda_device_id=resolved["cuda_device_id"],
+        use_amp=resolved["use_amp"],
+        precision=resolved["precision"],
+        seed=resolved["seed"],
+        loss_weights=resolved["loss_weights"],
+        dry_run=resolved["dry_run"],
     )
 
 

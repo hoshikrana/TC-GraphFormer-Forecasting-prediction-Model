@@ -61,11 +61,14 @@ ERA_BINS = [
     ("2020+",     2020, 9999),
 ]
 
+# Supported TC PRIMED radar instruments
+RADAR_INSTRUMENTS = {"DPR", "PR", "KUKAGMI", "KUGMI", "KUTMI"}
+
 # Known TC PRIMED instruments (for parsing filenames)
 KNOWN_INSTRUMENTS = [
     "GMI", "TMI", "SSMI", "SSMIS", "AMSR2", "AMSRE", "AMSUB", "AMSU-B",
     "AMSUA", "AMSU-A", "MHS", "ATMS", "SAPHIR", "MWRI", "MWHS2",
-    "TEMPEST-D", "TEMPEST", "COWVR",
+    "TEMPEST-D", "TEMPEST", "COWVR", "DPR", "PR", "KuKaGMI", "KuGMI", "KuTMI",
 ]
 
 KNOWN_PLATFORMS = [
@@ -434,6 +437,119 @@ def deterministic_tie_breaker(seed: int, storm_folder: str) -> float:
     return (int(digest[:8], 16) % 1000) / 10000.0
 
 
+def get_storm_sensors(storm) -> set:
+    """
+    Extract distinct remote-sensing instrument identifiers for a storm,
+    excluding environmental/reanalysis models ('ERA5', 'reanalysis').
+    """
+    inst_str = storm.get("instruments", "")
+    if not inst_str:
+        return set()
+    raw_insts = [i.strip() for i in inst_str.split(";") if i.strip()]
+    return {i for i in raw_insts if i.upper() not in {"ERA5", "REANALYSIS", "UNKNOWN", "ENVIRONMENTAL"}}
+
+
+def storm_has_radar(storm) -> bool:
+    """Return True if storm possesses recognized radar instrument observations."""
+    sensors = get_storm_sensors(storm)
+    for s in sensors:
+        if s.upper() in RADAR_INSTRUMENTS or "RADAR" in s.upper():
+            return True
+    return False
+
+
+def filter_eligible_catalogue(catalogue, modality_requirements=None):
+    """
+    Filter candidate storms against explicit modality requirements before stratified selection.
+
+    Enforces:
+      - require_environmental: true -> env_count >= 1
+      - min_sensors_per_storm: int -> distinct remote-sensing instrument count >= min_sensors_per_storm
+      - prioritize_radar_overpasses: tracked for preference in stratified_select
+
+    Returns:
+      eligible_catalogue: List of qualifying complete storms
+      modality_audit: Comprehensive audit statistics covering original/eligible counts,
+                      exclusion reasons, sensor coverage, and radar availability.
+    """
+    reqs = modality_requirements or {}
+    req_env = bool(reqs.get("require_environmental", False))
+    min_sensors = int(reqs.get("min_sensors_per_storm", 0)) if reqs.get("min_sensors_per_storm") is not None else 0
+    prioritize_radar = bool(reqs.get("prioritize_radar_overpasses", False))
+
+    original_count = len(catalogue)
+    original_bytes = sum(s["total_bytes"] for s in catalogue)
+
+    eligible = []
+    excluded_count = 0
+    exclusion_reasons = defaultdict(int)
+    excluded_storm_details = []
+
+    storms_with_env = 0
+    storms_with_radar = 0
+    sensor_counts = []
+
+    for storm in catalogue:
+        sensors = get_storm_sensors(storm)
+        n_sensors = len(sensors)
+        has_env = (storm.get("env_count", 0) >= 1)
+        has_radar = storm_has_radar(storm)
+
+        if has_env:
+            storms_with_env += 1
+        if has_radar:
+            storms_with_radar += 1
+        sensor_counts.append(n_sensors)
+
+        # Check eligibility
+        reasons = []
+        if req_env and not has_env:
+            reasons.append("missing_environmental")
+            exclusion_reasons["missing_environmental"] += 1
+
+        if min_sensors > 0 and n_sensors < min_sensors:
+            reasons.append(f"insufficient_sensors (found {n_sensors} < required {min_sensors})")
+            exclusion_reasons["insufficient_sensors"] += 1
+
+        if reasons:
+            excluded_count += 1
+            excluded_storm_details.append({
+                "storm_folder": storm["storm_folder"],
+                "reasons": reasons,
+                "sensors": sorted(sensors),
+                "env_count": storm.get("env_count", 0),
+            })
+        else:
+            eligible.append(storm)
+
+    eligible_bytes = sum(s["total_bytes"] for s in eligible)
+    eligible_radar_count = sum(1 for s in eligible if storm_has_radar(s))
+
+    modality_audit = {
+        "modality_requirements_applied": {
+            "require_environmental": req_env,
+            "min_sensors_per_storm": min_sensors,
+            "prioritize_radar_overpasses": prioritize_radar,
+        },
+        "original_catalogue_storms": original_count,
+        "original_catalogue_bytes": original_bytes,
+        "eligible_catalogue_storms": len(eligible),
+        "eligible_catalogue_bytes": eligible_bytes,
+        "excluded_storms_count": excluded_count,
+        "exclusion_reasons": dict(exclusion_reasons),
+        "excluded_storm_details": excluded_storm_details,
+        "environmental_coverage_pct": round(100.0 * storms_with_env / max(1, original_count), 2),
+        "multi_sensor_coverage_pct": round(100.0 * sum(1 for c in sensor_counts if c >= max(2, min_sensors)) / max(1, original_count), 2),
+        "radar_storms_original_count": storms_with_radar,
+        "radar_storms_eligible_count": eligible_radar_count,
+        "original_radar_storms_count": storms_with_radar,
+        "eligible_radar_storms_count": eligible_radar_count,
+        "radar_priority_enabled": prioritize_radar,
+    }
+
+    return eligible, modality_audit
+
+
 # ===========================================================================
 # Stratified Pilot Selection
 # ===========================================================================
@@ -448,6 +564,8 @@ def stratified_select(
     single_year_max_pct=20.0,
     enforce_complete_storms=True,
     enforce_single_year_cap=False,
+    modality_requirements=None,
+    modality_audit=None,
 ):
     """
     Perform stratified selection of complete storm folders.
@@ -463,6 +581,11 @@ def stratified_select(
 
     Returns (selected_storms, selection_report).
     """
+    if modality_requirements and modality_audit is None:
+        catalogue, modality_audit = filter_eligible_catalogue(catalogue, modality_requirements)
+
+    prioritize_radar = bool(modality_requirements.get("prioritize_radar_overpasses", False)) if modality_requirements else False
+
     rng = random.Random(seed)
 
     # Validate proportions if supplied
@@ -482,9 +605,11 @@ def stratified_select(
         basin = storm["basin"]
         cells[(era, basin)].append(storm)
 
-    # Shuffle each cell deterministically
+    # Shuffle each cell deterministically, prioritizing radar overpasses if requested
     for key in cells:
         rng.shuffle(cells[key])
+        if prioritize_radar:
+            cells[key].sort(key=lambda s: (not storm_has_radar(s)))
 
     # Identify available basins and eras
     available_basins = sorted(set(s["basin"] for s in catalogue))
@@ -599,6 +724,9 @@ def stratified_select(
                 e_def = e_target - era_bytes.get(storm["era"], 0)
                 score = b_def + e_def
 
+                if prioritize_radar and storm_has_radar(storm):
+                    score += 1000.0
+
                 if year_violation:
                     score -= 1e12
 
@@ -651,6 +779,9 @@ def stratified_select(
                 e_def = e_target - era_bytes.get(storm["era"], 0)
                 score = b_def + e_def
 
+                if prioritize_radar and storm_has_radar(storm):
+                    score += 1000.0
+
                 if year_violation:
                     score -= 1e12
 
@@ -697,6 +828,7 @@ def stratified_select(
         single_year_max_pct=single_year_max_pct,
         enforce_complete_storms=enforce_complete_storms,
         enforce_single_year_cap=enforce_single_year_cap,
+        modality_audit=modality_audit,
     )
 
     return selected, report
@@ -714,13 +846,14 @@ def build_selection_report(
     single_year_max_pct=20.0,
     enforce_complete_storms=True,
     enforce_single_year_cap=False,
+    modality_audit=None,
 ):
     """Build a detailed report about the selection."""
 
     total_selected_bytes = sum(s["total_bytes"] for s in selected)
-    total_files = sum(s["file_count"] for s in selected)
-    total_overpasses = sum(s["overpass_count"] for s in selected)
-    total_env = sum(s["env_count"] for s in selected)
+    total_files = sum(s.get("file_count", s.get("total_files", 0)) for s in selected)
+    total_overpasses = sum(s.get("overpass_count", 0) for s in selected)
+    total_env = sum(s.get("env_count", 0) for s in selected)
     total_storms = len(selected)
 
     # Per-basin
@@ -728,14 +861,14 @@ def build_selection_report(
     for s in selected:
         basin_stats[s["basin"]]["storms"] += 1
         basin_stats[s["basin"]]["bytes"] += s["total_bytes"]
-        basin_stats[s["basin"]]["files"] += s["file_count"]
+        basin_stats[s["basin"]]["files"] += s.get("file_count", s.get("total_files", 0))
 
     # Per-era
     era_stats = defaultdict(lambda: {"storms": 0, "bytes": 0, "files": 0})
     for s in selected:
         era_stats[s["era"]]["storms"] += 1
         era_stats[s["era"]]["bytes"] += s["total_bytes"]
-        era_stats[s["era"]]["files"] += s["file_count"]
+        era_stats[s["era"]]["files"] += s.get("file_count", s.get("total_files", 0))
 
     # Target proportions calculation
     if basin_proportions:
@@ -784,7 +917,7 @@ def build_selection_report(
     # Per-year
     year_bytes = defaultdict(int)
     for s in selected:
-        year_bytes[s["season"]] += s["total_bytes"]
+        year_bytes[s.get("season", s.get("year", 0))] += s["total_bytes"]
 
     # Instruments and platforms
     instruments = defaultdict(int)
@@ -812,7 +945,8 @@ def build_selection_report(
     # Largest single-year contribution
     max_year = max(year_bytes, key=year_bytes.get) if year_bytes else None
     max_year_bytes = year_bytes[max_year] if max_year else 0
-    max_year_pct = (max_year_bytes / total_selected_bytes * 100) if total_selected_bytes > 0 else 0
+    max_year_budget_pct = (max_year_bytes / target_bytes * 100.0) if target_bytes > 0 else 0.0
+    max_year_selected_pct = (max_year_bytes / total_selected_bytes * 100.0) if total_selected_bytes > 0 else 0.0
 
     # Basin stats and NIO allocation check
     io_bytes = basin_stats.get("IO", {}).get("bytes", 0)
@@ -820,7 +954,7 @@ def build_selection_report(
     nio_achieved = abs(io_pct - nio_target_pct) <= 10.0
 
     # Distinct seasons
-    distinct_seasons = sorted(set(s["season"] for s in selected))
+    distinct_seasons = sorted(set(s.get("season", s.get("year", 0)) for s in selected))
     distinct_eras = sorted(set(s["era"] for s in selected))
     distinct_basins = sorted(set(s["basin"] for s in selected))
 
@@ -833,7 +967,17 @@ def build_selection_report(
     selected_folders = set(s["storm_folder"] for s in selected)
 
     if unfilled_bytes > 0:
-        if enforce_single_year_cap:
+        if modality_audit and modality_audit.get("eligible_catalogue_bytes", total_selected_bytes) < target_bytes:
+            orig_gb = modality_audit.get("original_catalogue_bytes", 0) / 1e9
+            elig_gb = modality_audit.get("eligible_catalogue_bytes", 0) / 1e9
+            reasons_dict = modality_audit.get("exclusion_reasons", {})
+            reasons_str = f" ({', '.join(f'{k}: {v}' for k, v in sorted(reasons_dict.items()))})" if reasons_dict else ""
+            unfilled_budget_reason = (
+                f"Unfilled budget of {unfilled_bytes / 1e9:.2f} GB: modality requirements "
+                f"excluded {modality_audit.get('excluded_storms_count', 0)} storms{reasons_str}, reducing available catalogue "
+                f"from {orig_gb:.2f} GB to {elig_gb:.2f} GB."
+            )
+        elif enforce_single_year_cap:
             blocked_by_year_cap = any(
                 (s["storm_folder"] not in selected_folders)
                 and (s["total_bytes"] <= unfilled_bytes)
@@ -843,7 +987,7 @@ def build_selection_report(
             if blocked_by_year_cap:
                 unfilled_budget_reason = (
                     f"Unfilled budget of {unfilled_bytes / 1e9:.2f} GB ({unfilled_bytes:,} bytes): "
-                    f"single-year concentration cap ({single_year_max_pct}%) strictly enforced and candidate storms from other years exhausted."
+                    f"single-year concentration cap ({single_year_max_pct}% of target budget) strictly enforced and candidate storms from other years exhausted."
                 )
         if not unfilled_budget_reason and total_selected_bytes < min_bytes_expected and target_bytes > 0:
             unfilled_budget_reason = (
@@ -861,8 +1005,13 @@ def build_selection_report(
     if len(distinct_basins) < len(available_basins):
         missing_basins = set(available_basins) - set(distinct_basins)
         limitations.append(f"Missing basins: {missing_basins}")
-    if max_year_pct > single_year_max_pct:
-        limitations.append(f"Year {max_year} contributes {max_year_pct:.1f}% of selected bytes (target: <={single_year_max_pct}%).")
+
+    # Single-year concentration limitation: evaluated relative to target budget ceiling
+    if max_year_budget_pct > single_year_max_pct:
+        limitations.append(f"Year {max_year} contributes {max_year_budget_pct:.1f}% of requested target budget (target ceiling: <={single_year_max_pct}%).")
+    elif total_selected_bytes < target_bytes and max_year_selected_pct > single_year_max_pct:
+        limitations.append(f"Note: Year {max_year} contributes {max_year_budget_pct:.1f}% of requested target budget (within ceiling <={single_year_max_pct}%), representing {max_year_selected_pct:.1f}% of realized underfilled dataset.")
+
     if abs(io_pct - nio_target_pct) > 10.0:
         limitations.append(f"NIO allocation is {io_pct:.1f}% (target: {nio_target_pct:.1f}% ± 10%).")
 
@@ -897,8 +1046,13 @@ def build_selection_report(
         "basin_proportions_target": {b: round(norm_b_targets.get(b, 0.0), 2) for b in available_basins},
         "era_proportions_target": {e: round(norm_e_targets.get(e, 0.0), 2) for e in available_eras},
         "largest_single_year": max_year,
-        "largest_single_year_pct": round(max_year_pct, 2),
+        "largest_single_year_bytes": max_year_bytes,
+        "largest_single_year_budget_pct": round(max_year_budget_pct, 2),
+        "largest_single_year_selected_pct": round(max_year_selected_pct, 2),
+        "largest_single_year_pct": round(max_year_budget_pct, 2),
         "single_year_max_pct": single_year_max_pct,
+        "single_year_cap_basis": "target_budget",
+        "max_single_year_budget_bytes": max_single_year_bytes,
         "enforce_single_year_cap": enforce_single_year_cap,
         "limitations": limitations,
         "available_basins_in_catalogue": sorted(available_basins),
@@ -907,14 +1061,18 @@ def build_selection_report(
         "configured_era_proportions": era_proportions,
         "enforce_complete_storms": enforce_complete_storms,
         "byte_budget_exceeded": (total_selected_bytes > target_bytes),
+        "modality_audit": modality_audit,
         "planning_enforced_criteria": {
             "enforce_complete_storms": enforce_complete_storms,
             "enforce_single_year_cap": enforce_single_year_cap,
             "single_year_max_pct": single_year_max_pct,
-            "basin_stratification": True,
-            "era_stratification": True,
-            "catalogue_metadata_only": True,
-            "note": "Planning selection enforces complete lifecycles, basin/era balance, single-year caps, and file presence strictly from S3 catalogue metadata.",
+            "single_year_cap_basis": "target_budget",
+            "basin_stratification": bool(basin_proportions or nio_fraction is not None),
+            "era_stratification": bool(era_proportions),
+            "require_environmental": bool(modality_audit.get("modality_requirements_applied", {}).get("require_environmental", False)) if modality_audit else False,
+            "min_sensors_per_storm": int(modality_audit.get("modality_requirements_applied", {}).get("min_sensors_per_storm", 0)) if modality_audit else 0,
+            "prioritize_radar_overpasses": bool(modality_audit.get("modality_requirements_applied", {}).get("prioritize_radar_overpasses", False)) if modality_audit else False,
+            "note": "Planning selection strictly enforces complete lifecycles, basin/era targets, single-year caps, and configured modality eligibility from S3 catalogue metadata.",
         },
         "post_processing_validation_criteria": {
             "forecasting_horizons_hours": [6, 12, 18, 24],
@@ -1127,9 +1285,28 @@ def generate_plan_summary_text(report):
 
     lines.append("9. YEAR CONCENTRATION")
     lines.append("-" * w)
-    lines.append(f"  Largest single-year contribution: {report['largest_single_year']} "
-                  f"({report['largest_single_year_pct']:.2f}%)")
+    cap_max = report.get('single_year_max_pct', 20.0)
+    b_pct = report.get('largest_single_year_budget_pct', report.get('largest_single_year_pct', 0.0))
+    s_pct = report.get('largest_single_year_selected_pct', b_pct)
+    lines.append(f"  Largest single-year: {report['largest_single_year']}")
+    lines.append(f"  Single-year cap basis: {report.get('single_year_cap_basis', 'target_budget')} (limit: {cap_max:.1f}%)")
+    lines.append(f"  Fraction of target budget:    {b_pct:.2f}%")
+    lines.append(f"  Fraction of realized dataset: {s_pct:.2f}%")
     lines.append("")
+
+    if report.get("modality_audit"):
+        ma = report["modality_audit"]
+        lines.append("9b. MODALITY AUDIT & ELIGIBILITY")
+        lines.append("-" * w)
+        reqs = ma.get("modality_requirements_applied", {})
+        lines.append(f"  Requirements: require_env={reqs.get('require_environmental')}, min_sensors={reqs.get('min_sensors_per_storm')}, prioritize_radar={reqs.get('prioritize_radar_overpasses')}")
+        lines.append(f"  Original catalogue:  {ma.get('original_catalogue_storms')} storms ({ma.get('original_catalogue_bytes', 0)/1e9:.2f} GB)")
+        lines.append(f"  Eligible catalogue:  {ma.get('eligible_catalogue_storms')} storms ({ma.get('eligible_catalogue_bytes', 0)/1e9:.2f} GB)")
+        lines.append(f"  Excluded storms:     {ma.get('excluded_storms_count')}")
+        if ma.get("exclusion_reasons"):
+            lines.append(f"  Exclusion reasons:   {ma.get('exclusion_reasons')}")
+        lines.append(f"  Radar storms:        {ma.get('eligible_radar_storms_count')} eligible / {ma.get('original_radar_storms_count')} original")
+        lines.append("")
 
     if report["limitations"]:
         lines.append("10. LIMITATIONS AND DEVIATIONS")
@@ -1656,6 +1833,7 @@ def cmd_plan(args):
     acq_cfg = cfg.get("acquisition", {})
     paths_cfg = cfg.get("paths", {})
     strat_cfg = cfg.get("stratification_criteria", {})
+    modality_cfg = cfg.get("modality_requirements", {})
 
     # Parameter resolution: CLI explicit > YAML config > fallback default
     if getattr(args, "target_gb", None) is not None:
@@ -1727,6 +1905,7 @@ def cmd_plan(args):
         single_year_max_pct=single_year_max_pct,
         enforce_complete_storms=enforce_complete_storms,
         enforce_single_year_cap=enforce_single_year_cap,
+        modality_requirements=modality_cfg,
     )
     report["total_catalogue_storms"] = len(catalogue)
 

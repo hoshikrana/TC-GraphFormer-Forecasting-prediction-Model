@@ -7,6 +7,7 @@ checkpoint serialization, and scientifically rigorous masked multi-task validati
 import os
 import time
 import math
+from collections import defaultdict
 from typing import Dict, Any, Optional, List
 import numpy as np
 import torch
@@ -99,6 +100,8 @@ class TCGraphFormerTrainer:
         total_loss = 0.0
         total_samples = 0
         loss_accum = {}
+        task_loss_sums = defaultdict(float)
+        task_valid_counts = defaultdict(float)
 
         start_time = time.time()
         self.optimizer.zero_grad()
@@ -175,6 +178,25 @@ class TCGraphFormerTrainer:
                     for k, v in loss_dict.items():
                         loss_accum[k] = loss_accum.get(k, 0.0) + v * B
 
+                    if isinstance(self.loss_fn, MultiTaskLoss):
+                        task_loss_sums["intensity"] += loss_dict.get("unreduced_loss_intensity", 0.0)
+                        task_valid_counts["intensity"] += loss_dict.get("valid_intensity_count", loss_dict.get("valid_v_count", 0.0))
+
+                        task_loss_sums["pressure"] += loss_dict.get("unreduced_loss_pressure", 0.0)
+                        task_valid_counts["pressure"] += loss_dict.get("valid_pressure_count", loss_dict.get("valid_p_count", 0.0))
+
+                        task_loss_sums["stage"] += loss_dict.get("unreduced_loss_stage", 0.0)
+                        task_valid_counts["stage"] += loss_dict.get("valid_stage_count", loss_dict.get("valid_s_count", 0.0))
+
+                        task_loss_sums["intensity_change"] += loss_dict.get("unreduced_loss_intensity_change", 0.0)
+                        task_valid_counts["intensity_change"] += loss_dict.get("valid_intensity_change_count", loss_dict.get("valid_dv_count", 0.0))
+
+                        task_loss_sums["ri"] += loss_dict.get("unreduced_loss_ri", 0.0)
+                        task_valid_counts["ri"] += loss_dict.get("valid_ri_count", 0.0)
+
+                        task_loss_sums["track"] += loss_dict.get("unreduced_loss_track", 0.0)
+                        task_valid_counts["track"] += loss_dict.get("valid_track_count", 0.0)
+
                 # Step optimizer once for the entire accumulation group
                 if self.use_amp:
                     self.scaler.unscale_(self.optimizer)
@@ -191,8 +213,30 @@ class TCGraphFormerTrainer:
 
                 group_batches = []
 
-        avg_loss = total_loss / max(1, total_samples)
-        metrics = {k: round(v / max(1, total_samples), 4) for k, v in loss_accum.items()}
+        if isinstance(self.loss_fn, MultiTaskLoss):
+            task_weights = getattr(self.loss_fn, "task_weights", {
+                "intensity": self.loss_fn.w_v,
+                "pressure": self.loss_fn.w_p,
+                "stage": self.loss_fn.w_s,
+                "intensity_change": self.loss_fn.w_dv,
+                "ri": self.loss_fn.w_ri,
+                "track": self.loss_fn.w_track,
+            })
+            metrics = {}
+            weighted_total = 0.0
+            for task_name, weight in task_weights.items():
+                valid_c = task_valid_counts[task_name]
+                task_epoch_loss = (task_loss_sums[task_name] / max(1.0, valid_c)) if valid_c > 0 else 0.0
+                metrics[f"loss_{task_name}"] = round(task_epoch_loss, 4)
+                weighted_total += weight * task_epoch_loss
+
+            metrics["loss_total"] = round(weighted_total, 4)
+            for k, v in loss_accum.items():
+                if k not in metrics and not k.startswith("unreduced_") and not k.startswith("valid_"):
+                    metrics[k] = round(v / max(1, total_samples), 4)
+        else:
+            metrics = {k: round(v / max(1, total_samples), 4) for k, v in loss_accum.items()}
+
         metrics["epoch"] = epoch
         metrics["optimizer_steps"] = optimizer_steps
         metrics["total_batches"] = num_batches
