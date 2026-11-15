@@ -14,7 +14,7 @@ Zero network downloads of the 100 GB dataset were executed, and no full GPU trai
 - **Starting Branch**: `fix/phase2e3-scientific-correctness`
 - **Starting Baseline Commit**: `f8ed4dafa4894ec8bbb78f3138f48cdba4c20498`
 - **Phase 2E.4 Work Branch**: `fix/phase2e4-infrastructure-readiness`
-- **Phase 2E.4 Commit**: (refer to git log on branch `fix/phase2e4-infrastructure-readiness`)
+- **Phase 2E.4 Commit**: `4bc687d8bd0068e31be88ca5ef3b3e9d646ee4ec`
 
 ---
 
