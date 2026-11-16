@@ -59,7 +59,7 @@ class QCConfig:
     enforce_causal_environmental: bool = True
     min_valid_pixel_fraction: float = 0.05
     tb_min_k: float = 50.0
-    tb_max_k: 350.0 = 350.0
+    tb_max_k: float = 350.0
     ir_min_k: float = 150.0
     ir_max_k: float = 350.0
 

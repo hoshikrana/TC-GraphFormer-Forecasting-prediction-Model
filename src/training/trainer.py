@@ -195,7 +195,11 @@ class TCGraphFormerTrainer:
                         task_valid_counts["ri"] += loss_dict.get("valid_ri_count", 0.0)
 
                         task_loss_sums["track"] += loss_dict.get("unreduced_loss_track", 0.0)
-                        task_valid_counts["track"] += loss_dict.get("valid_track_count", 0.0)
+                        tr_comp = loss_dict.get("valid_track_components_count", loss_dict.get("valid_track_count", 0.0))
+                        tr_steps = loss_dict.get("valid_track_timesteps_count", tr_comp / 2.0)
+                        task_valid_counts["track"] += tr_comp
+                        task_valid_counts["track_components"] += tr_comp
+                        task_valid_counts["track_timesteps"] += tr_steps
 
                 # Step optimizer once for the entire accumulation group
                 if self.use_amp:
@@ -234,6 +238,16 @@ class TCGraphFormerTrainer:
             for k, v in loss_accum.items():
                 if k not in metrics and not k.startswith("unreduced_") and not k.startswith("valid_"):
                     metrics[k] = round(v / max(1, total_samples), 4)
+
+            # Expose explicit epoch-level valid target counts
+            metrics["valid_intensity_count"] = int(round(task_valid_counts["intensity"]))
+            metrics["valid_pressure_count"] = int(round(task_valid_counts["pressure"]))
+            metrics["valid_stage_count"] = int(round(task_valid_counts["stage"]))
+            metrics["valid_intensity_change_count"] = int(round(task_valid_counts["intensity_change"]))
+            metrics["valid_ri_count"] = int(round(task_valid_counts["ri"]))
+            metrics["valid_track_components_count"] = int(round(task_valid_counts["track_components"]))
+            metrics["valid_track_timesteps_count"] = int(round(task_valid_counts["track_timesteps"]))
+            metrics["valid_track_count"] = int(round(task_valid_counts["track_components"]))
         else:
             metrics = {k: round(v / max(1, total_samples), 4) for k, v in loss_accum.items()}
 

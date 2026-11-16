@@ -23,6 +23,7 @@ import shutil
 import time
 import random
 import yaml
+from typing import Optional, Dict, Any, List, Tuple, Set, Union
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -61,14 +62,26 @@ ERA_BINS = [
     ("2020+",     2020, 9999),
 ]
 
-# Supported TC PRIMED radar instruments
+# Supported TC PRIMED radar-capable platform/instrument combinations in catalogue filenames
+# (GPM Core Observatory carries GMI + DPR; TRMM carries TMI + PR)
+RADAR_CAPABLE_COMBINATIONS = {
+    ("GMI", "GPM"),
+    ("DPR", "GPM"),
+    ("TMI", "TRMM"),
+    ("PR", "TRMM"),
+}
+
+# Internal TC PRIMED NetCDF radar group identifiers
+RADAR_NETCDF_SUBGROUPS = {"KuKaGMI", "KuGMI", "KuTMI", "DPR", "PR"}
+
+# Backwards-compatibility alias for code checking instrument presence
 RADAR_INSTRUMENTS = {"DPR", "PR", "KUKAGMI", "KUGMI", "KUTMI"}
 
 # Known TC PRIMED instruments (for parsing filenames)
 KNOWN_INSTRUMENTS = [
     "GMI", "TMI", "SSMI", "SSMIS", "AMSR2", "AMSRE", "AMSUB", "AMSU-B",
     "AMSUA", "AMSU-A", "MHS", "ATMS", "SAPHIR", "MWRI", "MWHS2",
-    "TEMPEST-D", "TEMPEST", "COWVR", "DPR", "PR", "KuKaGMI", "KuGMI", "KuTMI",
+    "TEMPEST-D", "TEMPEST", "COWVR", "DPR", "PR",
 ]
 
 KNOWN_PLATFORMS = [
@@ -351,6 +364,21 @@ def build_storm_catalogue(inventory):
     for sf, data in sorted(storms.items()):
         first = data["files"][0]
         storm_id = storm_id_from_parts(first["season"], first["basin"], first["cyclone_number"])
+
+        # Determine catalogue-level radar capability
+        is_rad_cap = False
+        for f in data["files"]:
+            if is_radar_capable_file(f.get("instrument"), f.get("platform")):
+                is_rad_cap = True
+                break
+        if not is_rad_cap:
+            insts = set(i.upper() for i in data["instruments"])
+            plats = set(p.upper() for p in data["platforms"])
+            if ("GMI" in insts and "GPM" in plats) or ("TMI" in insts and "TRMM" in plats):
+                is_rad_cap = True
+            elif "DPR" in insts or "PR" in insts:
+                is_rad_cap = True
+
         catalogue.append({
             "storm_folder": sf,
             "storm_id": storm_id,
@@ -364,6 +392,8 @@ def build_storm_catalogue(inventory):
             "env_count": data["env_count"],
             "instruments": ";".join(sorted(data["instruments"])),
             "platforms": ";".join(sorted(data["platforms"])),
+            "radar_capable": is_rad_cap,
+            "radar_confirmed": "unknown",  # Verified during NetCDF ingestion / post-processing
         })
 
     return catalogue
@@ -375,7 +405,7 @@ def save_storm_catalogue_csv(catalogue, path):
     fieldnames = [
         "storm_folder", "storm_id", "season", "basin", "cyclone_number",
         "era", "total_bytes", "file_count", "overpass_count", "env_count",
-        "instruments", "platforms",
+        "instruments", "platforms", "radar_capable", "radar_confirmed",
     ]
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -411,6 +441,12 @@ def load_storm_catalogue_csv(path):
     with open(path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
+            rad_cap = row.get("radar_capable")
+            if rad_cap is not None:
+                rad_cap_val = rad_cap.lower() in ("true", "1", "yes") if isinstance(rad_cap, str) else bool(rad_cap)
+            else:
+                rad_cap_val = is_storm_radar_capable(row)
+
             catalogue.append({
                 "storm_folder": row["storm_folder"],
                 "storm_id": row["storm_id"],
@@ -424,6 +460,8 @@ def load_storm_catalogue_csv(path):
                 "env_count": int(row["env_count"]),
                 "instruments": row.get("instruments", ""),
                 "platforms": row.get("platforms", ""),
+                "radar_capable": rad_cap_val,
+                "radar_confirmed": row.get("radar_confirmed", "unknown"),
             })
     return catalogue
 
@@ -449,13 +487,119 @@ def get_storm_sensors(storm) -> set:
     return {i for i in raw_insts if i.upper() not in {"ERA5", "REANALYSIS", "UNKNOWN", "ENVIRONMENTAL"}}
 
 
-def storm_has_radar(storm) -> bool:
-    """Return True if storm possesses recognized radar instrument observations."""
-    sensors = get_storm_sensors(storm)
-    for s in sensors:
-        if s.upper() in RADAR_INSTRUMENTS or "RADAR" in s.upper():
+def is_radar_capable_file(instrument: Optional[str], platform: Optional[str]) -> bool:
+    """
+    Return True if (instrument, platform) combination indicates radar capability in TC PRIMED.
+    Supported grounded combinations:
+      - GPM platform with GMI or DPR (carrying Dual-frequency Precipitation Radar)
+      - TRMM platform with TMI or PR (carrying Precipitation Radar)
+      - Explicit DPR or PR instruments
+    """
+    if not instrument or not platform:
+        if instrument and instrument.upper() in {"DPR", "PR"}:
             return True
+        return False
+    inst_u = instrument.strip().upper()
+    plat_u = platform.strip().upper()
+    if (inst_u, plat_u) in RADAR_CAPABLE_COMBINATIONS:
+        return True
+    if inst_u in {"DPR", "PR"}:
+        return True
     return False
+
+
+def is_storm_radar_capable(storm: dict) -> bool:
+    """
+    Determine if a storm contains radar-capable overpasses based on supported catalogue metadata.
+    Catalogue metadata alone establishes radar capability (candidate status), NOT confirmed radar availability.
+    A storm is radar-capable if it contains overpasses from GMI/GPM, TMI/TRMM, or explicit DPR/PR.
+    """
+    if "radar_capable" in storm and storm["radar_capable"] is not None:
+        return bool(storm["radar_capable"])
+
+    # If storm dictionary contains list of file dictionaries
+    if "files" in storm and isinstance(storm["files"], list):
+        for f in storm["files"]:
+            inst = f.get("instrument")
+            plat = f.get("platform")
+            if is_radar_capable_file(inst, plat):
+                return True
+
+    # Check summary string fields
+    insts = set(i.strip().upper() for i in storm.get("instruments", "").split(";") if i.strip())
+    plats = set(p.strip().upper() for p in storm.get("platforms", "").split(";") if p.strip())
+
+    if ("GMI" in insts and "GPM" in plats) or ("TMI" in insts and "TRMM" in plats):
+        return True
+    if "DPR" in insts or "PR" in insts:
+        return True
+
+    # Legacy synthetic instrument tags (e.g. KuKaGMI, KuGMI, KuTMI, or RADAR)
+    for i in insts:
+        if i in {"KUKAGMI", "KUGMI", "KUTMI"} or "RADAR" in i:
+            return True
+
+    return False
+
+
+def storm_has_radar(storm: dict) -> bool:
+    """Backwards-compatibility alias for is_storm_radar_capable."""
+    return is_storm_radar_capable(storm)
+
+
+def inspect_netcdf_radar_group(file_path: str) -> dict:
+    """
+    Inspect a local TC PRIMED NetCDF file to verify confirmed radar availability.
+    Distinguishes catalogue-level radar capability from verified radar data presence.
+
+    Returns dict with:
+      - file_exists: bool
+      - has_radar_group: bool
+      - subgroups_found: list of found radar subgroups (e.g. ['KuKaGMI'])
+      - radar_confirmed_available: bool
+      - reason: str
+    """
+    res = {
+        "file_path": file_path,
+        "file_exists": os.path.exists(file_path),
+        "has_radar_group": False,
+        "subgroups_found": [],
+        "radar_confirmed_available": False,
+        "reason": "",
+    }
+    if not res["file_exists"]:
+        res["reason"] = "File does not exist on disk"
+        return res
+
+    try:
+        import netCDF4 as nc
+        with nc.Dataset(file_path, "r") as ds:
+            if "radar_radiometer" in ds.groups:
+                res["has_radar_group"] = True
+                rr_group = ds.groups["radar_radiometer"]
+                found_subgroups = []
+                for sub in RADAR_NETCDF_SUBGROUPS:
+                    if sub in rr_group.groups:
+                        found_subgroups.append(sub)
+                res["subgroups_found"] = found_subgroups
+
+                if found_subgroups:
+                    for sub in found_subgroups:
+                        sg = rr_group.groups[sub]
+                        var_keys = set(sg.variables.keys())
+                        if any(v in var_keys for v in ["zKu", "zKa", "reflectivity", "x", "y"]):
+                            res["radar_confirmed_available"] = True
+                            res["reason"] = f"Confirmed radar data in radar_radiometer/{sub}"
+                            return res
+                    res["reason"] = f"Radar subgroups found ({found_subgroups}) but lack expected variables"
+                else:
+                    res["reason"] = "radar_radiometer group present but contains no recognized radar subgroups"
+            else:
+                res["reason"] = "radar_radiometer group not present in NetCDF"
+    except Exception as e:
+        res["reason"] = f"Error inspecting NetCDF: {str(e)}"
+
+    return res
 
 
 def filter_eligible_catalogue(catalogue, modality_requirements=None):
@@ -605,11 +749,19 @@ def stratified_select(
         basin = storm["basin"]
         cells[(era, basin)].append(storm)
 
-    # Shuffle each cell deterministically, prioritizing radar overpasses if requested
+    # Shuffle each cell deterministically, prioritizing radar-capable overpasses if requested
     for key in cells:
-        rng.shuffle(cells[key])
         if prioritize_radar:
-            cells[key].sort(key=lambda s: (not storm_has_radar(s)))
+            cells[key].sort(key=lambda s: (
+                0 if is_storm_radar_capable(s) else 1,
+                -s["total_bytes"],
+                deterministic_tie_breaker(seed, s["storm_folder"])
+            ))
+        else:
+            cells[key].sort(key=lambda s: (
+                -s["total_bytes"],
+                deterministic_tie_breaker(seed, s["storm_folder"])
+            ))
 
     # Identify available basins and eras
     available_basins = sorted(set(s["basin"] for s in catalogue))
@@ -681,7 +833,7 @@ def stratified_select(
             if selected_bytes + storm_bytes > target_bytes:
                 continue
 
-            if max_single_year_bytes > 0 and (year_bytes[s_year] + storm_bytes > max_single_year_bytes):
+            if enforce_single_year_cap and max_single_year_bytes > 0 and (year_bytes[s_year] + storm_bytes > max_single_year_bytes):
                 continue
 
             selected.append(storm)
@@ -703,7 +855,7 @@ def stratified_select(
 
         while selected_bytes < target_bytes:
             best_storm = None
-            best_score = -float("inf")
+            best_key = None
 
             for storm in unselected:
                 sf = storm["storm_folder"]
@@ -722,22 +874,19 @@ def stratified_select(
                 b_def = b_target - basin_bytes_used.get(storm["basin"], 0)
                 e_target = target_bytes * norm_e.get(storm["era"], 0)
                 e_def = e_target - era_bytes.get(storm["era"], 0)
-                score = b_def + e_def
+                deficit_score = b_def + e_def
 
-                if prioritize_radar and storm_has_radar(storm):
-                    score += 1000.0
+                is_rad = 1 if (prioritize_radar and is_storm_radar_capable(storm)) else 0
+                tie_val = deterministic_tie_breaker(seed, sf)
 
-                if year_violation:
-                    score -= 1e12
+                # Deterministic hierarchical ranking: (radar_tier, deficit_score, tie_breaker)
+                candidate_key = (is_rad, deficit_score, tie_val)
 
-                # Deterministic cross-process tie-breaker using SHA-256
-                score += deterministic_tie_breaker(seed, sf)
-
-                if score > best_score:
-                    best_score = score
+                if best_key is None or candidate_key > best_key:
+                    best_key = candidate_key
                     best_storm = storm
 
-            if best_storm is None or best_score <= -1e11:
+            if best_storm is None:
                 break
 
             sf = best_storm["storm_folder"]
@@ -758,7 +907,7 @@ def stratified_select(
 
         while selected_bytes < target_bytes:
             best_storm = None
-            best_score = -float("inf")
+            best_key = None
 
             for storm in leftover:
                 sf = storm["storm_folder"]
@@ -777,18 +926,15 @@ def stratified_select(
                 b_def = b_target - basin_bytes_used.get(storm["basin"], 0)
                 e_target = target_bytes * norm_e.get(storm["era"], 0)
                 e_def = e_target - era_bytes.get(storm["era"], 0)
-                score = b_def + e_def
+                deficit_score = b_def + e_def
 
-                if prioritize_radar and storm_has_radar(storm):
-                    score += 1000.0
+                is_rad = 1 if (prioritize_radar and is_storm_radar_capable(storm)) else 0
+                tie_val = deterministic_tie_breaker(seed, sf)
 
-                if year_violation:
-                    score -= 1e12
+                candidate_key = (is_rad, deficit_score, tie_val)
 
-                score += deterministic_tie_breaker(seed, sf)
-
-                if score > best_score:
-                    best_score = score
+                if best_key is None or candidate_key > best_key:
+                    best_key = candidate_key
                     best_storm = storm
 
             if best_storm is None and not enforce_single_year_cap:
@@ -801,7 +947,7 @@ def stratified_select(
                         best_storm = storm
                         break
 
-            if best_storm is None or (enforce_single_year_cap and best_score <= -1e11):
+            if best_storm is None:
                 break
 
             sf = best_storm["storm_folder"]
@@ -967,33 +1113,63 @@ def build_selection_report(
     selected_folders = set(s["storm_folder"] for s in selected)
 
     if unfilled_bytes > 0:
-        if modality_audit and modality_audit.get("eligible_catalogue_bytes", total_selected_bytes) < target_bytes:
-            orig_gb = modality_audit.get("original_catalogue_bytes", 0) / 1e9
-            elig_gb = modality_audit.get("eligible_catalogue_bytes", 0) / 1e9
-            reasons_dict = modality_audit.get("exclusion_reasons", {})
-            reasons_str = f" ({', '.join(f'{k}: {v}' for k, v in sorted(reasons_dict.items()))})" if reasons_dict else ""
-            unfilled_budget_reason = (
-                f"Unfilled budget of {unfilled_bytes / 1e9:.2f} GB: modality requirements "
-                f"excluded {modality_audit.get('excluded_storms_count', 0)} storms{reasons_str}, reducing available catalogue "
-                f"from {orig_gb:.2f} GB to {elig_gb:.2f} GB."
-            )
-        elif enforce_single_year_cap:
+        orig_bytes = modality_audit.get("original_catalogue_bytes", total_selected_bytes) if modality_audit else sum(s["total_bytes"] for s in catalogue)
+        elig_bytes = modality_audit.get("eligible_catalogue_bytes", total_selected_bytes) if modality_audit else orig_bytes
+        excluded_count = modality_audit.get("excluded_storms_count", 0) if modality_audit else 0
+        reasons_dict = modality_audit.get("exclusion_reasons", {}) if modality_audit else {}
+        reasons_str = f" ({', '.join(f'{k}: {v}' for k, v in sorted(reasons_dict.items()))})" if reasons_dict else ""
+
+        # Case 1: Check single-year concentration cap
+        blocked_by_year_cap = False
+        if enforce_single_year_cap:
             blocked_by_year_cap = any(
                 (s["storm_folder"] not in selected_folders)
                 and (s["total_bytes"] <= unfilled_bytes)
                 and (max_single_year_bytes > 0 and (year_bytes[s.get("season", s.get("year"))] + s["total_bytes"] > max_single_year_bytes))
                 for s in catalogue
             )
-            if blocked_by_year_cap:
-                unfilled_budget_reason = (
-                    f"Unfilled budget of {unfilled_bytes / 1e9:.2f} GB ({unfilled_bytes:,} bytes): "
-                    f"single-year concentration cap ({single_year_max_pct}% of target budget) strictly enforced and candidate storms from other years exhausted."
-                )
-        if not unfilled_budget_reason and total_selected_bytes < min_bytes_expected and target_bytes > 0:
+
+        if blocked_by_year_cap:
             unfilled_budget_reason = (
-                f"Selected {total_selected_bytes / 1e9:.2f} GB is below 85% of target budget ({min_bytes_expected / 1e9:.2f} GB) "
-                f"due to limited qualifying candidate storms in catalogue."
+                f"Unfilled budget of {unfilled_bytes / 1e9:.2f} GB ({unfilled_bytes:,} bytes): "
+                f"single-year concentration cap ({single_year_max_pct}% of target budget) strictly enforced and candidate storms from other years exhausted."
             )
+        # Case 2: Original catalogue was already smaller than requested target budget
+        elif orig_bytes < target_bytes:
+            if excluded_count == 0:
+                unfilled_budget_reason = (
+                    f"Unfilled budget of {unfilled_bytes / 1e9:.2f} GB: original catalogue "
+                    f"({orig_bytes / 1e9:.2f} GB) is smaller than requested target budget ({target_bytes / 1e9:.2f} GB) with zero modality exclusions."
+                )
+            else:
+                unfilled_budget_reason = (
+                    f"Unfilled budget of {unfilled_bytes / 1e9:.2f} GB: original catalogue "
+                    f"({orig_bytes / 1e9:.2f} GB) was already smaller than requested target budget ({target_bytes / 1e9:.2f} GB), "
+                    f"and modality requirements further excluded {excluded_count} storms{reasons_str}, leaving {elig_bytes / 1e9:.2f} GB eligible."
+                )
+        # Case 3: Modality filtering reduced a previously sufficient catalogue (orig >= target, elig < target)
+        elif orig_bytes >= target_bytes and elig_bytes < target_bytes:
+            unfilled_budget_reason = (
+                f"Unfilled budget of {unfilled_bytes / 1e9:.2f} GB: modality requirements "
+                f"excluded {excluded_count} storms{reasons_str}, reducing available catalogue "
+                f"from {orig_bytes / 1e9:.2f} GB to {elig_bytes / 1e9:.2f} GB."
+            )
+        # Case 4: Eligible catalogue was sufficient in total bytes (elig >= target), but complete storm size constraints prevented fitting
+        elif elig_bytes >= target_bytes:
+            unselected_eligible = [s for s in catalogue if s["storm_folder"] not in selected_folders]
+            min_unselected_bytes = min((s["total_bytes"] for s in unselected_eligible), default=0)
+            unfilled_budget_reason = (
+                f"Unfilled budget of {unfilled_bytes / 1e9:.2f} GB: eligible catalogue is sufficient in total bytes "
+                f"({elig_bytes / 1e9:.2f} GB), but complete-storm lifecycle constraints prevent adding remaining candidate storms "
+                f"(smallest remaining: {min_unselected_bytes / 1e9:.4f} GB) without exceeding target budget ({target_bytes / 1e9:.2f} GB)."
+            )
+        # Case 5: General fallback
+        else:
+            if total_selected_bytes < min_bytes_expected and target_bytes > 0:
+                unfilled_budget_reason = (
+                    f"Selected {total_selected_bytes / 1e9:.2f} GB is below 85% of target budget ({min_bytes_expected / 1e9:.2f} GB) "
+                    f"due to limited qualifying candidate storms in catalogue."
+                )
     if unfilled_budget_reason:
         limitations.append(unfilled_budget_reason)
 
@@ -1008,7 +1184,10 @@ def build_selection_report(
 
     # Single-year concentration limitation: evaluated relative to target budget ceiling
     if max_year_budget_pct > single_year_max_pct:
-        limitations.append(f"Year {max_year} contributes {max_year_budget_pct:.1f}% of requested target budget (target ceiling: <={single_year_max_pct}%).")
+        if enforce_single_year_cap:
+            limitations.append(f"Year {max_year} contributes {max_year_budget_pct:.1f}% of requested target budget (target ceiling: <={single_year_max_pct}%).")
+        else:
+            limitations.append(f"Note: Single-year cap is disabled (enforce_single_year_cap=False). Year {max_year} contributes {max_year_budget_pct:.1f}% of requested target budget.")
     elif total_selected_bytes < target_bytes and max_year_selected_pct > single_year_max_pct:
         limitations.append(f"Note: Year {max_year} contributes {max_year_budget_pct:.1f}% of requested target budget (within ceiling <={single_year_max_pct}%), representing {max_year_selected_pct:.1f}% of realized underfilled dataset.")
 

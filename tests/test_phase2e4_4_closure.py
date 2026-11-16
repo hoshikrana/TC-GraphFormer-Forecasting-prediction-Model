@@ -162,8 +162,8 @@ class TestModalityRequirements(unittest.TestCase):
                 "total_files": 10,
                 "overpass_count": 8,
                 "env_count": 2,
-                "instruments": "GMI; SSMI; MHS",
-                "platforms": "GPM; DMSP; NOAA",
+                "instruments": "SSMIS; ATMS; MHS",
+                "platforms": "DMSP; NPP; NOAA",
             },
             {
                 "storm_folder": "AL022021",
@@ -174,7 +174,7 @@ class TestModalityRequirements(unittest.TestCase):
                 "total_files": 12,
                 "overpass_count": 12,
                 "env_count": 0,  # Missing environmental data
-                "instruments": "GMI; DPR; SSMI",
+                "instruments": "DPR; SSMI",
                 "platforms": "GPM; DMSP",
             },
             {
@@ -198,7 +198,7 @@ class TestModalityRequirements(unittest.TestCase):
                 "total_files": 15,
                 "overpass_count": 13,
                 "env_count": 2,
-                "instruments": "KuKaGMI; GMI; SSMI",  # Radar instrument
+                "instruments": "GMI; SSMI",  # Radar-capable instrument (GMI on GPM)
                 "platforms": "GPM; DMSP",
             },
         ]
@@ -411,6 +411,15 @@ class TestTrainingMetricAggregation(unittest.TestCase):
             self.assertIn(k, metrics)
             diff = abs(metrics[k] - expected_metrics[k])
             self.assertLess(diff, 1e-4, f"Metric mismatch on {k}: got {metrics[k]}, expected {expected_metrics[k]} (diff={diff})")
+
+        # 4. Assert explicit epoch-level valid counts match references
+        self.assertEqual(metrics["valid_intensity_count"], int(ref_valid_counts["intensity"]))
+        self.assertEqual(metrics["valid_pressure_count"], int(ref_valid_counts["pressure"]))
+        self.assertEqual(metrics["valid_stage_count"], int(ref_valid_counts["stage"]))
+        self.assertEqual(metrics["valid_intensity_change_count"], int(ref_valid_counts["intensity_change"]))
+        self.assertEqual(metrics["valid_ri_count"], int(ref_valid_counts["ri"]))
+        self.assertEqual(metrics["valid_track_components_count"], int(ref_valid_counts["track"]))
+        self.assertEqual(metrics["valid_track_timesteps_count"], int(ref_valid_counts["track"] / 2.0))
 
     def test_zero_valid_targets_safe_handling(self):
         """When all samples in an epoch have valid_count=0 for a task, reported loss is safely 0.0."""

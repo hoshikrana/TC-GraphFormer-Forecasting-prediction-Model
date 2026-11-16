@@ -130,14 +130,17 @@ class MultiTaskLoss(nn.Module):
                 track_mask = track_mask.unsqueeze(-1)
             diff_tr = F.smooth_l1_loss(track_pred, track_true, reduction="none", beta=1.0)
             unreduced_tr = (diff_tr * track_mask).sum()
-            batch_valid_tr = track_mask.sum() * 2.0
-            n_tr = group_target_counts.get("track_displacement") if (group_target_counts and "track_displacement" in group_target_counts) else batch_valid_tr.clamp(min=1.0)
+            valid_tr_timesteps = float(track_mask.sum().item())
+            valid_tr_components = valid_tr_timesteps * 2.0
+            n_tr = group_target_counts.get("track_displacement") if (group_target_counts and "track_displacement" in group_target_counts) else max(1.0, valid_tr_components)
             loss_track = unreduced_tr / max(1.0, float(n_tr))
-            valid_tr_count = float(track_mask.sum().item())
+            valid_tr_count = valid_tr_timesteps
         else:
             loss_track = torch.tensor(0.0, device=preds["intensity"].device)
             unreduced_tr = torch.tensor(0.0, device=preds["intensity"].device)
             batch_valid_tr = torch.tensor(0.0, device=preds["intensity"].device)
+            valid_tr_timesteps = 0.0
+            valid_tr_components = 0.0
             valid_tr_count = 0.0
             n_tr = 0.0
 
@@ -173,17 +176,13 @@ class MultiTaskLoss(nn.Module):
             "valid_stage_count": float(batch_valid_s.detach().item()),
             "valid_intensity_change_count": float(batch_valid_dv.detach().item()),
             "valid_ri_count": float(batch_valid_ri.detach().item()),
-            "valid_track_count": float(batch_valid_tr.detach().item()),
-            "norm_v_count": _to_float(n_v),
-            "norm_p_count": _to_float(n_p),
-            "norm_s_count": _to_float(n_s),
-            "norm_dv_count": _to_float(n_dv),
-            "norm_ri_count": _to_float(n_ri),
-            "norm_tr_count": _to_float(n_tr) if hasattr(n_tr, "item") else float(n_tr),
+            "valid_track_components_count": valid_tr_components,
+            "valid_track_timesteps_count": valid_tr_timesteps,
+            "valid_track_count": valid_tr_components,
             "valid_v_count": float(batch_valid_v.detach().item()),
             "valid_p_count": float(batch_valid_p.detach().item()),
             "valid_s_count": float(batch_valid_s.detach().item()),
             "valid_dv_count": float(batch_valid_dv.detach().item()),
-            "valid_tr_count": valid_tr_count,
+            "valid_tr_count": valid_tr_timesteps,
         }
         return total_loss, loss_dict
