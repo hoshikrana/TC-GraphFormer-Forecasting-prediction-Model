@@ -755,22 +755,86 @@ def audit_local_radar(
         "available_count": 0,
         "unavailable_count": 0,
         "unknown_count": 0,
+        "not_applicable_count": 0,
     })
 
     for file_path, sf, inst, plat in target_files:
-        inspect_res = inspect_netcdf_radar_group(file_path)
-        is_rad_cap = is_radar_capable_file(inst, plat)
+        fname = os.path.basename(file_path)
+        # When manifest sensor/platform fields are missing, parse from filename where possible
+        if not inst or not plat:
+            p_inst, p_plat = parse_filename_instrument_platform(fname)
+            if not inst:
+                inst = p_inst
+            if not plat:
+                plat = p_plat
+
+        is_env = is_environmental_file(fname) or is_environmental_file(file_path)
+        is_rad_cap = is_radar_capable_file(inst, plat) if (inst and plat) else False
+        known_insts_u = {k.upper() for k in KNOWN_INSTRUMENTS}
+        known_plats_u = {p.upper() for p in KNOWN_PLATFORMS}
+
+        if is_env:
+            applicability = "not_applicable"
+            status = "not_applicable"
+            reason = "Environmental file (radar not applicable)"
+            inspect_res = {
+                "file_path": file_path,
+                "file_exists": os.path.exists(file_path),
+                "has_radar_group": False,
+                "availability_flag": None,
+                "subgroups_found": [],
+                "status": "not_applicable",
+                "radar_confirmed_available": False,
+                "reason": reason,
+            }
+        elif is_rad_cap:
+            applicability = "applicable"
+            inspect_res = inspect_netcdf_radar_group(file_path)
+            status = inspect_res.get("status", "unknown")
+            reason = inspect_res.get("reason", "")
+        else:
+            inst_u = str(inst).strip().upper() if inst else ""
+            plat_u = str(plat).strip().upper() if plat else ""
+            if inst_u in known_insts_u or plat_u in known_plats_u:
+                applicability = "not_applicable"
+                status = "not_applicable"
+                reason = f"Sensor {inst or 'unknown'} on platform {plat or 'unknown'} is not radar-capable"
+                inspect_res = {
+                    "file_path": file_path,
+                    "file_exists": os.path.exists(file_path),
+                    "has_radar_group": False,
+                    "availability_flag": None,
+                    "subgroups_found": [],
+                    "status": "not_applicable",
+                    "radar_confirmed_available": False,
+                    "reason": reason,
+                }
+            else:
+                applicability = "unknown"
+                status = "unknown"
+                reason = f"Uncertain sensor/platform applicability ({inst}/{plat}); cannot establish radar applicability"
+                inspect_res = {
+                    "file_path": file_path,
+                    "file_exists": os.path.exists(file_path),
+                    "has_radar_group": False,
+                    "availability_flag": None,
+                    "subgroups_found": [],
+                    "status": "unknown",
+                    "radar_confirmed_available": False,
+                    "reason": reason,
+                }
 
         storms_summary[sf]["storm_folder"] = sf
         storms_summary[sf]["total_files"] += 1
         if is_rad_cap:
             storms_summary[sf]["radar_capable"] = True
 
-        status = inspect_res.get("status", "unknown")
         if status == "available":
             storms_summary[sf]["available_count"] += 1
         elif status == "unavailable":
             storms_summary[sf]["unavailable_count"] += 1
+        elif status == "not_applicable":
+            storms_summary[sf]["not_applicable_count"] += 1
         else:
             storms_summary[sf]["unknown_count"] += 1
 
@@ -778,6 +842,7 @@ def audit_local_radar(
         file_rec["storm_folder"] = sf
         file_rec["instrument"] = inst
         file_rec["platform"] = plat
+        file_rec["applicability"] = applicability
         file_rec["radar_capable"] = is_rad_cap
         per_file_results.append(file_rec)
 
@@ -785,16 +850,20 @@ def audit_local_radar(
     tot_avail = sum(1 for f in per_file_results if f["status"] == "available")
     tot_unavail = sum(1 for f in per_file_results if f["status"] == "unavailable")
     tot_unknown = sum(1 for f in per_file_results if f["status"] == "unknown")
+    tot_not_applicable = sum(1 for f in per_file_results if f["status"] == "not_applicable")
     tot_storms = len(storms_summary)
     tot_radar_capable_storms = sum(1 for s in storms_summary.values() if s["radar_capable"])
     tot_storms_with_available = sum(1 for s in storms_summary.values() if s["available_count"] > 0)
 
     report = {
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "total_files": total_files,
         "total_files_inspected": total_files,
         "total_available": tot_avail,
         "total_unavailable": tot_unavail,
         "total_unknown": tot_unknown,
+        "total_not_applicable": tot_not_applicable,
+        "not_applicable_count": tot_not_applicable,
         "total_storms": tot_storms,
         "radar_capable_storms": tot_radar_capable_storms,
         "storms_with_confirmed_radar": tot_storms_with_available,
@@ -807,7 +876,8 @@ def audit_local_radar(
         if output_report_path.endswith(".csv"):
             fieldnames = [
                 "file_path", "storm_folder", "instrument", "platform",
-                "radar_capable", "status", "availability_flag", "radar_confirmed_available", "reason"
+                "applicability", "radar_capable", "status", "availability_flag",
+                "radar_confirmed_available", "reason"
             ]
             with open(output_report_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
@@ -930,16 +1000,25 @@ def stratified_select(
     modality_audit=None,
 ):
     """
-    Perform stratified selection of complete storm folders.
+    Perform stratified selection of complete storm folders in two deterministic stages:
 
-    Strategy:
-      1. Partition storms by (era, basin).
-      2. If basin_proportions is specified, allocate budget proportionally across basins.
-         Otherwise, reserve ~25% for IO basin and split remaining equally.
-      3. If era_proportions is specified, balance eras within each basin proportionally.
-         Otherwise, divide equally across available historical periods.
-      4. Within each (era, basin) cell, randomly select complete storm folders.
-      5. Never exceed target_bytes. Complete storms are strictly preserved.
+    Stage 1 (Pass 1 - Cell-Budget Allocation):
+      - Partition eligible storms into (era, basin) cells with cell budgets.
+      - Within each cell, sort candidates deterministically:
+        - If prioritize_radar: (0 if radar_capable else 1, -total_bytes, tie_breaker)
+        - Else: (-total_bytes, tie_breaker)
+      - Greedily allocate storms up to each cell's budget, respecting total target budget
+        and single-year concentration cap (if enforced).
+
+    Stage 2 (Pass 2 - Deficit-Balanced Global Filling):
+      - If remaining budget exists, evaluate all unselected candidate storms.
+      - Iteratively pick the candidate maximizing candidate_key:
+        candidate_key = (is_rad, deficit_score, tie_val)
+        where is_rad = 1 if (prioritize_radar and radar_capable) else 0,
+        deficit_score = basin_deficit + era_deficit,
+        tie_val = deterministic_tie_breaker(seed, storm_folder).
+      - Halts when remaining budget is filled or no candidate fits without violating
+        total budget or hard single-year cap.
 
     Returns (selected_storms, selection_report).
     """
@@ -1103,67 +1182,6 @@ def stratified_select(
                 if best_key is None or candidate_key > best_key:
                     best_key = candidate_key
                     best_storm = storm
-
-            if best_storm is None:
-                break
-
-            sf = best_storm["storm_folder"]
-            storm_bytes = best_storm["total_bytes"]
-            s_year = best_storm.get("season", best_storm.get("year"))
-
-            selected.append(best_storm)
-            selected_folders.add(sf)
-            selected_bytes += storm_bytes
-            era_bytes[best_storm["era"]] += storm_bytes
-            basin_bytes_used[best_storm["basin"]] += storm_bytes
-            year_bytes[s_year] += storm_bytes
-
-    # Selection pass 3: greedy fill with any remaining storms sorted by deficit score
-    remaining = target_bytes - selected_bytes
-    if remaining > 0:
-        leftover = [s for s in catalogue if s["storm_folder"] not in selected_folders]
-
-        while selected_bytes < target_bytes:
-            best_storm = None
-            best_key = None
-
-            for storm in leftover:
-                sf = storm["storm_folder"]
-                if sf in selected_folders:
-                    continue
-                storm_bytes = storm["total_bytes"]
-                if selected_bytes + storm_bytes > target_bytes:
-                    continue
-
-                s_year = storm.get("season", storm.get("year"))
-                year_violation = (max_single_year_bytes > 0 and (year_bytes[s_year] + storm_bytes > max_single_year_bytes))
-                if enforce_single_year_cap and year_violation:
-                    continue
-
-                b_target = basin_budgets.get(storm["basin"], target_bytes * norm_b.get(storm["basin"], 0))
-                b_def = b_target - basin_bytes_used.get(storm["basin"], 0)
-                e_target = target_bytes * norm_e.get(storm["era"], 0)
-                e_def = e_target - era_bytes.get(storm["era"], 0)
-                deficit_score = b_def + e_def
-
-                is_rad = 1 if (prioritize_radar and is_storm_radar_capable(storm)) else 0
-                tie_val = deterministic_tie_breaker(seed, sf)
-
-                candidate_key = (is_rad, deficit_score, tie_val)
-
-                if best_key is None or candidate_key > best_key:
-                    best_key = candidate_key
-                    best_storm = storm
-
-            if best_storm is None and not enforce_single_year_cap:
-                # If no candidate fits without year violation and hard cap is disabled, relax year violation to fill remaining budget
-                for storm in leftover:
-                    sf = storm["storm_folder"]
-                    if sf in selected_folders:
-                        continue
-                    if selected_bytes + storm["total_bytes"] <= target_bytes:
-                        best_storm = storm
-                        break
 
             if best_storm is None:
                 break
@@ -2215,13 +2233,17 @@ def cmd_audit(args):
 def cmd_audit_radar(args):
     """Execute the 'audit-radar' command: inspect local NetCDF files for confirmed radar availability."""
     manifest_path = getattr(args, "manifest", None)
-    local_dir = getattr(args, "data_dir", None) or getattr(args, "destination", None)
+    local_dir = (
+        getattr(args, "local_dir", None)
+        or getattr(args, "data_dir", None)
+        or getattr(args, "destination", None)
+    )
     out_path = getattr(args, "output", None)
 
     try:
         report = audit_local_radar(manifest_path=manifest_path, local_dir=local_dir, output_report_path=out_path)
         print(f"[OK] Local radar audit complete: {report['total_files_inspected']} files inspected.")
-        print(f"     Confirmed Available: {report['total_available']} | Unavailable: {report['total_unavailable']} | Unknown: {report['total_unknown']}")
+        print(f"     Confirmed Available: {report['total_available']} | Unavailable: {report['total_unavailable']} | Unknown: {report['total_unknown']} | Not Applicable: {report['not_applicable_count']}")
         print(f"     Storms: {report['total_storms']} total, {report['radar_capable_storms']} radar-capable, {report['storms_with_confirmed_radar']} confirmed available.")
         if out_path:
             print(f"[OK] Audit report saved -> {out_path}")
@@ -2498,10 +2520,12 @@ Examples:
     radar_parser = subparsers.add_parser("audit-radar", help="Audit local files for confirmed radar availability")
     radar_parser.add_argument("--manifest", default=None,
                               help="Path to manifest CSV")
-    radar_parser.add_argument("--data-dir", default=None,
+    radar_parser.add_argument("--local-dir", default=None,
                               help="Path to local directory with NetCDF files")
+    radar_parser.add_argument("--data-dir", default=None,
+                              help="Alias for --local-dir")
     radar_parser.add_argument("--destination", default=None,
-                              help="Alias for --data-dir")
+                              help="Alias for --local-dir")
     radar_parser.add_argument("--output", default=None,
                               help="Output path for audit report (JSON or CSV)")
 

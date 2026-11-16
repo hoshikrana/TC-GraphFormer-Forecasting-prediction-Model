@@ -141,8 +141,12 @@ class MultiTaskLoss(nn.Module):
                     valid_tr_timesteps = float(track_mask.sum().item())
                     valid_tr_components = valid_tr_timesteps * 2.0
                 elif track_mask.size(2) == 2:
-                    valid_tr_components = float(track_mask.sum().item())
-                    valid_tr_timesteps = valid_tr_components / 2.0
+                    if not torch.equal(track_mask[:, :, 0], track_mask[:, :, 1]):
+                        raise ValueError(
+                            "Asymmetric track_mask: X and Y components must have identical validity masks for paired displacement targets."
+                        )
+                    valid_tr_timesteps = float(track_mask[:, :, 0].sum().item())
+                    valid_tr_components = valid_tr_timesteps * 2.0
                 else:
                     raise ValueError(f"Unsupported track_mask last dimension {track_mask.size(2)}; expected 1 or 2")
             else:
