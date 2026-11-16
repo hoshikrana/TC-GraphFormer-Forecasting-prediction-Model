@@ -50,11 +50,11 @@ Forecasting tropical cyclones from space is one of the most demanding problems i
 | Capability | Description | Physical / Technical Impact |
 |:---|:---|:---|
 | **5-Modality Heterogeneous Fusion** | Ingests IR, 9-constellation PMW, GPROF hydrometeors, GPM/TRMM 3D Ku-band radar, and ERA5 synoptic reanalysis. | Cross-modal attention with binary swath validity masks guarantees zero data corruption when sensors are absent. |
-| **Polar Spatial Graph GNN** | Cyclone domain structured into 16 polar nodes across 4 radial shells ($0-500\text{ km}$) and 4 quadrants. | 8D geometric edge attributes $[\Delta r, \Delta \theta, \sin(\Delta \theta), \cos(\Delta \theta), r_u, r_v, \|\Delta r\|, d_{uv}]$ preserve physical cyclone wind and convective dynamics. |
-| **Continuous-Time Causal Transformer** | Trajectory model with upper-triangular causal attention and continuous elapsed-time ($\Delta t$) encodings. | Accommodates arbitrary, irregular satellite revisit intervals with zero future-time or cross-storm data leakage. |
-| **Geodesic Tangent-Plane Track Forecasting** | Projects storm translation into kilometers $(\Delta x_{\text{km}}, \Delta y_{\text{km}})$ on local geodesic tangent planes. | Eliminates high-latitude spherical distortion and flawlessly handles antimeridian ($180^\circ$) boundary wrapping. |
-| **Calibrated Rapid Intensification Optimization** | Class-weighted loss formulation ($\text{pos\_weight} = 33.53$) tailored to ~2.9% event prevalence. | Elevates Rapid Intensification recall from **0.0% to 73.08%** (PR-AUC: 0.1873). |
-| **Enterprise Data Pipeline** | Ingests raw NetCDF-4 overpasses and outputs compressed HDF5 containers with zero float32 precision loss. | Achieves **13.7x storage compression** (20.7 GB raw pilot $\to$ 1.51 GB processed) with atomic checkpoint resumption. |
+| **Polar Spatial Graph GNN** | Cyclone domain structured into 16 polar nodes across 4 radial shells (0–500 km) and 4 quadrants. | 8D geometric edge attributes [Δr, Δθ, sin(Δθ), cos(Δθ), ru, rv, \|Δr\|, dist] preserve physical cyclone wind and convective dynamics. |
+| **Continuous-Time Causal Transformer** | Trajectory model with upper-triangular causal attention and continuous elapsed-time (Δt) encodings. | Accommodates arbitrary, irregular satellite revisit intervals with zero future-time or cross-storm data leakage. |
+| **Geodesic Tangent-Plane Track Forecasting** | Projects storm translation into kilometers (Δx, Δy in km) on local geodesic tangent planes. | Eliminates high-latitude spherical distortion and flawlessly handles antimeridian (180°) boundary wrapping. |
+| **Calibrated Rapid Intensification Optimization** | Class-weighted loss formulation (pos_weight = 33.53) tailored to ~2.9% event prevalence. | Elevates Rapid Intensification recall from **0.0% to 73.08%** (PR-AUC: 0.1873). |
+| **Enterprise Data Pipeline** | Ingests raw NetCDF-4 overpasses and outputs compressed HDF5 containers with zero float32 precision loss. | Achieves **13.7x storage compression** (20.7 GB raw pilot → 1.51 GB processed) with atomic checkpoint resumption. |
 | **Two-Machine Compute Split** | Clear operational separation between Machine A (ingestion & QC) and Machine B (GPU node training). | Cryptographic SHA-256 shard verification guarantees bitwise dataset consistency between environments. |
 | **Rigorous Verification** | Comprehensive test suite of **266 automated unit and integration tests**. | 100% pass rate covering geospatial grids, loss masking, checkpointing, and graph geometry. |
 
@@ -195,11 +195,11 @@ TC-GraphFormer synthesizes 5 complementary observation modalities across space a
 
 | Modality | Physical Sensor / Source | Channels & Resolution | Meteorological Purpose | Visual Representation |
 |:---|:---|:---|:---|:---:|
-| **Infrared Window** | Geostationary Satellites (IRWIN) | $1\text{ Ch}$ (10.8 µm), $4\text{ km}$ grid, $64 \times 64$ | Cloud-top temperatures, central dense overcast (CDO), and convective vigor. | [`fig01`](reports/eda/figures/fig01_irwin_brightness_temp.png) |
-| **Passive Microwave** | 9 Polar Radiometer Constellations (SSMIS, GMI, TMI, etc.) | $4\text{ Ch}$ ($\sim19\text{V}, 19\text{H}, 37\text{V}, 85\text{V}$), $64 \times 64$ | Eyewall structure, deep convective towers, and rainband organization under clouds. | [`fig02`](reports/eda/figures/fig02_passive_microwave_channels.png) |
-| **GPROF Hydrometeors** | Goddard Profiling Algorithm Retrieval | $4\text{ Ch}$ (Surface Rain, Convective Rain, RWP, IWP) | Quantitative precipitation rates and liquid/ice hydrometeor water paths. | [`fig03`](reports/eda/figures/fig03_gprof_surface_precip.png), [`fig04`](reports/eda/figures/fig04_water_paths_rain_ice.png) |
-| **3D Precipitation Radar** | GPM Dual-Frequency DPR & TRMM Precipitation Radar PR | $1\text{ Ch}$ Ku-band ($16 \text{ levels} \times 32 \times 32$), $0-18\text{ km}$ vertical | High-resolution 3D vertical precipitation echoes, melting layer bright-band, and deep eyewall convection. | [`fig05`](reports/eda/figures/fig05_radar_reflectivity_ku.png), [`fig06`](reports/eda/figures/fig06_radar_vertical_cross_section.png) |
-| **Synoptic Environment** | ECMWF ERA5 Atmospheric Reanalysis | $6\text{ Ch}$ (PW, SST, MSLP, T2m, $u_{850}, v_{850}$), $64 \times 64$ | Environmental vertical wind shear, sea surface heat potential, moisture convergence, and steering currents. | [`fig08`](reports/eda/figures/fig08_environmental_era5_fields.png) |
+| **Infrared Window** | Geostationary Satellites (IRWIN) | 1 Ch (10.8 µm), 4 km grid, 64 x 64 | Cloud-top temperatures, central dense overcast (CDO), and convective vigor. | [`fig01`](reports/eda/figures/fig01_irwin_brightness_temp.png) |
+| **Passive Microwave** | 9 Polar Radiometer Constellations (SSMIS, GMI, TMI, etc.) | 4 Ch (~19V, ~19H, ~37V, ~85V), 64 x 64 | Eyewall structure, deep convective towers, and rainband organization under clouds. | [`fig02`](reports/eda/figures/fig02_passive_microwave_channels.png) |
+| **GPROF Hydrometeors** | Goddard Profiling Algorithm Retrieval | 4 Ch (Surface Rain, Convective Rain, RWP, IWP) | Quantitative precipitation rates and liquid/ice hydrometeor water paths. | [`fig03`](reports/eda/figures/fig03_gprof_surface_precip.png), [`fig04`](reports/eda/figures/fig04_water_paths_rain_ice.png) |
+| **3D Precipitation Radar** | GPM Dual-Frequency DPR & TRMM Precipitation Radar PR | 1 Ch Ku-band (16 levels x 32 x 32), 0–18 km vertical | High-resolution 3D vertical precipitation echoes, melting layer bright-band, and deep eyewall convection. | [`fig05`](reports/eda/figures/fig05_radar_reflectivity_ku.png), [`fig06`](reports/eda/figures/fig06_radar_vertical_cross_section.png) |
+| **Synoptic Environment** | ECMWF ERA5 Atmospheric Reanalysis | 6 Ch (PW, SST, MSLP, T2m, u850, v850), 64 x 64 | Environmental vertical wind shear, sea surface heat potential, moisture convergence, and steering currents. | [`fig08`](reports/eda/figures/fig08_environmental_era5_fields.png) |
 
 ---
 
@@ -277,17 +277,17 @@ TC-GraphFormer is continuously evaluated against operational meteorological base
 
 | Model / Benchmark | Prediction Task | Target Metric | Test Performance | Meteorological Context |
 |:---|:---|:---:|:---:|:---|
-| **Climatology Baseline** | Current Intensity ($V_{\max}$) | MAE | 12.31 kt | Historical training split mean (52.6 kt) |
-| **Linear Regression** | Current Intensity ($V_{\max}$) | MAE | 12.75 kt | Fit on storm translation speed ($R^2 \approx 0.04$) |
-| **Climatology Baseline** | Min Central Pressure ($P_{\min}$) | MAE | 7.11 hPa | Historical training split mean (990.2 hPa) |
-| **Linear Wind-Pressure Fit** | Min Central Pressure ($P_{\min}$) | MAE | 2.87 hPa | Operational Atkinson-Holliday empirical curve |
+| **Climatology Baseline** | Current Intensity (V_max) | MAE | 12.31 kt | Historical training split mean (52.6 kt) |
+| **Linear Regression** | Current Intensity (V_max) | MAE | 12.75 kt | Fit on storm translation speed (R² ≈ 0.04) |
+| **Climatology Baseline** | Min Central Pressure (P_min) | MAE | 7.11 hPa | Historical training split mean (990.2 hPa) |
+| **Linear Wind-Pressure Fit** | Min Central Pressure (P_min) | MAE | 2.87 hPa | Operational Atkinson-Holliday empirical curve |
 | **Majority Class Baseline** | Development Stage | Accuracy | 22.45% | Naive prediction of most frequent class (TS) |
 | **TC-GraphFormer** | Development Stage | Accuracy | **50.20%** | **+27.75% over majority baseline** |
 | **Persistence Baseline** | Intensity Change (+6h) | MAE | 2.80 kt | Assumes storm intensity remains unchanged |
 | **Persistence Baseline** | Intensity Change (+24h) | MAE | 7.57 kt | Assumes storm intensity remains unchanged |
 | **Persistence Baseline** | Track Displacement (+6h) | Geodesic MAE | 117.40 km | Assumes stationary storm center |
 | **Persistence Baseline** | Track Displacement (+24h) | Geodesic MAE | 452.89 km | Assumes stationary storm center |
-| **TC-GraphFormer (Class-Ratio BCE)** | Rapid Intensification ($\ge 30\text{ kt} / 24\text{h}$) | Recall | **73.08%** | **PR-AUC: 0.1873** (Elevates recall from 0.0% to 73.08%) |
+| **TC-GraphFormer (Class-Ratio BCE)** | Rapid Intensification (≥ 30 kt / 24h) | Recall | **73.08%** | **PR-AUC: 0.1873** (Elevates recall from 0.0% to 73.08%) |
 
 To reproduce these baseline comparisons:
 ```bash
