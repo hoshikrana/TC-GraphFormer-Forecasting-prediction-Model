@@ -164,6 +164,7 @@ class TestModalityRequirements(unittest.TestCase):
                 "env_count": 2,
                 "instruments": "SSMIS; ATMS; MHS",
                 "platforms": "DMSP; NPP; NOAA",
+                "radar_capable": False,
             },
             {
                 "storm_folder": "AL022021",
@@ -174,8 +175,9 @@ class TestModalityRequirements(unittest.TestCase):
                 "total_files": 12,
                 "overpass_count": 12,
                 "env_count": 0,  # Missing environmental data
-                "instruments": "DPR; SSMI",
-                "platforms": "GPM; DMSP",
+                "instruments": "TMI; SSMI",
+                "platforms": "TRMM; DMSP",
+                "radar_capable": True,
             },
             {
                 "storm_folder": "EP012020",
@@ -188,6 +190,7 @@ class TestModalityRequirements(unittest.TestCase):
                 "env_count": 1,
                 "instruments": "MHS",  # Single sensor
                 "platforms": "NOAA",
+                "radar_capable": False,
             },
             {
                 "storm_folder": "WP012021",
@@ -200,6 +203,7 @@ class TestModalityRequirements(unittest.TestCase):
                 "env_count": 2,
                 "instruments": "GMI; SSMI",  # Radar-capable instrument (GMI on GPM)
                 "platforms": "GPM; DMSP",
+                "radar_capable": True,
             },
         ]
 
@@ -250,8 +254,9 @@ class TestModalityRequirements(unittest.TestCase):
                 "total_files": 10,
                 "overpass_count": 8,
                 "env_count": 2,
-                "instruments": "GMI; SSMI",
-                "platforms": "GPM; DMSP",
+                "instruments": "SSMIS",
+                "platforms": "DMSP",
+                "radar_capable": False,
             },
             {
                 "storm_folder": "WP_WITH_RADAR",
@@ -262,8 +267,9 @@ class TestModalityRequirements(unittest.TestCase):
                 "total_files": 10,
                 "overpass_count": 8,
                 "env_count": 2,
-                "instruments": "GMI; DPR; SSMI",  # DPR is recognized radar
+                "instruments": "GMI; SSMIS",
                 "platforms": "GPM; DMSP",
+                "radar_capable": True,
             },
         ]
         # Set budget to fit exactly one storm (10 MB)

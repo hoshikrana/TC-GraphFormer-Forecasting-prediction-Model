@@ -142,11 +142,13 @@ class TestRadarMetadataAndInspection(unittest.TestCase):
 
     def test_radar_capable_combinations(self):
         """Radar capability must be grounded in physical sensor/platform combinations."""
-        # Supported radar combinations
+        # Supported radar combinations: GMI on GPM, TMI on TRMM
         self.assertTrue(is_radar_capable_file("GMI", "GPM"))
-        self.assertTrue(is_radar_capable_file("DPR", "GPM"))
         self.assertTrue(is_radar_capable_file("TMI", "TRMM"))
-        self.assertTrue(is_radar_capable_file("PR", "TRMM"))
+
+        # DPR and PR are not standalone overpass filename instruments
+        self.assertFalse(is_radar_capable_file("DPR", "GPM"))
+        self.assertFalse(is_radar_capable_file("PR", "TRMM"))
 
         # Non-radar sensors / platforms
         self.assertFalse(is_radar_capable_file("SSMIS", "F18"))
@@ -242,12 +244,16 @@ class TestRadarMetadataAndInspection(unittest.TestCase):
             radar_file = os.path.join(tmp_dir, "has_radar.nc")
             with nc.Dataset(radar_file, "w") as ds:
                 rr = ds.createGroup("radar_radiometer")
+                flag_var = rr.createVariable("availability_flag", "i4")
+                flag_var[...] = 1
                 kuka = rr.createGroup("KuKaGMI")
                 kuka.createDimension("time", 1)
-                kuka.createVariable("zKu", "f4", ("time",))
+                zku = kuka.createVariable("zKu", "f4", ("time",))
+                zku[:] = [25.0]
             res_radar = inspect_netcdf_radar_group(radar_file)
             self.assertTrue(res_radar["file_exists"])
             self.assertTrue(res_radar["has_radar_group"])
+            self.assertEqual(res_radar["status"], "available")
             self.assertIn("KuKaGMI", res_radar["subgroups_found"])
             self.assertTrue(res_radar["radar_confirmed_available"])
 

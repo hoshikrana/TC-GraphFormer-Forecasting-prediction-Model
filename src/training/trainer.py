@@ -151,7 +151,13 @@ class TCGraphFormerTrainer:
                             group_target_counts["rapid_intensification"] = group_target_counts.get("rapid_intensification", 0.0) + float(tgts["rapid_intensification"].size(0))
 
                         if "track_mask" in tgts:
-                            group_target_counts["track_displacement"] = group_target_counts.get("track_displacement", 0.0) + float(tgts["track_mask"].sum().item() * 2.0)
+                            tm = tgts["track_mask"]
+                            if tm.dim() == 2 or (tm.dim() == 3 and tm.size(-1) == 1):
+                                group_target_counts["track_displacement"] = group_target_counts.get("track_displacement", 0.0) + float(tm.sum().item() * 2.0)
+                            elif tm.dim() == 3 and tm.size(-1) == 2:
+                                group_target_counts["track_displacement"] = group_target_counts.get("track_displacement", 0.0) + float(tm.sum().item())
+                            else:
+                                group_target_counts["track_displacement"] = group_target_counts.get("track_displacement", 0.0) + float(tm.sum().item() * 2.0)
                         elif "track_displacement" in tgts:
                             group_target_counts["track_displacement"] = group_target_counts.get("track_displacement", 0.0) + float(tgts["track_displacement"].numel())
 

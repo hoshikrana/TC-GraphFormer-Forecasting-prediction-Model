@@ -62,26 +62,24 @@ ERA_BINS = [
     ("2020+",     2020, 9999),
 ]
 
-# Supported TC PRIMED radar-capable platform/instrument combinations in catalogue filenames
-# (GPM Core Observatory carries GMI + DPR; TRMM carries TMI + PR)
+# Supported TC PRIMED radar-capable platform/instrument combinations in overpass filenames
+# (GMI on GPM Core Observatory and TMI on TRMM)
 RADAR_CAPABLE_COMBINATIONS = {
     ("GMI", "GPM"),
-    ("DPR", "GPM"),
     ("TMI", "TRMM"),
-    ("PR", "TRMM"),
 }
 
-# Internal TC PRIMED NetCDF radar group identifiers
-RADAR_NETCDF_SUBGROUPS = {"KuKaGMI", "KuGMI", "KuTMI", "DPR", "PR"}
+# Internal TC PRIMED NetCDF radar subgroup identifiers under /radar_radiometer
+RADAR_NETCDF_SUBGROUPS = {"KuKaGMI", "KuGMI", "KuTMI"}
 
-# Backwards-compatibility alias for code checking instrument presence
-RADAR_INSTRUMENTS = {"DPR", "PR", "KUKAGMI", "KUGMI", "KUTMI"}
+# Backwards-compatibility alias
+RADAR_INSTRUMENTS = {"GMI", "TMI"}
 
-# Known TC PRIMED instruments (for parsing filenames)
+# Known TC PRIMED overpass instruments (for parsing filenames)
 KNOWN_INSTRUMENTS = [
     "GMI", "TMI", "SSMI", "SSMIS", "AMSR2", "AMSRE", "AMSUB", "AMSU-B",
     "AMSUA", "AMSU-A", "MHS", "ATMS", "SAPHIR", "MWRI", "MWHS2",
-    "TEMPEST-D", "TEMPEST", "COWVR", "DPR", "PR",
+    "TEMPEST-D", "TEMPEST", "COWVR",
 ]
 
 KNOWN_PLATFORMS = [
@@ -365,19 +363,11 @@ def build_storm_catalogue(inventory):
         first = data["files"][0]
         storm_id = storm_id_from_parts(first["season"], first["basin"], first["cyclone_number"])
 
-        # Determine catalogue-level radar capability
-        is_rad_cap = False
-        for f in data["files"]:
-            if is_radar_capable_file(f.get("instrument"), f.get("platform")):
-                is_rad_cap = True
-                break
-        if not is_rad_cap:
-            insts = set(i.upper() for i in data["instruments"])
-            plats = set(p.upper() for p in data["platforms"])
-            if ("GMI" in insts and "GPM" in plats) or ("TMI" in insts and "TRMM" in plats):
-                is_rad_cap = True
-            elif "DPR" in insts or "PR" in insts:
-                is_rad_cap = True
+        # Determine catalogue-level radar capability from exact individual overpass files
+        is_rad_cap = any(
+            is_radar_capable_file(f.get("instrument"), f.get("platform"))
+            for f in data["files"]
+        )
 
         catalogue.append({
             "storm_folder": sf,
@@ -489,56 +479,62 @@ def get_storm_sensors(storm) -> set:
 
 def is_radar_capable_file(instrument: Optional[str], platform: Optional[str]) -> bool:
     """
-    Return True if (instrument, platform) combination indicates radar capability in TC PRIMED.
+    Return True if exact (instrument, platform) combination indicates radar capability in TC PRIMED.
     Supported grounded combinations:
-      - GPM platform with GMI or DPR (carrying Dual-frequency Precipitation Radar)
-      - TRMM platform with TMI or PR (carrying Precipitation Radar)
-      - Explicit DPR or PR instruments
+      - GMI on GPM
+      - TMI on TRMM
     """
     if not instrument or not platform:
-        if instrument and instrument.upper() in {"DPR", "PR"}:
-            return True
         return False
     inst_u = instrument.strip().upper()
     plat_u = platform.strip().upper()
-    if (inst_u, plat_u) in RADAR_CAPABLE_COMBINATIONS:
-        return True
-    if inst_u in {"DPR", "PR"}:
-        return True
-    return False
+    return (inst_u, plat_u) in RADAR_CAPABLE_COMBINATIONS
 
 
 def is_storm_radar_capable(storm: dict) -> bool:
     """
-    Determine if a storm contains radar-capable overpasses based on supported catalogue metadata.
-    Catalogue metadata alone establishes radar capability (candidate status), NOT confirmed radar availability.
-    A storm is radar-capable if it contains overpasses from GMI/GPM, TMI/TRMM, or explicit DPR/PR.
+    Determine if a storm contains radar-capable overpasses based on exact supported sensor/platform pairs.
+    Catalogue metadata establishes radar capability (candidate status), NOT confirmed radar availability.
+    A storm is radar-capable ONLY if it contains overpasses from GMI/GPM or TMI/TRMM.
+
+    Resolution order:
+      1. Explicit 'radar_capable' field in storm dict.
+      2. Exact instrument/platform pair in storm['files'].
+      3. Exact instrument/platform pair in storm['file_pairs'] or storm['sensor_platform_pairs'].
+      4. Legacy / CSV records lacking exact per-file pairing metadata return False
+         (no independent cross-product combination of aggregate instrument/platform sets).
     """
     if "radar_capable" in storm and storm["radar_capable"] is not None:
-        return bool(storm["radar_capable"])
+        val = storm["radar_capable"]
+        if isinstance(val, str):
+            val_lower = val.strip().lower()
+            if val_lower in {"true", "1", "yes"}:
+                return True
+            elif val_lower in {"false", "0", "no"}:
+                return False
+        elif isinstance(val, bool):
+            return val
 
-    # If storm dictionary contains list of file dictionaries
+    # 2. Check exact per-file dictionaries if present
     if "files" in storm and isinstance(storm["files"], list):
         for f in storm["files"]:
             inst = f.get("instrument")
             plat = f.get("platform")
             if is_radar_capable_file(inst, plat):
                 return True
+        return False
 
-    # Check summary string fields
-    insts = set(i.strip().upper() for i in storm.get("instruments", "").split(";") if i.strip())
-    plats = set(p.strip().upper() for p in storm.get("platforms", "").split(";") if p.strip())
+    # 3. Check exact pair list/set if present
+    for pair_key in ("file_pairs", "sensor_platform_pairs", "exact_pairs"):
+        if pair_key in storm and isinstance(storm[pair_key], (list, set, tuple)):
+            for pair in storm[pair_key]:
+                if isinstance(pair, (list, tuple)) and len(pair) == 2:
+                    if is_radar_capable_file(pair[0], pair[1]):
+                        return True
+            return False
 
-    if ("GMI" in insts and "GPM" in plats) or ("TMI" in insts and "TRMM" in plats):
-        return True
-    if "DPR" in insts or "PR" in insts:
-        return True
-
-    # Legacy synthetic instrument tags (e.g. KuKaGMI, KuGMI, KuTMI, or RADAR)
-    for i in insts:
-        if i in {"KUKAGMI", "KUGMI", "KUTMI"} or "RADAR" in i:
-            return True
-
+    # 4. Old catalogue CSV records lacking exact per-file pairing metadata:
+    # Do NOT perform cross-product matching of aggregate instruments and platforms.
     return False
 
 
@@ -552,54 +548,276 @@ def inspect_netcdf_radar_group(file_path: str) -> dict:
     Inspect a local TC PRIMED NetCDF file to verify confirmed radar availability.
     Distinguishes catalogue-level radar capability from verified radar data presence.
 
+    TC PRIMED structure:
+      - Parent group: /radar_radiometer
+      - Group-level variable: availability_flag (0=unavailable, 1=available)
+      - Subgroups: KuGMI, KuKaGMI (GPM), KuTMI (TRMM)
+      - Reflectivity variables: correctedReflectFactor_Ku, correctedReflectFactor_Ka, zKu, zKa, reflectivity
+
+    Verification rules:
+      - Case A (Unavailable): If availability_flag == 0, return status 'unavailable'
+        (even if unexpected subgroups or coordinate variables exist).
+      - Case B (Available): If availability_flag == 1, verify documented subgroup exists
+        and contains documented reflectivity variables with >= 1 valid, finite, non-fill observation.
+        Coordinates alone (x, y, lat, lon) are NOT counted as radar data.
+      - Case C (Unknown): If file is missing, corrupt, inaccessible, lacks /radar_radiometer,
+        or lacks availability_flag, report status 'unknown' with precise reason.
+
     Returns dict with:
+      - file_path: str
       - file_exists: bool
       - has_radar_group: bool
-      - subgroups_found: list of found radar subgroups (e.g. ['KuKaGMI'])
-      - radar_confirmed_available: bool
+      - availability_flag: Optional[int]
+      - subgroups_found: list of str
+      - status: str ('available' | 'unavailable' | 'unknown')
+      - radar_confirmed_available: bool (True only when status == 'available')
       - reason: str
     """
+    import numpy as np
+
+    DOCUMENTED_REFLECTIVITY_VARIABLES = {
+        "correctedReflectFactor_Ku",
+        "correctedReflectFactor_Ka",
+        "zKu",
+        "zKa",
+        "reflectivity",
+    }
+
     res = {
         "file_path": file_path,
         "file_exists": os.path.exists(file_path),
         "has_radar_group": False,
+        "availability_flag": None,
         "subgroups_found": [],
+        "status": "unknown",
         "radar_confirmed_available": False,
         "reason": "",
     }
     if not res["file_exists"]:
-        res["reason"] = "File does not exist on disk"
+        res["reason"] = f"File does not exist on disk: {file_path}"
         return res
 
     try:
         import netCDF4 as nc
         with nc.Dataset(file_path, "r") as ds:
-            if "radar_radiometer" in ds.groups:
-                res["has_radar_group"] = True
-                rr_group = ds.groups["radar_radiometer"]
-                found_subgroups = []
-                for sub in RADAR_NETCDF_SUBGROUPS:
-                    if sub in rr_group.groups:
-                        found_subgroups.append(sub)
-                res["subgroups_found"] = found_subgroups
-
-                if found_subgroups:
-                    for sub in found_subgroups:
-                        sg = rr_group.groups[sub]
-                        var_keys = set(sg.variables.keys())
-                        if any(v in var_keys for v in ["zKu", "zKa", "reflectivity", "x", "y"]):
-                            res["radar_confirmed_available"] = True
-                            res["reason"] = f"Confirmed radar data in radar_radiometer/{sub}"
-                            return res
-                    res["reason"] = f"Radar subgroups found ({found_subgroups}) but lack expected variables"
-                else:
-                    res["reason"] = "radar_radiometer group present but contains no recognized radar subgroups"
-            else:
+            if "radar_radiometer" not in ds.groups:
                 res["reason"] = "radar_radiometer group not present in NetCDF"
-    except Exception as e:
-        res["reason"] = f"Error inspecting NetCDF: {str(e)}"
+                return res
 
-    return res
+            res["has_radar_group"] = True
+            rr_group = ds.groups["radar_radiometer"]
+
+            avail_var = rr_group.variables.get("availability_flag")
+            if avail_var is None:
+                res["reason"] = "radar_radiometer group lacks required availability_flag variable"
+                return res
+
+            raw_val = avail_var[...]
+            if hasattr(raw_val, "item"):
+                flag_val = int(raw_val.item())
+            elif hasattr(raw_val, "__len__") and len(raw_val) > 0:
+                flag_val = int(raw_val[0])
+            else:
+                flag_val = int(raw_val)
+            res["availability_flag"] = flag_val
+
+            # Case A: Radar unavailable
+            if flag_val == 0:
+                res["status"] = "unavailable"
+                res["radar_confirmed_available"] = False
+                res["reason"] = "availability_flag is 0 (radar unavailable for this overpass)"
+                return res
+
+            # Case B: Radar available
+            if flag_val == 1:
+                found_subgroups = [sub for sub in RADAR_NETCDF_SUBGROUPS if sub in rr_group.groups]
+                res["subgroups_found"] = found_subgroups
+                if not found_subgroups:
+                    res["status"] = "unavailable"
+                    res["radar_confirmed_available"] = False
+                    res["reason"] = f"availability_flag is 1 but lacks documented radar subgroups ({sorted(RADAR_NETCDF_SUBGROUPS)})"
+                    return res
+
+                for sub in found_subgroups:
+                    sg = rr_group.groups[sub]
+                    for var_name in sg.variables.keys():
+                        if var_name in DOCUMENTED_REFLECTIVITY_VARIABLES:
+                            var_data = sg.variables[var_name][:]
+                            if isinstance(var_data, np.ma.MaskedArray):
+                                comp = var_data.compressed()
+                                valid_obs = comp[np.isfinite(comp)]
+                            else:
+                                arr = np.asarray(var_data)
+                                fill_val = getattr(sg.variables[var_name], "_FillValue", None)
+                                if fill_val is not None:
+                                    arr = arr[arr != fill_val]
+                                valid_obs = arr[np.isfinite(arr)]
+
+                            if len(valid_obs) > 0:
+                                res["status"] = "available"
+                                res["radar_confirmed_available"] = True
+                                res["reason"] = (
+                                    f"Confirmed radar data in radar_radiometer/{sub}/{var_name} "
+                                    f"({len(valid_obs)} valid finite observations)"
+                                )
+                                return res
+
+                res["status"] = "unavailable"
+                res["radar_confirmed_available"] = False
+                res["reason"] = (
+                    f"availability_flag is 1 but radar subgroups ({found_subgroups}) "
+                    f"contain no valid non-fill reflectivity observations"
+                )
+                return res
+
+            # Unexpected flag value
+            res["status"] = "unknown"
+            res["radar_confirmed_available"] = False
+            res["reason"] = f"Unexpected availability_flag value: {flag_val}"
+            return res
+
+    except Exception as e:
+        res["status"] = "unknown"
+        res["radar_confirmed_available"] = False
+        res["reason"] = f"Error inspecting NetCDF: {str(e)}"
+        return res
+
+
+def audit_local_radar(
+    manifest_path: Optional[str] = None,
+    local_dir: Optional[str] = None,
+    output_report_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Perform local-only radar availability audit on downloaded NetCDF files.
+    Never downloads files or accesses S3.
+
+    Accepts:
+      - manifest_path: Path to a CSV manifest (e.g. pilot_manifest.csv) listing files.
+      - local_dir: Path to directory containing NetCDF files.
+      - output_report_path: Optional path to save JSON or CSV audit report.
+
+    Returns structured audit report dict with per-file results and per-storm aggregations.
+    """
+    target_files = []
+
+    if manifest_path and os.path.exists(manifest_path):
+        manifest_rows = load_manifest_csv(manifest_path)
+        for row in manifest_rows:
+            fname = row.get("filename", "")
+            sf = row.get("storm_folder", "UNKNOWN")
+            inst = row.get("instrument")
+            plat = row.get("platform")
+
+            candidates = []
+            if local_dir:
+                candidates.append(os.path.join(local_dir, sf, fname))
+                candidates.append(os.path.join(local_dir, fname))
+            if "local_destination" in row:
+                candidates.append(row["local_destination"])
+            if "filepath" in row:
+                candidates.append(row["filepath"])
+            candidates.append(fname)
+
+            actual_path = None
+            for c in candidates:
+                if c and os.path.exists(c):
+                    actual_path = c
+                    break
+
+            chosen_path = actual_path or (candidates[0] if candidates else fname)
+            target_files.append((chosen_path, sf, inst, plat))
+
+    elif local_dir and os.path.exists(local_dir):
+        for root, _, files in os.walk(local_dir):
+            for f in sorted(files):
+                if f.endswith(".nc"):
+                    full_p = os.path.join(root, f)
+                    inst, plat = parse_filename_instrument_platform(f)
+                    parent_name = os.path.basename(root)
+                    base_dir_name = os.path.basename(local_dir)
+                    sf = parent_name if parent_name != base_dir_name else "UNKNOWN"
+                    if sf == "UNKNOWN" or not sf:
+                        parts = f.replace(".nc", "").split("_")
+                        for p in parts:
+                            if len(p) >= 6 and p[:2].isalpha() and p[2:4].isdigit() and p[4:8].isdigit():
+                                sf = p.upper()
+                                break
+                    target_files.append((full_p, sf, inst, plat))
+    else:
+        raise ValueError("Must provide an existing manifest_path or local_dir for local radar audit.")
+
+    per_file_results = []
+    storms_summary = defaultdict(lambda: {
+        "storm_folder": "",
+        "total_files": 0,
+        "radar_capable": False,
+        "available_count": 0,
+        "unavailable_count": 0,
+        "unknown_count": 0,
+    })
+
+    for file_path, sf, inst, plat in target_files:
+        inspect_res = inspect_netcdf_radar_group(file_path)
+        is_rad_cap = is_radar_capable_file(inst, plat)
+
+        storms_summary[sf]["storm_folder"] = sf
+        storms_summary[sf]["total_files"] += 1
+        if is_rad_cap:
+            storms_summary[sf]["radar_capable"] = True
+
+        status = inspect_res.get("status", "unknown")
+        if status == "available":
+            storms_summary[sf]["available_count"] += 1
+        elif status == "unavailable":
+            storms_summary[sf]["unavailable_count"] += 1
+        else:
+            storms_summary[sf]["unknown_count"] += 1
+
+        file_rec = dict(inspect_res)
+        file_rec["storm_folder"] = sf
+        file_rec["instrument"] = inst
+        file_rec["platform"] = plat
+        file_rec["radar_capable"] = is_rad_cap
+        per_file_results.append(file_rec)
+
+    total_files = len(per_file_results)
+    tot_avail = sum(1 for f in per_file_results if f["status"] == "available")
+    tot_unavail = sum(1 for f in per_file_results if f["status"] == "unavailable")
+    tot_unknown = sum(1 for f in per_file_results if f["status"] == "unknown")
+    tot_storms = len(storms_summary)
+    tot_radar_capable_storms = sum(1 for s in storms_summary.values() if s["radar_capable"])
+    tot_storms_with_available = sum(1 for s in storms_summary.values() if s["available_count"] > 0)
+
+    report = {
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "total_files_inspected": total_files,
+        "total_available": tot_avail,
+        "total_unavailable": tot_unavail,
+        "total_unknown": tot_unknown,
+        "total_storms": tot_storms,
+        "radar_capable_storms": tot_radar_capable_storms,
+        "storms_with_confirmed_radar": tot_storms_with_available,
+        "storms": dict(sorted(storms_summary.items())),
+        "files": per_file_results,
+    }
+
+    if output_report_path:
+        os.makedirs(os.path.dirname(output_report_path) or ".", exist_ok=True)
+        if output_report_path.endswith(".csv"):
+            fieldnames = [
+                "file_path", "storm_folder", "instrument", "platform",
+                "radar_capable", "status", "availability_flag", "radar_confirmed_available", "reason"
+            ]
+            with open(output_report_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+                writer.writeheader()
+                writer.writerows(per_file_results)
+        else:
+            with open(output_report_path, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, default=str)
+
+    return report
 
 
 def filter_eligible_catalogue(catalogue, modality_requirements=None):
@@ -1165,11 +1383,10 @@ def build_selection_report(
             )
         # Case 5: General fallback
         else:
-            if total_selected_bytes < min_bytes_expected and target_bytes > 0:
-                unfilled_budget_reason = (
-                    f"Selected {total_selected_bytes / 1e9:.2f} GB is below 85% of target budget ({min_bytes_expected / 1e9:.2f} GB) "
-                    f"due to limited qualifying candidate storms in catalogue."
-                )
+            unfilled_budget_reason = (
+                f"Unfilled budget of {unfilled_bytes / 1e9:.2f} GB: remaining unselected candidate storms "
+                f"could not be allocated under current stratification and budget constraints."
+            )
     if unfilled_budget_reason:
         limitations.append(unfilled_budget_reason)
 
@@ -1995,6 +2212,25 @@ def cmd_audit(args):
     return 0
 
 
+def cmd_audit_radar(args):
+    """Execute the 'audit-radar' command: inspect local NetCDF files for confirmed radar availability."""
+    manifest_path = getattr(args, "manifest", None)
+    local_dir = getattr(args, "data_dir", None) or getattr(args, "destination", None)
+    out_path = getattr(args, "output", None)
+
+    try:
+        report = audit_local_radar(manifest_path=manifest_path, local_dir=local_dir, output_report_path=out_path)
+        print(f"[OK] Local radar audit complete: {report['total_files_inspected']} files inspected.")
+        print(f"     Confirmed Available: {report['total_available']} | Unavailable: {report['total_unavailable']} | Unknown: {report['total_unknown']}")
+        print(f"     Storms: {report['total_storms']} total, {report['radar_capable_storms']} radar-capable, {report['storms_with_confirmed_radar']} confirmed available.")
+        if out_path:
+            print(f"[OK] Audit report saved -> {out_path}")
+        return 0
+    except Exception as e:
+        print(f"[ERROR] Radar audit failed: {e}", file=sys.stderr)
+        return 1
+
+
 # ===========================================================================
 # CLI Entry Points
 # ===========================================================================
@@ -2258,6 +2494,17 @@ Examples:
     audit_parser.add_argument("--reports-dir", default="reports",
                               help="Directory for output reports (default: reports)")
 
+    # Audit-radar command
+    radar_parser = subparsers.add_parser("audit-radar", help="Audit local files for confirmed radar availability")
+    radar_parser.add_argument("--manifest", default=None,
+                              help="Path to manifest CSV")
+    radar_parser.add_argument("--data-dir", default=None,
+                              help="Path to local directory with NetCDF files")
+    radar_parser.add_argument("--destination", default=None,
+                              help="Alias for --data-dir")
+    radar_parser.add_argument("--output", default=None,
+                              help="Output path for audit report (JSON or CSV)")
+
     args = parser.parse_args()
 
     if args.command == "plan":
@@ -2266,6 +2513,8 @@ Examples:
         sys.exit(cmd_download(args))
     elif args.command == "audit":
         sys.exit(cmd_audit(args))
+    elif args.command == "audit-radar":
+        sys.exit(cmd_audit_radar(args))
 
 
 if __name__ == "__main__":

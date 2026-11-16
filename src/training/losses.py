@@ -126,15 +126,33 @@ class MultiTaskLoss(nn.Module):
             track_mask = targets.get("track_mask")
             if track_mask is None:
                 track_mask = torch.ones_like(track_pred[:, :, :1])
+                valid_tr_timesteps = float(track_mask.sum().item())
+                valid_tr_components = valid_tr_timesteps * 2.0
             elif track_mask.dim() == 2:
-                track_mask = track_mask.unsqueeze(-1)
+                if track_mask.size(1) != 4:
+                    raise ValueError(f"Unsupported track_mask shape {track_mask.shape}; expected (B, 4)")
+                track_mask = track_mask.unsqueeze(-1)  # (B, 4, 1)
+                valid_tr_timesteps = float(track_mask.sum().item())
+                valid_tr_components = valid_tr_timesteps * 2.0
+            elif track_mask.dim() == 3:
+                if track_mask.size(1) != 4:
+                    raise ValueError(f"Unsupported track_mask shape {track_mask.shape}; expected (B, 4, 1) or (B, 4, 2)")
+                if track_mask.size(2) == 1:
+                    valid_tr_timesteps = float(track_mask.sum().item())
+                    valid_tr_components = valid_tr_timesteps * 2.0
+                elif track_mask.size(2) == 2:
+                    valid_tr_components = float(track_mask.sum().item())
+                    valid_tr_timesteps = valid_tr_components / 2.0
+                else:
+                    raise ValueError(f"Unsupported track_mask last dimension {track_mask.size(2)}; expected 1 or 2")
+            else:
+                raise ValueError(f"Unsupported track_mask dim {track_mask.dim()}; expected 2 or 3")
+
             diff_tr = F.smooth_l1_loss(track_pred, track_true, reduction="none", beta=1.0)
             unreduced_tr = (diff_tr * track_mask).sum()
-            valid_tr_timesteps = float(track_mask.sum().item())
-            valid_tr_components = valid_tr_timesteps * 2.0
             n_tr = group_target_counts.get("track_displacement") if (group_target_counts and "track_displacement" in group_target_counts) else max(1.0, valid_tr_components)
             loss_track = unreduced_tr / max(1.0, float(n_tr))
-            valid_tr_count = valid_tr_timesteps
+            valid_tr_count = valid_tr_components
         else:
             loss_track = torch.tensor(0.0, device=preds["intensity"].device)
             unreduced_tr = torch.tensor(0.0, device=preds["intensity"].device)
