@@ -795,10 +795,12 @@ def audit_local_radar(
         else:
             inst_u = str(inst).strip().upper() if inst else ""
             plat_u = str(plat).strip().upper() if plat else ""
-            if inst_u in known_insts_u or plat_u in known_plats_u:
+            # A file is not_applicable ONLY when BOTH sensor and platform are identified and recognized,
+            # but their exact combination is not radar-capable.
+            if inst_u and plat_u and (inst_u in known_insts_u) and (plat_u in known_plats_u):
                 applicability = "not_applicable"
                 status = "not_applicable"
-                reason = f"Sensor {inst or 'unknown'} on platform {plat or 'unknown'} is not radar-capable"
+                reason = f"Sensor {inst} on platform {plat} is not radar-capable"
                 inspect_res = {
                     "file_path": file_path,
                     "file_exists": os.path.exists(file_path),
@@ -810,9 +812,11 @@ def audit_local_radar(
                     "reason": reason,
                 }
             else:
+                # If either sensor or platform is missing, unrecognized, or cannot be parsed,
+                # classify applicability as unknown rather than assuming non-radar.
                 applicability = "unknown"
                 status = "unknown"
-                reason = f"Uncertain sensor/platform applicability ({inst}/{plat}); cannot establish radar applicability"
+                reason = f"Sensor or platform missing or unrecognized ({inst}/{plat}); cannot establish radar applicability"
                 inspect_res = {
                     "file_path": file_path,
                     "file_exists": os.path.exists(file_path),
@@ -2466,10 +2470,11 @@ def cmd_download(args):
 
 
 # ===========================================================================
-# Main
+# Main & CLI Parser
 # ===========================================================================
 
-def main():
+def build_parser() -> argparse.ArgumentParser:
+    """Build the command-line argument parser for prepare_pilot_dataset.py."""
     parser = argparse.ArgumentParser(
         description="TC PRIMED Stratified Pilot Dataset Planner & Downloader",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -2529,6 +2534,11 @@ Examples:
     radar_parser.add_argument("--output", default=None,
                               help="Output path for audit report (JSON or CSV)")
 
+    return parser
+
+
+def main():
+    parser = build_parser()
     args = parser.parse_args()
 
     if args.command == "plan":

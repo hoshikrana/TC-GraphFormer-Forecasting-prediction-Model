@@ -56,6 +56,7 @@ from src.prepare_pilot_dataset import (
     inspect_netcdf_radar_group,
     audit_local_radar,
     cmd_audit_radar,
+    build_parser,
     build_storm_catalogue,
     stratified_select,
     build_selection_report,
@@ -288,17 +289,82 @@ class TestLocalRadarAuditApplicability(unittest.TestCase):
             self.assertEqual(unknown_rec["applicability"], "unknown")
             self.assertIn("cannot establish radar applicability", unknown_rec["reason"].lower())
 
+    def test_missing_sensor_or_platform_classified_as_unknown(self):
+        """
+        Regression test:
+        - GMI with missing platform: classified as 'unknown' (NOT 'not_applicable').
+        - GPM with missing sensor: classified as 'unknown' (NOT 'not_applicable').
+        A file is 'not_applicable' ONLY when both sensor and platform are identified and recognized,
+        and their exact combination is not radar-capable.
+        """
+        import netCDF4 as nc
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            f_gmi = os.path.join(tmp_dir, "GMI_MISSING_PLATFORM.nc")
+            with nc.Dataset(f_gmi, "w") as ds:
+                ds.createDimension("time", 1)
+
+            f_gpm = os.path.join(tmp_dir, "GPM_MISSING_SENSOR.nc")
+            with nc.Dataset(f_gpm, "w") as ds:
+                ds.createDimension("time", 1)
+
+            manifest_csv = os.path.join(tmp_dir, "manifest_missing.csv")
+            fieldnames = ["filename", "storm_folder", "season", "size_bytes", "is_environmental", "instrument", "platform"]
+            with open(manifest_csv, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerow({
+                    "filename": os.path.basename(f_gmi),
+                    "storm_folder": "AL022020",
+                    "season": 2020,
+                    "size_bytes": 1000,
+                    "is_environmental": "false",
+                    "instrument": "GMI",
+                    "platform": "",  # Missing platform
+                })
+                writer.writerow({
+                    "filename": os.path.basename(f_gpm),
+                    "storm_folder": "AL022020",
+                    "season": 2020,
+                    "size_bytes": 1000,
+                    "is_environmental": "false",
+                    "instrument": "",  # Missing sensor
+                    "platform": "GPM",
+                })
+
+            report = audit_local_radar(manifest_path=manifest_csv, local_dir=tmp_dir)
+
+            self.assertEqual(report["total_files"], 2)
+            self.assertEqual(report["total_unknown"], 2)
+            self.assertEqual(report["total_not_applicable"], 0)
+            self.assertEqual(report["total_available"], 0)
+            self.assertEqual(report["total_unavailable"], 0)
+
+            # Both files must have applicability 'unknown'
+            for frec in report["files"]:
+                self.assertEqual(frec["applicability"], "unknown")
+                self.assertEqual(frec["status"], "unknown")
+                self.assertIn("cannot establish radar applicability", frec["reason"].lower())
+
+            # Verify count consistency
+            self.assertEqual(
+                report["total_files"],
+                report["total_available"] + report["total_unavailable"] + report["total_unknown"] + report["total_not_applicable"]
+            )
+
 
 # ---------------------------------------------------------------------------
 # Section 2: Audit CLI Interface Tests
 # ---------------------------------------------------------------------------
 
 class TestAuditCLIInterface(unittest.TestCase):
-    """Section 2: Test CLI argument aliases and execution."""
+    """Section 2: Test CLI argument parser and command execution."""
 
-    def test_audit_radar_cli_arguments_and_local_dir_alias(self):
-        """Verify audit-radar CLI accepts --local-dir, --manifest, and --output."""
+    def test_audit_radar_cli_parser_and_execution(self):
+        """Verify real ArgumentParser parses audit-radar flags and executes cmd_audit_radar."""
         import netCDF4 as nc
+
+        parser = build_parser()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             f1 = os.path.join(tmp_dir, "TCPRIMED_v01r01_AL012020_GMI_GPM_20200801.nc")
@@ -324,15 +390,21 @@ class TestAuditCLIInterface(unittest.TestCase):
 
             report_out = os.path.join(tmp_dir, "audit_output.json")
 
-            class MockArgs:
-                command = "audit-radar"
-                manifest = manifest_csv
-                local_dir = tmp_dir
-                data_dir = None
-                destination = None
-                output = report_out
+            # Test real parser with --local-dir
+            cli_args = [
+                "audit-radar",
+                "--local-dir", tmp_dir,
+                "--manifest", manifest_csv,
+                "--output", report_out,
+            ]
+            parsed_args = parser.parse_args(cli_args)
+            self.assertEqual(parsed_args.command, "audit-radar")
+            self.assertEqual(parsed_args.local_dir, tmp_dir)
+            self.assertEqual(parsed_args.manifest, manifest_csv)
+            self.assertEqual(parsed_args.output, report_out)
 
-            ret = cmd_audit_radar(MockArgs())
+            # Test execution with real parsed args
+            ret = cmd_audit_radar(parsed_args)
             self.assertEqual(ret, 0)
             self.assertTrue(os.path.exists(report_out))
 
@@ -340,6 +412,14 @@ class TestAuditCLIInterface(unittest.TestCase):
                 data = json.load(f)
             self.assertEqual(data["total_unavailable"], 1)
             self.assertEqual(data["total_files"], 1)
+
+            # Test real parser with alias --data-dir
+            args_data_dir = parser.parse_args(["audit-radar", "--data-dir", tmp_dir])
+            self.assertEqual(args_data_dir.data_dir, tmp_dir)
+
+            # Test real parser with alias --destination
+            args_dest = parser.parse_args(["audit-radar", "--destination", tmp_dir])
+            self.assertEqual(args_dest.destination, tmp_dir)
 
 
 # ---------------------------------------------------------------------------

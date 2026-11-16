@@ -3,7 +3,7 @@
 **Repository:** `https://github.com/hoshikrana/TC-GraphFormer-Forecasting-prediction-Model`  
 **Working Branch:** `fix/phase2e4-4-3-final-audit-and-metric-closure`  
 **Starting HEAD:** `8362c49ebace866c52048a609bbc03a32e83fa19`  
-**Implementation Commit:** `acfbc919e342cfc526303f7e10a4e210c11ffc66`  
+**Branch HEAD:** HEAD of `fix/phase2e4-4-3-final-audit-and-metric-closure` (committed directly alongside this report to prevent circular self-referential hash drift)  
 **Verification Date:** November 16, 2026  
 **Execution Environment:** Windows 11 AMD64, Python 3.12.9 (`.venv`)  
 **Strict Hardware Profile:** CPU execution, 0 live network calls, 0 unapproved data acquisitions.  
@@ -19,19 +19,19 @@ This phase implements five essential engineering corrections:
 
 1. **Local Radar Audit Applicability & Isolation:**
    - Isolated non-radar-capable files (e.g. SSMIS, ATMS, MHS, AMSR2) and environmental files as `not_applicable`, recording them in a dedicated `not_applicable_count` rather than allowing them to contaminate `unknown_count`.
+   - Strictly enforced that a file is `not_applicable` only when **both** sensor and platform are identified and recognized, and their exact combination is not radar-capable.
+   - If either sensor or platform is missing, unrecognized, or cannot be parsed, applicability is classified as `unknown`. GMI with missing platform and GPM with missing sensor are strictly verified as `unknown` rather than falsely assumed non-radar.
    - Preserved the three physical radar confirmation states (`available`, `unavailable`, `unknown`) strictly for applicable radar-capable candidates (`GMI/GPM` and `TMI/TRMM`).
-   - Added robust filename parsing fallback when manifest sensor/platform fields are absent, and reported explicit uncertainty when applicability cannot be established.
    - Enforced strict internal count consistency: $\text{total\_files} = \text{available} + \text{unavailable} + \text{unknown} + \text{not\_applicable}$.
 
-2. **Unified Audit CLI Interface:**
+2. **Unified Audit CLI Interface & Dual-Level Testing:**
    - Added `--local-dir` as an explicit first-class CLI argument alias alongside `--data-dir` and `--destination` in the `audit-radar` subcommand.
-   - Verified offline execution of:
-     ```bash
-     python src/prepare_pilot_dataset.py audit-radar --local-dir <local_path> --manifest <manifest_path> --output <report_path>
-     ```
+   - Separated test coverage into two distinct levels:
+     - **ArgumentParser Parsing Coverage:** Real `build_parser().parse_args(...)` verifying flag parsing and aliases.
+     - **Command-Handler Coverage:** `cmd_audit_radar(parsed_args)` verifying offline execution, exit code 0, and JSON output generation.
 
 3. **Resolution of Redundant Selection Stages:**
-   - Discovered that Pass 3 in `stratified_select()` was an exact copy of Pass 2's candidate eligibility checks and was 100% unreachable.
+   - Discovered that Pass 3 in `stratified_select()` was an exact duplicate of Pass 2's candidate eligibility checks and was 100% unreachable.
    - Safely removed the redundant Pass 3 code block without altering effective selection semantics.
    - Formally documented the two actual, effective selection stages:
      - **Stage 1 (Pass 1 - Cell-Budget Stratification):** Intra-cell deterministic ranking by `(0 if radar_capable else 1, -total_bytes, tie_breaker)`.
@@ -61,7 +61,7 @@ This phase implements five essential engineering corrections:
 Previously, `audit_local_radar()` evaluated every file in the input directory or manifest using `inspect_netcdf_radar_group()`. For non-radar satellite overpasses (e.g., SSMIS on DMSP platforms, ATMS on NOAA platforms) and environmental files, `/radar_radiometer` is absent by design. These files were recorded as `"unknown"`, falsely inflating the unknown radar count to include valid, expected non-radar overpasses.
 
 ### 1.2 Implemented Applicability Classification
-In [src/prepare_pilot_dataset.py](file:///d:/Project/Capstone_project/src/prepare_pilot_dataset.py), `audit_local_radar()` now applies strict hierarchical applicability classification:
+In [src/prepare_pilot_dataset.py](file:///d:/Project/Capstone_project/src/prepare_pilot_dataset.py), `audit_local_radar()` applies strict hierarchical applicability classification:
 
 ```python
 is_env = is_environmental_file(fname) or is_environmental_file(file_path)
@@ -81,14 +81,18 @@ elif is_rad_cap:
 else:
     inst_u = str(inst).strip().upper() if inst else ""
     plat_u = str(plat).strip().upper() if plat else ""
-    if inst_u in known_insts_u or plat_u in known_plats_u:
+    # A file is not_applicable ONLY when BOTH sensor and platform are identified and recognized,
+    # but their exact combination is not radar-capable.
+    if inst_u and plat_u and (inst_u in known_insts_u) and (plat_u in known_plats_u):
         applicability = "not_applicable"
         status = "not_applicable"
-        reason = f"Sensor {inst or 'unknown'} on platform {plat or 'unknown'} is not radar-capable"
+        reason = f"Sensor {inst} on platform {plat} is not radar-capable"
     else:
+        # If either sensor or platform is missing, unrecognized, or cannot be parsed,
+        # classify applicability as unknown rather than assuming non-radar.
         applicability = "unknown"
         status = "unknown"
-        reason = f"Uncertain sensor/platform applicability ({inst}/{plat}); cannot establish radar applicability"
+        reason = f"Sensor or platform missing or unrecognized ({inst}/{plat}); cannot establish radar applicability"
 ```
 
 ### 1.3 Count Consistency Guarantee
@@ -104,23 +108,28 @@ $$\text{total\_files} = \text{total\_available} + \text{total\_unavailable} + \t
 
 ---
 
-## 2. Audit CLI Interface
+## 2. Audit CLI Interface & Dual-Level Testing
 
-### 2.1 Argument Support
-In `src/prepare_pilot_dataset.py`, the `audit-radar` subcommand accepts:
+### 2.1 Argument Support & Parser Construction
+In [src/prepare_pilot_dataset.py](file:///d:/Project/Capstone_project/src/prepare_pilot_dataset.py), `build_parser()` provides the CLI argument parser for all subcommands. The `audit-radar` subcommand accepts:
 - `--local-dir`: Path to local directory with NetCDF files.
 - `--manifest`: Path to manifest CSV.
 - `--output`: Output path for JSON or CSV report.
 - `--data-dir` and `--destination`: Preserved as backward-compatible aliases for `--local-dir`.
 
-### 2.2 Tested CLI Invocation
+### 2.2 Dual-Level Verification
+In [tests/test_phase2e4_4_3_closure.py](file:///d:/Project/Capstone_project/tests/test_phase2e4_4_3_closure.py):
+1. **ArgumentParser Level:** Tests `build_parser().parse_args(...)` directly with real CLI arguments `["audit-radar", "--local-dir", ... , "--manifest", ..., "--output", ...]`, validating that arguments are correctly bound.
+2. **Command Handler Level:** Executes `cmd_audit_radar(parsed_args)` using the real parsed arguments, verifying report generation and return code 0.
+
+Tested CLI invocation:
 ```bash
 python src/prepare_pilot_dataset.py audit-radar \
     --local-dir /data/tcprimed \
     --manifest /data/manifest.csv \
     --output reports/radar_audit.json
 ```
-The command runs completely offline with zero network or AWS calls.
+Execution is 100% offline with zero network or AWS calls.
 
 ---
 
@@ -187,7 +196,7 @@ valid_tr_components = valid_tr_timesteps * 2.0
 - Asymmetric masks are rejected with `ValueError`.
 - Valid timesteps count ($N$) is an integer (never fractional).
 - Valid components count ($2N$) strictly equals $2 \times \text{valid timesteps}$.
-- Production shape `(B, 4)` and `(B, 4, 1)` are seamlessly supported.
+- Production shape `(B, 4)` and singleton shape `(B, 4, 1)` are seamlessly supported.
 
 ### 5.2 Microbatch Accumulation Invariance
 In `TCGraphFormerTrainer.train_epoch()`, multi-task accumulation with production `(B, 4)` masks across 5 batches with `accumulate_grad_batches=2` (two complete groups and one incomplete residual group) was empirically verified:
@@ -208,7 +217,7 @@ In `TCGraphFormerTrainer.train_epoch()`, multi-task accumulation with production
 
 | Suite | Tests Run | Failures | Errors | Runtime | Status |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| [tests/test_phase2e4_4_3_closure.py](file:///d:/Project/Capstone_project/tests/test_phase2e4_4_3_closure.py) | **17** | 0 | 0 | 2.060s | **PASSED** |
+| [tests/test_phase2e4_4_3_closure.py](file:///d:/Project/Capstone_project/tests/test_phase2e4_4_3_closure.py) | **18** | 0 | 0 | 1.971s | **PASSED** |
 | [tests/test_phase2e4_4_2_closure.py](file:///d:/Project/Capstone_project/tests/test_phase2e4_4_2_closure.py) | **23** | 0 | 0 | 1.972s | **PASSED** |
 | [tests/test_phase2e4_4_1_closure.py](file:///d:/Project/Capstone_project/tests/test_phase2e4_4_1_closure.py) | **12** | 0 | 0 | 1.633s | **PASSED** |
 | [tests/test_phase2e4_4_closure.py](file:///d:/Project/Capstone_project/tests/test_phase2e4_4_closure.py) | **12** | 0 | 0 | 1.761s | **PASSED** |
@@ -216,7 +225,7 @@ In `TCGraphFormerTrainer.train_epoch()`, multi-task accumulation with production
 | [tests/test_phase2e4_infrastructure_readiness.py](file:///d:/Project/Capstone_project/tests/test_phase2e4_infrastructure_readiness.py) | **9** | 0 | 0 | 4.825s | **PASSED** |
 | [tests/test_phase2e4_1_corrections.py](file:///d:/Project/Capstone_project/tests/test_phase2e4_1_corrections.py) | **9** | 0 | 0 | 2.749s | **PASSED** |
 | [tests/test_phase2e4_2_gpu_handoff.py](file:///d:/Project/Capstone_project/tests/test_phase2e4_2_gpu_handoff.py) | **5** | 0 | 0 | 4.084s | **PASSED** |
-| **Total Targeted Suites** | **94** | **0** | **0** | **22.234s** | **ALL PASSED** |
+| **Total Targeted Suites** | **95** | **0** | **0** | **22.145s** | **ALL PASSED** |
 
 ### 6.2 Full Repository Unittest Discovery
 
@@ -224,10 +233,10 @@ In `TCGraphFormerTrainer.train_epoch()`, multi-task accumulation with production
 .venv\Scripts\python.exe -m unittest discover tests -v
 ```
 
-- **Total Test Cases Executed:** 265
+- **Total Test Cases Executed:** 266
 - **Errors:** 0
 - **Failures:** 0
-- **Overall Execution Time:** 37.352s
+- **Overall Execution Time:** 37.518s
 - **Result:** `OK`
 
 ---
@@ -241,11 +250,11 @@ In `TCGraphFormerTrainer.train_epoch()`, multi-task accumulation with production
 | **No GPU Dependencies or Full Training** | **COMPLIED** | All tests executed on CPU under Python 3.12.9 with synthetic microbatches. |
 | **No Model Architecture Redesign** | **COMPLIED** | TC-GraphFormer encoders, cross-attention fusion, and polar sector pooling preserved intact. |
 | **Preserve `reports/selection/`** | **COMPLIED** | `reports/selection/` directory untouched, uncommitted, and unaffected. |
-| **No Unverified Test Claims** | **COMPLIED** | All 265 tests executed locally and verified via automated task outputs. |
+| **No Unverified Test Claims** | **COMPLIED** | All 266 tests executed locally and verified via automated task outputs. |
 | **Accurate CI Reporting** | **COMPLIED** | Stated clearly that all checks ran locally; no remote GitHub workflow ran. |
 
 ---
 
 ## 8. Conclusion
 
-Phase 2E.4.4.3 completes the final infrastructure-correction milestones. The codebase enforces sound radar applicability semantics, provides a consistent offline CLI audit tool, removes dead selection stages, ensures mathematically reachable budget attribution reporting, and guarantees symmetric displacement loss masking with verified gradient accumulation.
+Phase 2E.4.4.3 achieves complete closure: sound radar applicability semantics, dual-level parser and command execution verification, dead selection pass removal, four genuinely reachable attribution categories, and symmetric displacement loss masking with verified multi-batch gradient accumulation.
