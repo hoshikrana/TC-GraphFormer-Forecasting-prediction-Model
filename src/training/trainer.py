@@ -80,6 +80,14 @@ class TCGraphFormerTrainer:
         if seq_pad is not None:
             seq_pad = seq_pad.to(self.device)
 
+        kin_state = batch.get("kinematic_state")
+        if kin_state is not None:
+            kin_state = kin_state.to(self.device)
+
+        extra_kwargs = {}
+        if kin_state is not None and hasattr(self.model, "_encode_kinematic_context"):
+            extra_kwargs["kinematic_state"] = kin_state
+
         preds = self.model(
             ir=ir,
             pmw=pmw,
@@ -91,6 +99,7 @@ class TCGraphFormerTrainer:
             seq_pad_mask=seq_pad,
             channel_masks=ch_masks,
             pixel_masks=pix_masks,
+            **extra_kwargs,
         )
         return preds
 

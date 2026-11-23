@@ -242,7 +242,7 @@ def run_finetuning(
         saved_path = trainer.save_checkpoint(
             epoch,
             val_metrics,
-            is_best=is_best,
+            is_best=False,
             filename=fn,
             extra_metadata={
                 "task": task,
@@ -250,6 +250,19 @@ def run_finetuning(
                 "freeze_encoders": freeze_encoders,
             },
         )
+        if is_best:
+            best_task_fn = f"finetuned_{task}_best.pt"
+            trainer.save_checkpoint(
+                epoch,
+                val_metrics,
+                is_best=False,
+                filename=best_task_fn,
+                extra_metadata={
+                    "task": task,
+                    "base_checkpoint": base_checkpoint,
+                    "freeze_encoders": freeze_encoders,
+                },
+            )
         history.append({
             "epoch": epoch,
             "train": train_metrics,

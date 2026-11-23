@@ -11,7 +11,7 @@ Decodes shared latent spatiotemporal representation into:
 
 import torch
 import torch.nn as nn
-from typing import Dict
+from typing import Dict, Optional
 
 
 class TaskPredictionHeads(nn.Module):
@@ -66,23 +66,91 @@ class TaskPredictionHeads(nn.Module):
             nn.Linear(64, 8),
         )
 
-    def forward(self, latent: torch.Tensor) -> Dict[str, torch.Tensor]:
+        self._init_physical_priors()
+
+    def _init_physical_priors(self) -> None:
+        """
+        Initialize output layer biases to TRAIN partition physical climatological priors
+        (wind speed mean = 38.19 kt, central pressure mean = 997.25 hPa, multi-horizon
+        intensity change means, RI base-rate log-odds = -3.5124, and mean westward/poleward
+        track displacements in km) to prevent Huber loss gradient saturation and probability
+        miscalibration.
+        """
+        with torch.no_grad():
+            self.head_intensity[-1].bias.fill_(38.19)
+            self.head_pressure[-1].bias.fill_(997.25)
+            self.head_intensity_change[-1].bias.copy_(
+                torch.tensor([0.231, 0.575, 1.075, 1.596], dtype=torch.float32)
+            )
+            self.head_ri[-1].bias.fill_(-3.5124)
+            self.head_track[-1].bias.copy_(
+                torch.tensor(
+                    [-25.35, 27.92, -40.77, 60.58, -62.82, 88.80, -79.29, 114.98],
+                    dtype=torch.float32,
+                )
+            )
+
+    def forward(
+        self,
+        latent: torch.Tensor,
+        kinematic_state: Optional[torch.Tensor] = None,
+    ) -> Dict[str, torch.Tensor]:
         """
         latent: (B, d_model)
+        kinematic_state: optional (B, 10) causal observation-time translation & geophysical state
         Returns dictionary of predictions:
             intensity: (B,)
             pressure: (B,)
-            stage_logits: (B, 6)
+            stage_logits: (B, 5)
             intensity_change: (B, 4)
             ri_logits: (B,)
             track_delta: (B, 8)
         """
-        v_pred = self.head_intensity(latent).squeeze(-1) # (B,)
-        p_pred = self.head_pressure(latent).squeeze(-1)   # (B,)
-        stage_logits = self.head_stage(latent)            # (B, 6)
-        dv_pred = self.head_intensity_change(latent)      # (B, 4)
+        raw_v = self.head_intensity(latent).squeeze(-1)   # (B,)
+        v_pred = 38.19 + 12.0 * (raw_v - 38.19)
+
+        raw_p = self.head_pressure(latent).squeeze(-1)    # (B,)
+        p_pred = 997.25 + 12.0 * (raw_p - 997.25)
+
+        stage_logits = self.head_stage(latent)            # (B, num_stages)
+
+        raw_dv = self.head_intensity_change(latent)       # (B, 4)
+        dv_prior = torch.tensor(
+            [0.231, 0.575, 1.075, 1.596], device=latent.device, dtype=raw_dv.dtype
+        )
+        dv_pred = dv_prior + 5.0 * (raw_dv - dv_prior)
+
         ri_logit = self.head_ri(latent).squeeze(-1)       # (B,)
-        track_delta = self.head_track(latent)             # (B, 8)
+
+        raw_tr = self.head_track(latent)                  # (B, 8)
+        clim_tr = torch.tensor(
+            [-25.35, 27.92, -40.77, 60.58, -62.82, 88.80, -79.29, 114.98],
+            device=latent.device,
+            dtype=raw_tr.dtype,
+        )
+        tr_residual = 20.0 * (raw_tr - clim_tr)
+
+        if kinematic_state is not None and kinematic_state.dim() == 2 and kinematic_state.size(-1) >= 10:
+            kin = kinematic_state.to(device=latent.device, dtype=raw_tr.dtype)
+            u_kmh = kin[:, 0:1]
+            v_kmh = kin[:, 1:2]
+            has_kin = (kin[:, 9:10] > 0.5).to(raw_tr.dtype)
+
+            # TRAIN-fitted damped kinematic translation prior across +6h, +12h, +18h, +24h
+            dx_6 = 1.040 * (u_kmh * 6.0) + 4.21
+            dy_6 = 1.014 * (v_kmh * 6.0) - 0.34
+            dx_12 = 1.008 * (u_kmh * 12.0) + 11.83
+            dy_12 = 0.947 * (v_kmh * 12.0) + 7.10
+            dx_18 = 0.965 * (u_kmh * 18.0) + 15.75
+            dy_18 = 0.910 * (v_kmh * 18.0) + 14.09
+            dx_24 = 0.943 * (u_kmh * 24.0) + 30.60
+            dy_24 = 0.867 * (v_kmh * 24.0) + 21.84
+
+            kin_disp = torch.cat([dx_6, dy_6, dx_12, dy_12, dx_18, dy_18, dx_24, dy_24], dim=-1)
+            base_tr = has_kin * kin_disp + (1.0 - has_kin) * clim_tr
+            track_delta = base_tr + tr_residual
+        else:
+            track_delta = clim_tr + tr_residual
 
         return {
             "intensity": v_pred,

@@ -1,0 +1,141 @@
+==========================================================================================
+TC PRIMED PILOT DATASET PLAN SUMMARY
+Generated: 2026-11-23 05:22:12 UTC
+==========================================================================================
+
+1. SIZE SUMMARY
+------------------------------------------------------------------------------------------
+  Target Size:       100.00 GB (100,000,000,000 bytes)
+  Selected Size:     99.9978 GB = 93.1302 GiB (99,997,769,720 bytes)
+  Utilization:       100.00%
+
+2. CONTENT COUNTS
+------------------------------------------------------------------------------------------
+  Complete storms:         109
+  Total NetCDF files:      13898
+  Overpass files:          13789
+  Environmental files:     109
+  Distinct seasons:        25
+  Historical periods:      4
+  Basins represented:      6
+
+3. STORMS BY BASIN (Target vs Achieved)
+------------------------------------------------------------------------------------------
+  Basin  | Name                       | Storms | Selected   | Achieved | Target   | Deviation
+  --------------------------------------------------------------------------------------
+  AL     | North Atlantic             |     18 |  24.932 GB |   24.93% |   25.00% |   -0.07%
+  CP     | Central North Pacific      |      5 |   2.346 GB |    2.35% |    2.00% | +   0.35%
+  EP     | Eastern North Pacific      |     22 |  19.966 GB |   19.97% |   20.00% |   -0.03%
+  IO     | North Indian Ocean         |     26 |  14.846 GB |   14.85% |   15.00% |   -0.15%
+  SH     | Southern Hemisphere        |      7 |   7.964 GB |    7.96% |    8.00% |   -0.04%
+  WP     | Western North Pacific      |     31 |  29.944 GB |   29.94% |   30.00% |   -0.06%
+
+4. STORMS BY HISTORICAL ERA (Target vs Achieved)
+------------------------------------------------------------------------------------------
+  Era            | Storms | Selected   | Achieved | Target   | Deviation
+  --------------------------------------------------------------------------------------
+  1987-1999      |     49 |  20.120 GB |   20.12% |   20.00% | +   0.12%
+  2000-2009      |     24 |  25.035 GB |   25.04% |   25.00% | +   0.04%
+  2010-2019      |     21 |  34.852 GB |   34.85% |   35.00% |   -0.15%
+  2020+          |     15 |  19.990 GB |   19.99% |   20.00% |   -0.01%
+
+5. ERA x BASIN MATRIX (Storm Count / GB)
+------------------------------------------------------------------------------------------
+  Era          |           AL |           CP |           EP |           IO |           SH |           WP | Total
+  --------------------------------------------------------------------------------------------------------------
+  1987-1999    |   8/  4.99GB |   2/  0.90GB |  10/  3.98GB |  13/  2.70GB |   2/  1.60GB |  14/  5.95GB |  49/ 20.12GB
+  2000-2009    |   4/  6.24GB |   1/  0.49GB |   5/  5.00GB |   5/  3.74GB |   2/  2.00GB |   7/  7.56GB |  24/ 25.04GB
+  2010-2019    |   4/  8.75GB |   1/  0.67GB |   4/  7.00GB |   4/  5.15GB |   2/  2.80GB |   6/ 10.49GB |  21/ 34.85GB
+  2020+        |   2/  4.95GB |   1/  0.29GB |   3/  3.99GB |   4/  3.25GB |   1/  1.57GB |   4/  5.95GB |  15/ 19.99GB
+
+6. INSTRUMENT COUNTS (storms containing instrument)
+------------------------------------------------------------------------------------------
+  ERA5                :  109 storms
+  TMI                 :   78 storms
+  SSMI                :   73 storms
+  MHS                 :   52 storms
+  SSMIS               :   50 storms
+  AMSR2               :   36 storms
+  ATMS                :   36 storms
+  GMI                 :   34 storms
+  AMSUB               :   22 storms
+  AMSRE               :   21 storms
+
+7. PLATFORM COUNTS (storms containing platform)
+------------------------------------------------------------------------------------------
+  reanalysis          :  109 storms
+  TRMM                :   78 storms
+  F13                 :   72 storms
+  F14                 :   67 storms
+  F11                 :   50 storms
+  F16                 :   50 storms
+  F17                 :   44 storms
+  NOAA19              :   38 storms
+  F18                 :   36 storms
+  GCOMW1              :   36 storms
+  METOPB              :   36 storms
+  NPP                 :   36 storms
+  GPM                 :   34 storms
+  METOPA              :   32 storms
+  NOAA18              :   31 storms
+  NOAA20              :   26 storms
+  AQUA                :   21 storms
+  METOPC              :   21 storms
+  NOAA17              :   21 storms
+  NOAA16              :   13 storms
+  F15                 :    9 storms
+  NOAA21              :    6 storms
+  F19                 :    2 storms
+
+8. NIO ALLOCATION
+------------------------------------------------------------------------------------------
+  NIO (IO) target percentage:          15.00%
+  NIO (IO) achieved percentage:        14.85%
+  NIO allocation achieved (within 10% of 15.0%): YES
+
+9. YEAR CONCENTRATION
+------------------------------------------------------------------------------------------
+  Largest single-year: 1998
+  Single-year cap basis: target_budget (limit: 20.0%)
+  Fraction of target budget:    11.69%
+  Fraction of realized dataset: 11.69%
+
+9b. MODALITY AUDIT & ELIGIBILITY
+------------------------------------------------------------------------------------------
+  Requirements: require_env=True, min_sensors=2, prioritize_radar=True
+  Original catalogue:  3657 storms (1876.26 GB)
+  Eligible catalogue:  2603 storms (1680.78 GB)
+  Excluded storms:     1054
+  Exclusion reasons:   {'insufficient_sensors': 1054}
+  Radar storms:        2593 eligible / 2593 original
+
+10. LIMITATIONS AND DEVIATIONS
+------------------------------------------------------------------------------------------
+  ! Unfilled budget of 0.00 GB: eligible catalogue is sufficient in total bytes (1680.78 GB), but complete-storm lifecycle constraints prevent adding remaining candidate storms (smallest remaining: 0.0358 GB) without exceeding target budget (100.00 GB).
+
+11. VALIDATION CHECKLIST
+------------------------------------------------------------------------------------------
+  [✓] Multiple distinct seasons: 25
+  [✓] Multiple historical periods: 4
+  [✓] Multiple basins: 6
+  [✓] Within target budget
+  [✓ ] At least 18 GB selected
+  [✓] NIO allocation ~15%
+  [✓] No single year > 20%
+
+12. PLANNING VS POST-PROCESSING CRITERIA
+------------------------------------------------------------------------------------------
+  Planning-Enforced (S3 Acquisition):
+    * Complete storm lifecycle preservation (never split storm files)
+    * Basin stratification targets
+    * Historical era stratification targets
+    * Single-year concentration cap enforcement
+    * Environmental and overpass file presence from catalogue metadata
+  Post-Processing Validation (Verified During Preprocessing / Indexing):
+    * Best-track intensity change and RI labels (evaluated from NetCDF variables)
+    * Multitask forecasting horizons (6h, 12h, 18h, 24h)
+    * Physical valid-pixel mask coverage and QC filtering
+
+==========================================================================================
+END OF PLAN SUMMARY
+==========================================================================================

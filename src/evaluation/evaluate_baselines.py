@@ -463,6 +463,10 @@ def evaluate_all(
 
                 ch_m = {k: v.to(device) for k, v in batch["channel_masks"].items()} if "channel_masks" in batch and batch["channel_masks"] else None
                 px_m = {k: v.to(device) for k, v in batch["pixel_masks"].items()} if "pixel_masks" in batch and batch["pixel_masks"] else None
+                kin_s = batch.get("kinematic_state")
+                extra_eval_kwargs = {}
+                if kin_s is not None and hasattr(model, "_encode_kinematic_context"):
+                    extra_eval_kwargs["kinematic_state"] = kin_s.to(device)
 
                 preds = model(
                     ir=ir,
@@ -475,6 +479,7 @@ def evaluate_all(
                     seq_pad_mask=pad_m,
                     channel_masks=ch_m,
                     pixel_masks=px_m,
+                    **extra_eval_kwargs,
                 )
 
                 targets = batch["targets"]

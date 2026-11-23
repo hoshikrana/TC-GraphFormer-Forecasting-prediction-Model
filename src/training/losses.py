@@ -67,11 +67,14 @@ class MultiTaskLoss(nn.Module):
             total_loss: torch.Tensor
             loss_components: Dict[str, float]
         """
-        # 1. Current Intensity Loss (Huber, masked)
+        # 1. Current Intensity Loss (Huber with beta=8.0 & intense-cyclone regime weighting, masked)
         v_pred = preds["intensity"]
         v_true = targets["intensity"]
         v_mask = targets.get("intensity_mask", torch.ones_like(v_true))
-        diff_v = F.smooth_l1_loss(v_pred, v_true, reduction="none", beta=1.0)
+        # Emphasize underrepresented Hurricane (>=64 kt) and Major Hurricane (>=96 kt) regimes per sample
+        v_excess = torch.clamp((v_true.detach() - 50.0) / 50.0, min=0.0, max=2.0) * v_mask
+        w_v_regime = 1.0 + 2.5 * (v_excess ** 2)
+        diff_v = F.smooth_l1_loss(v_pred, v_true, reduction="none", beta=8.0) * w_v_regime
         unreduced_v = (diff_v * v_mask).sum()
         batch_valid_v = v_mask.sum()
         n_v = group_target_counts.get("intensity") if (group_target_counts and "intensity" in group_target_counts) else batch_valid_v.clamp(min=1.0)
@@ -81,7 +84,7 @@ class MultiTaskLoss(nn.Module):
         p_pred = preds["pressure"] / 10.0
         p_true = targets["pressure"] / 10.0
         p_mask = targets.get("pressure_mask", torch.ones_like(p_true))
-        diff_p = F.smooth_l1_loss(p_pred, p_true, reduction="none", beta=1.0)
+        diff_p = F.smooth_l1_loss(p_pred, p_true, reduction="none", beta=2.5)
         unreduced_p = (diff_p * p_mask).sum()
         batch_valid_p = p_mask.sum()
         n_p = group_target_counts.get("pressure") if (group_target_counts and "pressure" in group_target_counts) else batch_valid_p.clamp(min=1.0)
@@ -101,18 +104,21 @@ class MultiTaskLoss(nn.Module):
         dv_pred = preds["intensity_change"] # (B, 4)
         dv_true = targets["intensity_change"] # (B, 4)
         dv_mask = targets["intensity_change_mask"] # (B, 4)
-        diff_dv = F.smooth_l1_loss(dv_pred, dv_true, reduction="none", beta=1.0)
+        diff_dv = F.smooth_l1_loss(dv_pred, dv_true, reduction="none", beta=4.0)
         unreduced_dv = (diff_dv * dv_mask).sum()
         batch_valid_dv = dv_mask.sum()
         n_dv = group_target_counts.get("intensity_change") if (group_target_counts and "intensity_change" in group_target_counts) else batch_valid_dv.clamp(min=1.0)
         loss_dv = unreduced_dv / max(1.0, float(n_dv))
 
-        # 5. Rapid Intensification Loss (Masked BCE with Logits)
+        # 5. Rapid Intensification Loss (Prior-calibrated Masked BCE with Logits)
         ri_pred = preds["ri_logits"] # (B,)
         ri_true = targets["rapid_intensification"] # (B,)
         ri_mask = targets["ri_mask"] # (B,)
+        # Prior odds offset keeps predicted sigmoid(ri_pred) calibrated to physical base rate (~0.029)
+        # while retaining full pos_weight gradient amplification on positive RI examples
+        prior_shift = torch.log(self.ri_weight.clamp(min=1.0)) * 0.85
         ri_bce = F.binary_cross_entropy_with_logits(
-            ri_pred, ri_true, pos_weight=self.ri_weight, reduction="none"
+            ri_pred + prior_shift, ri_true, pos_weight=self.ri_weight, reduction="none"
         )
         unreduced_ri = (ri_bce * ri_mask).sum()
         batch_valid_ri = ri_mask.sum()

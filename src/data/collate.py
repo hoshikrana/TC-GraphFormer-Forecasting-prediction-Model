@@ -57,6 +57,10 @@ def collate_multimodal_batch(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
     track_batch = torch.stack([item["targets"]["track_displacement"] for item in batch], dim=0) # (B, 4, 2)
     track_mask_batch = torch.stack([item["targets"]["track_mask"] for item in batch], dim=0)    # (B, 4)
 
+    kinematic_batch = None
+    if "kinematic_state" in batch[0] and batch[0]["kinematic_state"] is not None:
+        kinematic_batch = torch.stack([item["kinematic_state"] for item in batch], dim=0) # (B, 10)
+
     return {
         "sample_ids": sample_ids,
         "storm_ids": storm_ids,
@@ -67,6 +71,7 @@ def collate_multimodal_batch(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
         "gprof": gprof_batch,
         "radar": radar_batch,
         "env": env_batch,
+        "kinematic_state": kinematic_batch,
         "channel_masks": {
             "pmw": pmw_ch_mask,
             "gprof": gprof_ch_mask,
@@ -135,6 +140,8 @@ def collate_sequence_batch(batch: List[List[Dict[str, Any]]]) -> Dict[str, Any]:
 
     delta_times_seq = torch.zeros((B, T_max), dtype=torch.float32)
     seq_pad_mask = torch.ones((B, T_max), dtype=torch.bool) # True = padded/forbidden
+    has_kin_seq = ("kinematic_state" in first_obs and first_obs["kinematic_state"] is not None)
+    kinematic_seq = torch.zeros((B, T_max, 10), dtype=torch.float32) if has_kin_seq else None
 
     anchor_samples = []
 
@@ -150,6 +157,8 @@ def collate_sequence_batch(batch: List[List[Dict[str, Any]]]) -> Dict[str, Any]:
             gprof_seq[b, t] = obs["gprof"]
             radar_seq[b, t] = obs["radar"]
             env_seq[b, t] = obs["env"]
+            if kinematic_seq is not None and "kinematic_state" in obs and obs["kinematic_state"] is not None:
+                kinematic_seq[b, t] = obs["kinematic_state"]
 
             modality_masks_seq[b, t] = obs["modality_masks"]
             pmw_ch_seq[b, t] = obs["masks"]["pmw_channels"]
@@ -187,6 +196,8 @@ def collate_sequence_batch(batch: List[List[Dict[str, Any]]]) -> Dict[str, Any]:
         "gprof": gprof_seq,                   # (B, T_max, 4, H, W)
         "radar": radar_seq,                   # (B, T_max, 1, 16, H/2, W/2)
         "env": env_seq,                       # (B, T_max, 6, H, W)
+        "kinematic_state": kinematic_seq,     # (B, T_max, 10)
+        "anchor_kinematic_state": anchor_collate.get("kinematic_state"), # (B, 10)
         "channel_masks": {
             "pmw": pmw_ch_seq,
             "gprof": gprof_ch_seq,

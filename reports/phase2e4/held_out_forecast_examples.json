@@ -1,0 +1,656 @@
+[
+  {
+    "storm_id": "CP012004",
+    "sample_id": "SMP_CP012004_AMSUB_NOAA16_20040704012106",
+    "timestamp_epoch": 1088904066,
+    "seq_len": 1,
+    "wind_true_kt": 20.0,
+    "wind_pred_kt": 20.29,
+    "pressure_true_hpa": 1009.0,
+    "pressure_pred_hpa": 1012.39,
+    "stage_true": "TD/Depression",
+    "stage_pred": "DB/Disturbance-Low",
+    "dv_true_kt": [
+      0.0,
+      0.0,
+      1.0,
+      5.0
+    ],
+    "dv_pred_kt": [
+      0.4,
+      1.1,
+      1.09,
+      1.58
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.001,
+    "track_6h_true_km": null,
+    "track_6h_pred_km": null,
+    "track_24h_true_km": null,
+    "track_24h_pred_km": null
+  },
+  {
+    "storm_id": "CP012004",
+    "sample_id": "SMP_CP012004_SSMI_F14_20040704055710",
+    "timestamp_epoch": 1088920630,
+    "seq_len": 3,
+    "wind_true_kt": 20.0,
+    "wind_pred_kt": 20.92,
+    "pressure_true_hpa": 1009.0,
+    "pressure_pred_hpa": 1011.59,
+    "stage_true": "TD/Depression",
+    "stage_pred": "DB/Disturbance-Low",
+    "dv_true_kt": [
+      0.0,
+      0.0,
+      5.0,
+      5.0
+    ],
+    "dv_pred_kt": [
+      0.46,
+      1.27,
+      1.43,
+      1.71
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.0009,
+    "track_6h_true_km": [
+      -223.4,
+      22.4
+    ],
+    "track_6h_pred_km": [
+      -213.6,
+      32.7
+    ],
+    "track_24h_true_km": [
+      -842.1,
+      44.3
+    ],
+    "track_24h_pred_km": [
+      -772.8,
+      142.3
+    ]
+  },
+  {
+    "storm_id": "CP012004",
+    "sample_id": "SMP_CP012004_SSMI_F13_20040704174533",
+    "timestamp_epoch": 1088963133,
+    "seq_len": 4,
+    "wind_true_kt": 20.0,
+    "wind_pred_kt": 20.73,
+    "pressure_true_hpa": 1007.0,
+    "pressure_pred_hpa": 1011.6,
+    "stage_true": "TD/Depression",
+    "stage_pred": "DB/Disturbance-Low",
+    "dv_true_kt": [
+      5.0,
+      5.0,
+      5.0,
+      0.0
+    ],
+    "dv_pred_kt": [
+      0.71,
+      1.78,
+      2.41,
+      2.78
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.0013,
+    "track_6h_true_km": [
+      -229.4,
+      11.0
+    ],
+    "track_6h_pred_km": [
+      -221.6,
+      9.0
+    ],
+    "track_24h_true_km": [
+      -538.9,
+      11.0
+    ],
+    "track_24h_pred_km": [
+      -798.2,
+      64.4
+    ]
+  },
+  {
+    "storm_id": "CP022000",
+    "sample_id": "SMP_CP022000_TMI_TRMM_20000816061921",
+    "timestamp_epoch": 966406761,
+    "seq_len": 3,
+    "wind_true_kt": 45.0,
+    "wind_pred_kt": 47.98,
+    "pressure_true_hpa": null,
+    "pressure_pred_hpa": 997.5,
+    "stage_true": "TS/Tropical Storm",
+    "stage_pred": "TS/Tropical Storm",
+    "dv_true_kt": [
+      -5.0,
+      -5.0,
+      -5.0,
+      null
+    ],
+    "dv_pred_kt": [
+      3.66,
+      5.96,
+      6.87,
+      8.23
+    ],
+    "ri_true": null,
+    "ri_prob_pred": 0.025,
+    "track_6h_true_km": [
+      42.4,
+      115.7
+    ],
+    "track_6h_pred_km": [
+      58.2,
+      116.4
+    ],
+    "track_24h_true_km": [
+      169.5,
+      538.1
+    ],
+    "track_24h_pred_km": [
+      206.7,
+      409.4
+    ]
+  },
+  {
+    "storm_id": "EP022020",
+    "sample_id": "SMP_EP022020_ATMS_NOAA20_20200530192242",
+    "timestamp_epoch": 1590866562,
+    "seq_len": 4,
+    "wind_true_kt": 26.0,
+    "wind_pred_kt": 28.78,
+    "pressure_true_hpa": 1006.0,
+    "pressure_pred_hpa": 1005.23,
+    "stage_true": "TD/Depression",
+    "stage_pred": "TD/Depression",
+    "dv_true_kt": [
+      5.0,
+      9.0,
+      null,
+      null
+    ],
+    "dv_pred_kt": [
+      4.87,
+      7.11,
+      9.36,
+      12.99
+    ],
+    "ri_true": null,
+    "ri_prob_pred": 0.042,
+    "track_6h_true_km": null,
+    "track_6h_pred_km": null,
+    "track_24h_true_km": null,
+    "track_24h_pred_km": null
+  },
+  {
+    "storm_id": "EP072020",
+    "sample_id": "SMP_EP072020_SSMIS_F16_20200719124105",
+    "timestamp_epoch": 1595162465,
+    "seq_len": 4,
+    "wind_true_kt": 25.0,
+    "wind_pred_kt": 25.97,
+    "pressure_true_hpa": 1008.0,
+    "pressure_pred_hpa": 1006.97,
+    "stage_true": "DB/Disturbance-Low",
+    "stage_pred": "TD/Depression",
+    "dv_true_kt": [
+      1.0,
+      5.0,
+      6.0,
+      10.0
+    ],
+    "dv_pred_kt": [
+      0.69,
+      1.4,
+      2.24,
+      2.75
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.0012,
+    "track_6h_true_km": null,
+    "track_6h_pred_km": null,
+    "track_24h_true_km": null,
+    "track_24h_pred_km": null
+  },
+  {
+    "storm_id": "EP072020",
+    "sample_id": "SMP_EP072020_MHS_METOPB_20200719175437",
+    "timestamp_epoch": 1595181277,
+    "seq_len": 4,
+    "wind_true_kt": 25.0,
+    "wind_pred_kt": 27.56,
+    "pressure_true_hpa": 1008.0,
+    "pressure_pred_hpa": 1007.76,
+    "stage_true": "DB/Disturbance-Low",
+    "stage_pred": "TD/Depression",
+    "dv_true_kt": [
+      5.0,
+      5.0,
+      10.0,
+      10.0
+    ],
+    "dv_pred_kt": [
+      -0.08,
+      -0.01,
+      0.51,
+      -0.04
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.0012,
+    "track_6h_true_km": [
+      -97.4,
+      101.3
+    ],
+    "track_6h_pred_km": [
+      -85.5,
+      98.3
+    ],
+    "track_24h_true_km": [
+      -364.6,
+      301.4
+    ],
+    "track_24h_pred_km": [
+      -306.4,
+      366.1
+    ]
+  },
+  {
+    "storm_id": "EP072020",
+    "sample_id": "SMP_EP072020_MHS_METOPC_20200720055704",
+    "timestamp_epoch": 1595224624,
+    "seq_len": 4,
+    "wind_true_kt": 30.0,
+    "wind_pred_kt": 27.28,
+    "pressure_true_hpa": 1007.0,
+    "pressure_pred_hpa": 1008.29,
+    "stage_true": "TD/Depression",
+    "stage_pred": "TD/Depression",
+    "dv_true_kt": [
+      5.0,
+      5.0,
+      5.0,
+      5.0
+    ],
+    "dv_pred_kt": [
+      -0.02,
+      0.01,
+      0.08,
+      -0.12
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.001,
+    "track_6h_true_km": [
+      -85.8,
+      67.9
+    ],
+    "track_6h_pred_km": [
+      -90.0,
+      70.9
+    ],
+    "track_24h_true_km": [
+      -371.6,
+      179.1
+    ],
+    "track_24h_pred_km": [
+      -327.2,
+      271.9
+    ]
+  },
+  {
+    "storm_id": "EP072020",
+    "sample_id": "SMP_EP072020_SSMIS_F16_20200720122703",
+    "timestamp_epoch": 1595248023,
+    "seq_len": 4,
+    "wind_true_kt": 35.0,
+    "wind_pred_kt": 27.82,
+    "pressure_true_hpa": 1006.0,
+    "pressure_pred_hpa": 1008.39,
+    "stage_true": "TS/Tropical Storm",
+    "stage_pred": "TD/Depression",
+    "dv_true_kt": [
+      0.0,
+      0.0,
+      0.0,
+      -5.0
+    ],
+    "dv_pred_kt": [
+      -0.06,
+      -0.08,
+      0.13,
+      -0.2
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.0011,
+    "track_6h_true_km": [
+      -78.3,
+      51.2
+    ],
+    "track_6h_pred_km": [
+      -84.5,
+      56.9
+    ],
+    "track_24h_true_km": [
+      -395.0,
+      106.8
+    ],
+    "track_24h_pred_km": [
+      -305.1,
+      225.0
+    ]
+  },
+  {
+    "storm_id": "EP072020",
+    "sample_id": "SMP_EP072020_MHS_METOPC_20200720182635",
+    "timestamp_epoch": 1595269595,
+    "seq_len": 4,
+    "wind_true_kt": 35.0,
+    "wind_pred_kt": 27.87,
+    "pressure_true_hpa": 1006.0,
+    "pressure_pred_hpa": 1008.43,
+    "stage_true": "TS/Tropical Storm",
+    "stage_pred": "TD/Depression",
+    "dv_true_kt": [
+      0.0,
+      0.0,
+      -5.0,
+      null
+    ],
+    "dv_pred_kt": [
+      -0.17,
+      -0.36,
+      -0.42,
+      -0.9
+    ],
+    "ri_true": null,
+    "ri_prob_pred": 0.001,
+    "track_6h_true_km": [
+      -88.2,
+      30.0
+    ],
+    "track_6h_pred_km": [
+      -88.6,
+      40.6
+    ],
+    "track_24h_true_km": [
+      -425.3,
+      30.0
+    ],
+    "track_24h_pred_km": [
+      -322.9,
+      167.4
+    ]
+  },
+  {
+    "storm_id": "IO031991",
+    "sample_id": "SMP_IO031991_SSMI_F08_19910530000322",
+    "timestamp_epoch": 675561802,
+    "seq_len": 1,
+    "wind_true_kt": 20.0,
+    "wind_pred_kt": 28.64,
+    "pressure_true_hpa": null,
+    "pressure_pred_hpa": 1003.66,
+    "stage_true": "TD/Depression",
+    "stage_pred": "TD/Depression",
+    "dv_true_kt": [
+      0.0,
+      0.0,
+      5.0,
+      5.0
+    ],
+    "dv_pred_kt": [
+      2.49,
+      4.37,
+      5.95,
+      8.04
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.0045,
+    "track_6h_true_km": [
+      -63.8,
+      0.0
+    ],
+    "track_6h_pred_km": [
+      -67.1,
+      -3.1
+    ],
+    "track_24h_true_km": [
+      -236.6,
+      111.2
+    ],
+    "track_24h_pred_km": [
+      -224.1,
+      15.2
+    ]
+  },
+  {
+    "storm_id": "IO031991",
+    "sample_id": "SMP_IO031991_SSMI_F08_19910531122432",
+    "timestamp_epoch": 675692672,
+    "seq_len": 4,
+    "wind_true_kt": 25.0,
+    "wind_pred_kt": 35.97,
+    "pressure_true_hpa": null,
+    "pressure_pred_hpa": 997.6,
+    "stage_true": "TD/Depression",
+    "stage_pred": "TS/Tropical Storm",
+    "dv_true_kt": [
+      5.0,
+      5.0,
+      10.0,
+      15.0
+    ],
+    "dv_pred_kt": [
+      3.26,
+      5.75,
+      6.85,
+      9.39
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.0131,
+    "track_6h_true_km": [
+      30.0,
+      83.3
+    ],
+    "track_6h_pred_km": [
+      28.7,
+      88.7
+    ],
+    "track_24h_true_km": [
+      136.8,
+      405.9
+    ],
+    "track_24h_pred_km": [
+      126.4,
+      324.8
+    ]
+  },
+  {
+    "storm_id": "IO032023",
+    "sample_id": "SMP_IO032023_MHS_METOPC_20230608143651",
+    "timestamp_epoch": 1686235011,
+    "seq_len": 2,
+    "wind_true_kt": 32.0,
+    "wind_pred_kt": 31.18,
+    "pressure_true_hpa": 998.0,
+    "pressure_pred_hpa": 1000.62,
+    "stage_true": "TD/Depression",
+    "stage_pred": "TD/Depression",
+    "dv_true_kt": [
+      5.0,
+      8.0,
+      10.0,
+      8.0
+    ],
+    "dv_pred_kt": [
+      2.45,
+      4.41,
+      6.21,
+      7.33
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.0032,
+    "track_6h_true_km": null,
+    "track_6h_pred_km": null,
+    "track_24h_true_km": null,
+    "track_24h_pred_km": null
+  },
+  {
+    "storm_id": "SH111989",
+    "sample_id": "SMP_SH111989_SSMI_F08_19890215114340",
+    "timestamp_epoch": 603546220,
+    "seq_len": 1,
+    "wind_true_kt": 20.0,
+    "wind_pred_kt": 29.96,
+    "pressure_true_hpa": null,
+    "pressure_pred_hpa": 1010.26,
+    "stage_true": "TD/Depression",
+    "stage_pred": "TD/Depression",
+    "dv_true_kt": [
+      5.0,
+      5.0,
+      5.0,
+      5.0
+    ],
+    "dv_pred_kt": [
+      0.36,
+      1.04,
+      1.36,
+      1.78
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.0016,
+    "track_6h_true_km": [
+      45.3,
+      -11.2
+    ],
+    "track_6h_pred_km": [
+      43.7,
+      -14.7
+    ],
+    "track_24h_true_km": [
+      23.8,
+      -100.1
+    ],
+    "track_24h_pred_km": [
+      153.0,
+      -21.2
+    ]
+  },
+  {
+    "storm_id": "WP072021",
+    "sample_id": "SMP_WP072021_MHS_METOPC_20210704122058",
+    "timestamp_epoch": 1625401258,
+    "seq_len": 2,
+    "wind_true_kt": 20.0,
+    "wind_pred_kt": 25.19,
+    "pressure_true_hpa": 1004.0,
+    "pressure_pred_hpa": 1010.38,
+    "stage_true": "DB/Disturbance-Low",
+    "stage_pred": "DB/Disturbance-Low",
+    "dv_true_kt": [
+      5.0,
+      5.0,
+      10.0,
+      10.0
+    ],
+    "dv_pred_kt": [
+      1.05,
+      1.77,
+      2.41,
+      3.21
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.0013,
+    "track_6h_true_km": [
+      -156.2,
+      134.6
+    ],
+    "track_6h_pred_km": [
+      -164.5,
+      145.5
+    ],
+    "track_24h_true_km": [
+      -691.0,
+      534.7
+    ],
+    "track_24h_pred_km": [
+      -592.1,
+      518.3
+    ]
+  },
+  {
+    "storm_id": "WP082022",
+    "sample_id": "SMP_WP082022_ATMS_NOAA20_20220803054618",
+    "timestamp_epoch": 1659505578,
+    "seq_len": 1,
+    "wind_true_kt": 20.0,
+    "wind_pred_kt": 22.79,
+    "pressure_true_hpa": null,
+    "pressure_pred_hpa": 1009.16,
+    "stage_true": "DB/Disturbance-Low",
+    "stage_pred": "DB/Disturbance-Low",
+    "dv_true_kt": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "dv_pred_kt": [
+      1.3,
+      2.08,
+      4.19,
+      5.2
+    ],
+    "ri_true": null,
+    "ri_prob_pred": 0.002,
+    "track_6h_true_km": [
+      -62.2,
+      44.6
+    ],
+    "track_6h_pred_km": [
+      -65.1,
+      40.3
+    ],
+    "track_24h_true_km": [
+      -404.3,
+      211.4
+    ],
+    "track_24h_pred_km": [
+      -215.9,
+      172.6
+    ]
+  },
+  {
+    "storm_id": "WP172021",
+    "sample_id": "SMP_WP172021_ATMS_NPP_20210901013442",
+    "timestamp_epoch": 1630460082,
+    "seq_len": 4,
+    "wind_true_kt": 25.0,
+    "wind_pred_kt": 27.65,
+    "pressure_true_hpa": 1004.0,
+    "pressure_pred_hpa": 1012.59,
+    "stage_true": "TD/Depression",
+    "stage_pred": "TD/Depression",
+    "dv_true_kt": [
+      1.0,
+      5.0,
+      5.0,
+      5.0
+    ],
+    "dv_pred_kt": [
+      0.66,
+      0.28,
+      1.23,
+      0.57
+    ],
+    "ri_true": 0,
+    "ri_prob_pred": 0.0014,
+    "track_6h_true_km": null,
+    "track_6h_pred_km": null,
+    "track_24h_true_km": null,
+    "track_24h_pred_km": null
+  }
+]

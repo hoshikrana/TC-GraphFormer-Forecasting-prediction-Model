@@ -88,7 +88,7 @@ class GraphMessagePassingLayer(nn.Module):
         if node_validity is not None:
             # Count valid incoming messages per destination node
             v_src_weights = node_validity[:, src_idx, 0]  # (B, E)
-            deg = torch.zeros((B, N), device=nodes.device, dtype=torch.float32)
+            deg = torch.zeros((B, N), device=nodes.device, dtype=v_src_weights.dtype)
             deg = deg.index_add(1, dst_idx, v_src_weights)
             deg = deg.clamp(min=1.0).unsqueeze(-1)  # (B, N, 1)
             agg = agg / deg
@@ -375,8 +375,9 @@ class SpatialGraphEncoder(nn.Module):
             valid_counts = node_validity.sum(dim=1)  # (B, 1)
             all_invalid = (valid_counts < 0.5)        # (B, 1)
 
-            # Mask out invalid nodes with large negative value
-            scores = scores.masked_fill(~(node_validity > 0.5), -1e9)
+            # Mask out invalid nodes with large negative value (safe for fp16/bf16 AMP)
+            mask_val = -1e4 if scores.dtype in (torch.float16, torch.bfloat16) else -1e9
+            scores = scores.masked_fill(~(node_validity > 0.5), mask_val)
             attn_weights = F.softmax(scores, dim=1) * node_validity  # (B, 16, 1)
             attn_norm = attn_weights.sum(dim=1, keepdim=True).clamp(min=1e-6)
             attn_weights = attn_weights / attn_norm

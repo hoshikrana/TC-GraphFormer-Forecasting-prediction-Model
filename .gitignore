@@ -38,6 +38,7 @@ reports/**/test_pretrain_unit_*
 # Large Datasets & Swath Archives (20 GB+ raw & processed files)
 data/raw/
 data/processed/
+data/cache/
 staging/*.nc
 Data_inspection/*.nc
 Data_inspection/*.zip
@@ -51,6 +52,7 @@ Data_inspection/TCPRIMED*
 
 # Uncompressed S3 Inventory (56 MB - compressed s3_inventory.csv.gz is tracked)
 reports/s3_inventory.csv
+reports/acquisition_100gb/s3_inventory_100gb.csv
 
 # PyTorch Model Checkpoints & Large Binaries (> 5 MB)
 checkpoints/*.pt

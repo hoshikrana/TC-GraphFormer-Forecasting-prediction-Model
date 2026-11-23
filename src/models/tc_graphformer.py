@@ -208,6 +208,34 @@ class TCGraphFormer(nn.Module):
         graph_latent = self.spatial_graph(spatial_nodes, node_validity=node_validity)  # (B, d_model)
         return graph_latent
 
+    def _encode_kinematic_context(self, kinematic_state: torch.Tensor, target_dim: int, dtype: torch.dtype) -> torch.Tensor:
+        """
+        Deterministic multi-frequency Fourier physical encoding of causal observation-time
+        kinematic and geophysical state (speed, heading, Coriolis latitude, hemisphere, distance to land).
+        Introduces zero additional state_dict keys so checkpoint compatibility remains 100% strict.
+        """
+        kin = kinematic_state.to(dtype=torch.float32)
+        # Extract 8 normalized physical components: (..., 8)
+        f_kin = torch.stack([
+            kin[..., 0] / 30.0,   # u_trans (30 km/h scale)
+            kin[..., 1] / 30.0,   # v_trans (30 km/h scale)
+            kin[..., 2] / 10.0,   # translation speed (10 m/s scale)
+            kin[..., 3],          # sin(heading)
+            kin[..., 4],          # cos(heading)
+            kin[..., 5],          # sin(lat) -> Coriolis parameter f / 2*Omega
+            kin[..., 7],          # hemisphere sign (+1 NH, -1 SH)
+            kin[..., 8],          # log10(1 + dist_to_land_km) / 3.5
+        ], dim=-1)
+        freqs = torch.tensor([0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0], device=kin.device, dtype=torch.float32)
+        angles = f_kin.unsqueeze(-1) * freqs  # (..., 8, 8)
+        emb = torch.cat([torch.sin(angles), torch.cos(angles)], dim=-1).reshape(*kin.shape[:-1], 128)
+        if target_dim < 128:
+            emb = emb[..., :target_dim]
+        elif target_dim > 128:
+            reps = (target_dim + 127) // 128
+            emb = emb.repeat(*([1] * (emb.dim() - 1)), reps)[..., :target_dim]
+        return (0.15 * emb).to(dtype=dtype)
+
     def forward(
         self,
         ir: torch.Tensor,
@@ -221,6 +249,7 @@ class TCGraphFormer(nn.Module):
         channel_masks: Dict[str, torch.Tensor] = None,
         pixel_masks: Dict[str, torch.Tensor] = None,
         timestamps: torch.Tensor = None,
+        kinematic_state: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
         """
         Multimodal forward pass supporting both single observations and historical sequences.
@@ -260,6 +289,15 @@ class TCGraphFormer(nn.Module):
             )
             seq_latent = latent_flat.view(B, T, self.d_model) # (B, T, d_model)
 
+            anchor_kin = None
+            if kinematic_state is not None:
+                if kinematic_state.dim() == 3 and kinematic_state.size(1) == T:
+                    kin_emb = self._encode_kinematic_context(kinematic_state, self.d_model, seq_latent.dtype)
+                    has_any_mod = (modality_masks.sum(dim=-1, keepdim=True) > 0.5).to(seq_latent.dtype)
+                    seq_latent = seq_latent + kin_emb * has_any_mod
+                elif kinematic_state.dim() == 2:
+                    anchor_kin = kinematic_state
+
             # Delta times in hours
             if delta_times_hours is None:
                 delta_times_hours = torch.zeros((B, T), device=ir.device, dtype=torch.float32)
@@ -270,6 +308,7 @@ class TCGraphFormer(nn.Module):
             # Anchor selection: select representation corresponding to anchor observation
             # (the last valid, non-padded historical observation in each sequence)
             anchor_latents = []
+            anchor_kins = []
             for b in range(B):
                 if seq_pad_mask is not None:
                     valid_idx = torch.where(~seq_pad_mask[b])[0]
@@ -277,11 +316,15 @@ class TCGraphFormer(nn.Module):
                 else:
                     last_idx = T - 1
                 anchor_latents.append(temporal_out[b, last_idx, :])
+                if kinematic_state is not None and kinematic_state.dim() == 3:
+                    anchor_kins.append(kinematic_state[b, last_idx, :])
 
             final_latent = torch.stack(anchor_latents, dim=0) # (B, d_model)
+            if anchor_kins:
+                anchor_kin = torch.stack(anchor_kins, dim=0)
 
             # Multi-task predictions for anchor forecast
-            predictions = self.task_heads(final_latent)
+            predictions = self.task_heads(final_latent, kinematic_state=anchor_kin)
             predictions["latent"] = final_latent
             predictions["temporal_sequence"] = temporal_out
             return predictions
@@ -294,12 +337,18 @@ class TCGraphFormer(nn.Module):
                 channel_masks=channel_masks, pixel_masks=pixel_masks
             )
 
+            anchor_kin = kinematic_state if (kinematic_state is not None and kinematic_state.dim() == 2) else None
+            if anchor_kin is not None:
+                kin_emb = self._encode_kinematic_context(anchor_kin, self.d_model, latent.dtype)
+                has_any_mod = (modality_masks.sum(dim=-1, keepdim=True) > 0.5).to(latent.dtype)
+                latent = latent + kin_emb * has_any_mod
+
             # Pass through temporal model as T=1
             delta_t_hours = torch.zeros((B, 1), device=latent.device, dtype=torch.float32)
             seq_latent = latent.unsqueeze(1) # (B, 1, d_model)
             temporal_out = self.temporal_transformer(seq_latent, delta_t_hours).squeeze(1) # (B, d_model)
 
-            predictions = self.task_heads(temporal_out)
+            predictions = self.task_heads(temporal_out, kinematic_state=anchor_kin)
             predictions["latent"] = temporal_out
             return predictions
 
