@@ -9,6 +9,7 @@ import os
 import math
 import hashlib
 import logging
+import threading
 from collections import OrderedDict
 from typing import Dict, Any, Optional, Tuple, List, Union
 import numpy as np
@@ -171,6 +172,7 @@ class TCPRIMEDDataset(Dataset):
     _GLOBAL_SAMPLE_CACHE: "OrderedDict[Tuple[Any, ...], Tuple[Any, ...]]" = OrderedDict()
     DEFAULT_MAX_CACHE_ENTRIES: int = 2048
     DEFAULT_DISK_CACHE_DIR: str = "data/cache/resampled_64x64"
+    CACHE_PREPROCESSING_VERSION: str = "v3_strict_causal_kin_cappi16_grid64"
 
     def __new__(cls, *args, **kwargs):
         instance = super().__new__(cls)
@@ -779,9 +781,13 @@ class TCPRIMEDDataset(Dataset):
         rad_src = "none"
         env_srcs = []
 
-        # Targets from container if available
+        # Targets and strictly causal issue-time velocity from container if available
         storm_lat_from_nc = None
         storm_lon_from_nc = None
+        causal_u_kmh = 0.0
+        causal_v_kmh = 0.0
+        causal_has_kin = 0.0
+        t_obs_epoch = int(row["timestamp_epoch"])
 
         use_mem_cache = getattr(self, "enable_memory_cache", True) and (getattr(self, "transform", None) is None)
         sample_cache = getattr(self, "_sample_cache", None)
@@ -789,13 +795,30 @@ class TCPRIMEDDataset(Dataset):
         disk_cache_path = None
         if use_mem_cache and sample_cache is not None:
             thresh_tuple = tuple(sorted(getattr(self, "resampling_thresholds", {}).items()))
+            nc_mtime_ns = 0
+            nc_size_bytes = 0
+            if os.path.exists(nc_path):
+                try:
+                    st_nc = os.stat(nc_path)
+                    nc_mtime_ns = int(st_nc.st_mtime_ns)
+                    nc_size_bytes = int(st_nc.st_size)
+                except OSError:
+                    pass
+            part_label = str(row.get("partition", self.partition or "ALL")).strip().upper()
             cache_key = (
+                self.CACHE_PREPROCESSING_VERSION,
+                part_label,
+                storm_id,
                 nc_path,
+                nc_mtime_ns,
+                nc_size_bytes,
                 group_path,
                 sample_id,
+                t_obs_epoch,
                 instrument,
                 H,
                 W,
+                TARGET_RADAR_HEIGHTS_KM,
                 self.geospatial_policy,
                 self.strict_mode,
                 getattr(self, "raw_data_dir", None),
@@ -812,9 +835,9 @@ class TCPRIMEDDataset(Dataset):
                 and d_dir
                 and "data/processed" in nc_path.replace("\\", "/")
             ):
-                key_hash = hashlib.md5(repr(cache_key).encode("utf-8")).hexdigest()[:12]
+                key_hash = hashlib.sha256(repr(cache_key).encode("utf-8")).hexdigest()[:16]
                 safe_sid = "".join(c if (c.isalnum() or c in ("_", "-")) else "_" for c in sample_id)
-                disk_cache_path = os.path.join(d_dir, f"{safe_sid}_{key_hash}.pt")
+                disk_cache_path = os.path.join(d_dir, f"{part_label}_{safe_sid}_{key_hash}.pt")
 
         loaded_from_cache = False
         if cache_key is not None and cache_key in sample_cache:
@@ -825,7 +848,7 @@ class TCPRIMEDDataset(Dataset):
         elif disk_cache_path is not None and os.path.exists(disk_cache_path):
             try:
                 cached_payload = torch.load(disk_cache_path, map_location="cpu", weights_only=False)
-                if cache_key is not None and sample_cache is not None:
+                if cache_key is not None and sample_cache is not None and len(cached_payload) == 29:
                     max_entries = max(1, int(getattr(self, "max_cache_entries", 2048)))
                     while len(sample_cache) >= max_entries:
                         if hasattr(sample_cache, "popitem"):
@@ -836,7 +859,7 @@ class TCPRIMEDDataset(Dataset):
                         else:
                             sample_cache.pop(next(iter(sample_cache)))
                     sample_cache[cache_key] = cached_payload
-                loaded_from_cache = True
+                    loaded_from_cache = True
             except Exception:
                 loaded_from_cache = False
 
@@ -868,6 +891,9 @@ class TCPRIMEDDataset(Dataset):
                 env_srcs,
                 storm_lat_from_nc,
                 storm_lon_from_nc,
+                causal_u_kmh,
+                causal_v_kmh,
+                causal_has_kin,
             ) = cached_payload
         elif os.path.exists(nc_path):
             err_count_before = len(self.processing_errors)
@@ -896,6 +922,56 @@ class TCPRIMEDDataset(Dataset):
 
                         storm_lat = storm_lat_from_nc if storm_lat_from_nc is not None else (float(row["latitude"]) if "latitude" in row and not pd.isna(row["latitude"]) else None)
                         storm_lon = storm_lon_from_nc if storm_lon_from_nc is not None else (float(row["longitude"]) if "longitude" in row and not pd.isna(row["longitude"]) else None)
+
+                        # Strictly causal backward-difference storm velocity from fixes at time <= t_obs_epoch
+                        if (
+                            storm_lat is not None
+                            and storm_lon is not None
+                            and not math.isnan(float(storm_lat))
+                            and not math.isnan(float(storm_lon))
+                            and "storm_metadata" in ds.groups
+                        ):
+                            sm_grp = ds.groups["storm_metadata"]
+                            if (
+                                "time" in sm_grp.variables
+                                and "storm_latitude" in sm_grp.variables
+                                and "storm_longitude" in sm_grp.variables
+                            ):
+                                bt_times = np.asarray(sm_grp.variables["time"][:], dtype=np.int64)
+                                bt_lats = np.asarray(sm_grp.variables["storm_latitude"][:], dtype=np.float64)
+                                bt_lons = np.asarray(sm_grp.variables["storm_longitude"][:], dtype=np.float64)
+                                # Enforce strict causal boundary: NEVER inspect any timestamp > t_obs_epoch
+                                causal_idx = np.where(
+                                    (bt_times <= t_obs_epoch)
+                                    & (np.abs(bt_lats) <= 90.0)
+                                    & (np.abs(bt_lons) <= 360.0)
+                                )[0]
+                                best_k = None
+                                for k_idx in reversed(causal_idx):
+                                    dt_h = (t_obs_epoch - int(bt_times[k_idx])) / 3600.0
+                                    if 2.0 <= dt_h <= 24.0:
+                                        best_k = k_idx
+                                        break
+                                if best_k is not None:
+                                    dt_h = (t_obs_epoch - int(bt_times[best_k])) / 3600.0
+                                    dx_c, dy_c = compute_tangent_plane_displacement_km(
+                                        float(bt_lats[best_k]), float(bt_lons[best_k]),
+                                        float(storm_lat), float(storm_lon),
+                                    )
+                                    causal_u_kmh = float(dx_c / dt_h)
+                                    causal_v_kmh = float(dy_c / dt_h)
+                                    causal_has_kin = 1.0
+                                elif len(causal_idx) >= 2:
+                                    k1, k0 = causal_idx[-1], causal_idx[-2]
+                                    dt_h = (int(bt_times[k1]) - int(bt_times[k0])) / 3600.0
+                                    if 1.0 <= dt_h <= 24.0:
+                                        dx_c, dy_c = compute_tangent_plane_displacement_km(
+                                            float(bt_lats[k0]), float(bt_lons[k0]),
+                                            float(bt_lats[k1]), float(bt_lons[k1]),
+                                        )
+                                        causal_u_kmh = float(dx_c / dt_h)
+                                        causal_v_kmh = float(dy_c / dt_h)
+                                        causal_has_kin = 1.0
 
                         # 1. Infrared (IRWIN)
                         if has_ir and "infrared" in curr_grp.groups:
@@ -1091,6 +1167,9 @@ class TCPRIMEDDataset(Dataset):
                     list(env_srcs),
                     storm_lat_from_nc,
                     storm_lon_from_nc,
+                    causal_u_kmh,
+                    causal_v_kmh,
+                    causal_has_kin,
                 )
                 max_entries = max(1, int(getattr(self, "max_cache_entries", 2048)))
                 while len(sample_cache) >= max_entries:
@@ -1103,13 +1182,17 @@ class TCPRIMEDDataset(Dataset):
                         sample_cache.pop(next(iter(sample_cache)))
                 sample_cache[cache_key] = payload_to_cache
                 if disk_cache_path is not None and not os.path.exists(disk_cache_path):
+                    tmp_p = f"{disk_cache_path}.{os.getpid()}.{threading.get_ident()}.tmp"
                     try:
                         os.makedirs(os.path.dirname(disk_cache_path), exist_ok=True)
-                        tmp_p = f"{disk_cache_path}.{os.getpid()}.tmp"
                         torch.save(payload_to_cache, tmp_p)
                         os.replace(tmp_p, disk_cache_path)
                     except Exception:
-                        pass
+                        try:
+                            if os.path.exists(tmp_p):
+                                os.remove(tmp_p)
+                        except OSError:
+                            pass
         else:
             self._record_error(sample_id, storm_id, nc_path, group_path, "filesystem", "missing", "Container path does not exist")
             if self.strict_mode or self.geospatial_policy == "raise":
@@ -1125,18 +1208,19 @@ class TCPRIMEDDataset(Dataset):
 
         has_valid_cur_pos = (cur_lat is not None) and (cur_lon is not None) and (not math.isnan(float(cur_lat))) and (not math.isnan(float(cur_lon)))
 
-        # Causal observation-time kinematic & geophysical storm state vector (10 features)
-        raw_spd = row.get("storm_speed_mps")
-        raw_hdg = row.get("storm_heading_deg")
+        # Strictly causal observation-time kinematic & geophysical storm state vector (10 features)
+        # Uses ONLY backward-difference positions at t_prev <= t_obs (never IBTrACS centered-difference storm_speed_mps)
         raw_dland = row.get("distance_to_land_km")
-        if (raw_spd is not None and not pd.isna(raw_spd) and float(raw_spd) >= 0.0
-                and raw_hdg is not None and not pd.isna(raw_hdg)):
-            spd_val = float(raw_spd)
-            hdg_rad = math.radians(float(raw_hdg))
-            sin_hdg = math.sin(hdg_rad)
-            cos_hdg = math.cos(hdg_rad)
-            u_kmh = spd_val * sin_hdg * 3.6
-            v_kmh = spd_val * cos_hdg * 3.6
+        if causal_has_kin > 0.5:
+            u_kmh = float(causal_u_kmh)
+            v_kmh = float(causal_v_kmh)
+            spd_kmh = math.hypot(u_kmh, v_kmh)
+            spd_val = spd_kmh / 3.6
+            if spd_kmh > 1e-4:
+                sin_hdg = u_kmh / spd_kmh
+                cos_hdg = v_kmh / spd_kmh
+            else:
+                sin_hdg, cos_hdg = 0.0, 1.0
             has_kin = 1.0
         else:
             spd_val, sin_hdg, cos_hdg, u_kmh, v_kmh, has_kin = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0

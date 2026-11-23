@@ -55,9 +55,32 @@ class StormSplitter:
         target_val_count = round(self.config.validation * total_storms)
         target_test_count = total_storms - target_train_count - target_val_count
 
+        # Check for prior pilot storms when splitting an expanded (>80 storms) dataset
+        # so prior pilot storms never cross partitions or enter the untouched FINAL_TEST partition
+        prior_pilot_splits: Dict[str, str] = {}
+        pilot_split_csv = "reports/pipeline/storm_split_manifest.csv"
+        if total_storms > 80 and os.path.exists(pilot_split_csv):
+            try:
+                with open(pilot_split_csv, "r", encoding="utf-8") as pf:
+                    reader = csv.DictReader(pf)
+                    for row in reader:
+                        p_sid = row.get("storm_id", "").strip()
+                        p_part = row.get("partition", "").strip().upper()
+                        if p_sid in storm_records and p_part in ("TRAIN", "VAL", "TEST"):
+                            prior_pilot_splits[p_sid] = p_part
+            except Exception:
+                prior_pilot_splits = {}
+
+        # Only enforce pilot isolation when there are sufficient new non-pilot storms for VAL and TEST
+        non_pilot_sids = [sid for sid in all_sids if sid not in prior_pilot_splits]
+        enforce_pilot_isolation = (
+            len(prior_pilot_splits) > 0
+            and len(non_pilot_sids) >= (target_val_count + target_test_count)
+        )
+
         # Stratified grouping by (basin, era)
         strata = defaultdict(list)
-        for sid in all_sids:
+        for sid in (non_pilot_sids if enforce_pilot_isolation else all_sids):
             st = storm_records[sid]
             basin = st.get("basin", sid[:2])
             season = st.get("season", 0)
@@ -74,6 +97,17 @@ class StormSplitter:
         train_sids: List[str] = []
         val_sids: List[str] = []
         test_sids: List[str] = []
+
+        if enforce_pilot_isolation:
+            for p_sid in sorted(prior_pilot_splits.keys()):
+                p_part = prior_pilot_splits[p_sid]
+                if p_part == "TRAIN" and len(train_sids) < target_train_count:
+                    train_sids.append(p_sid)
+                elif len(val_sids) < target_val_count:
+                    # Pilot VAL and Pilot TEST storms are isolated in VAL, keeping 100GB TEST 100% untouched
+                    val_sids.append(p_sid)
+                else:
+                    train_sids.append(p_sid)
 
         # Proportional round-robin assignment preserving exact target counts
         for idx, sid in enumerate(all_sids_ordered):

@@ -504,6 +504,29 @@ class TestPhase2E42GPUHandoff(unittest.TestCase):
             self.assertLessEqual(len(ds_c._sample_cache), 2, "Bounded LRU cache must enforce max_cache_entries!")
             self.assertTrue(torch.equal(s_u["ir"], s_c0["ir"]))
             self.assertTrue(torch.equal(s_u["pmw"], s_c0["pmw"]))
+            self.assertTrue(torch.equal(s_u["kinematic_state"], s_c0["kinematic_state"]))
+
+        # 4. Track velocity baseline & incremental skill calculation
+        true_v = np.array([[100.0, 50.0], [200.0, 100.0]])
+        vel_v = np.array([[90.0, 40.0], [180.0, 90.0]])
+        pred_v = np.array([[96.0, 48.0], [195.0, 97.0]])
+        tr_metrics = compute_track_errors(true_v, pred_v, clim_vec=(50.0, 25.0), vel_vec=vel_v)
+        self.assertIsNotNone(tr_metrics["vel_mae"])
+        self.assertIsNotNone(tr_metrics["impr_vel"])
+        self.assertGreater(tr_metrics["impr_vel"], 0.0)
+
+        # 5. StormSplitter pilot isolation for expanded (>80 storms) dataset
+        from tcprimed_pipeline.storm_splitter import StormSplitter
+        splitter = StormSplitter()
+        exp_records = {}
+        for i in range(109):
+            sid = f"WP{i+1:02d}2018"
+            exp_records[sid] = {"season": 2018, "basin": "WP", "overpass_files": ["a.nc"]}
+        # Inject one known pilot TEST storm WP072021
+        exp_records["WP072021"] = {"season": 2021, "basin": "WP", "overpass_files": ["b.nc"]}
+        sp_map = splitter.split_storms(exp_records)
+        if os.path.exists("reports/pipeline/storm_split_manifest.csv"):
+            self.assertNotEqual(sp_map["WP072021"], "TEST", "Prior pilot TEST storm must not enter 100GB FINAL_TEST!")
 
 
 if __name__ == "__main__":

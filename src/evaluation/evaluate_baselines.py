@@ -173,19 +173,21 @@ def compute_track_errors(
     true_vec: np.ndarray,
     pred_vec: np.ndarray,
     clim_vec: Optional[Tuple[float, float]] = None,
+    vel_vec: Optional[np.ndarray] = None,
 ) -> Dict[str, Optional[float]]:
     """
     Compute rigorous Euclidean error metrics for future track displacement (km).
     Calculates true mathematical RMSE (sqrt of mean squared euclidean error),
     MAE, median error for persistence baseline, training climatology baseline,
-    and TC-GraphFormer model predictions.
+    observation-time causal velocity extrapolation baseline, and TC-GraphFormer predictions.
     """
     if len(true_vec) == 0:
         return {
             "persist_mae": None, "persist_rmse": None, "persist_median": None,
             "clim_mae": None, "clim_rmse": None,
+            "vel_mae": None, "vel_rmse": None,
             "nn_mae": None, "nn_rmse": None,
-            "impr_persist": None, "impr_clim": None,
+            "impr_persist": None, "impr_clim": None, "impr_vel": None,
         }
 
     # 1. Persistence baseline: assumes zero displacement [0, 0]
@@ -203,7 +205,15 @@ def compute_track_errors(
     else:
         clim_mae, clim_rmse = None, None
 
-    # 3. Model displacement vector error
+    # 3. Observation-time strictly causal velocity extrapolation baseline
+    if vel_vec is not None and len(vel_vec) == len(true_vec):
+        vel_err_km = np.sqrt((true_vec[:, 0] - vel_vec[:, 0]) ** 2 + (true_vec[:, 1] - vel_vec[:, 1]) ** 2)
+        vel_mae = round(float(np.mean(vel_err_km)), 2)
+        vel_rmse = round(float(np.sqrt(np.mean(vel_err_km ** 2))), 2)
+    else:
+        vel_mae, vel_rmse = None, None
+
+    # 4. Model displacement vector error
     diff_vec = pred_vec - true_vec
     nn_err_km = np.sqrt(diff_vec[:, 0] ** 2 + diff_vec[:, 1] ** 2)
     nn_mae = round(float(np.mean(nn_err_km)), 2)
@@ -211,6 +221,7 @@ def compute_track_errors(
 
     impr_persist = round(persist_mae - nn_mae, 2)
     impr_clim = round(clim_mae - nn_mae, 2) if clim_mae is not None else None
+    impr_vel = round(vel_mae - nn_mae, 2) if vel_mae is not None else None
 
     return {
         "persist_mae": persist_mae,
@@ -218,10 +229,13 @@ def compute_track_errors(
         "persist_median": persist_median,
         "clim_mae": clim_mae,
         "clim_rmse": clim_rmse,
+        "vel_mae": vel_mae,
+        "vel_rmse": vel_rmse,
         "nn_mae": nn_mae,
         "nn_rmse": nn_rmse,
         "impr_persist": impr_persist,
         "impr_clim": impr_clim,
+        "impr_vel": impr_vel,
     }
 
 
@@ -410,6 +424,7 @@ def evaluate_all(
     baseline_records = []
     horizon_records = []
     basin_records = []
+    val_calibrated_ri_threshold = 0.5
 
     for part_name, part_df in partitions:
         print(f"\n--- Evaluating Partition: {part_name} ({len(part_df)} samples) ---")
@@ -440,6 +455,7 @@ def evaluate_all(
         dv_true_all, dv_pred_nn_all, dv_mask_all = [], [], []
         ri_true_all, ri_prob_nn_all, ri_mask_all = [], [], []
         tr_true_all, tr_pred_nn_all, tr_mask_all = [], [], []
+        kin_anchor_all = []
         sample_ids_all, storm_ids_all = [], []
 
         with torch.no_grad():
@@ -467,6 +483,14 @@ def evaluate_all(
                 extra_eval_kwargs = {}
                 if kin_s is not None and hasattr(model, "_encode_kinematic_context"):
                     extra_eval_kwargs["kinematic_state"] = kin_s.to(device)
+
+                anchor_kin_b = batch.get("anchor_kinematic_state")
+                if anchor_kin_b is None and kin_s is not None and kin_s.dim() == 2:
+                    anchor_kin_b = kin_s
+                if anchor_kin_b is not None:
+                    kin_anchor_all.extend(anchor_kin_b.cpu().numpy().tolist())
+                else:
+                    kin_anchor_all.extend([[0.0] * 10 for _ in range(ir.size(0))])
 
                 preds = model(
                     ir=ir,
@@ -535,6 +559,7 @@ def evaluate_all(
         tr_true = np.array(tr_true_all)
         tr_pred_nn = np.array(tr_pred_nn_all)
         tr_mask = np.array(tr_mask_all)
+        kin_anchor = np.array(kin_anchor_all)
 
         sub_df = part_df.set_index("sample_id").reindex(sample_ids_all)
 
@@ -557,6 +582,7 @@ def evaluate_all(
                 err = p_arr - vt
                 baseline_records.append({
                     "partition": part_name,
+                    "task_category": "current_state_estimation",
                     "task": "Current Intensity (v_max)",
                     "model": m_name,
                     "n_samples": len(vt),
@@ -585,6 +611,7 @@ def evaluate_all(
                 err = p_arr - pt
                 baseline_records.append({
                     "partition": part_name,
+                    "task_category": "current_state_estimation",
                     "task": "Central Pressure (p_min)",
                     "model": m_name,
                     "n_samples": len(pt),
@@ -606,6 +633,7 @@ def evaluate_all(
 
             baseline_records.append({
                 "partition": part_name,
+                "task_category": "current_state_estimation",
                 "task": "Development Stage Classification",
                 "model": "Majority Class (TS)",
                 "n_samples": len(st),
@@ -618,6 +646,7 @@ def evaluate_all(
             })
             baseline_records.append({
                 "partition": part_name,
+                "task_category": "current_state_estimation",
                 "task": "Development Stage Classification",
                 "model": model_label,
                 "n_samples": len(st),
@@ -660,6 +689,7 @@ def evaluate_all(
 
             horizon_records.append({
                 "partition": part_name,
+                "task_category": "future_forecasting",
                 "horizon_hours": f"Intensity_{h}h",
                 "n_valid_targets": n_targets,
                 "persistence_mae": mae_persist,
@@ -667,10 +697,13 @@ def evaluate_all(
                 "persistence_median_error": round(float(np.median(np.abs(dv_persist - dvt))), 2) if n_targets > 0 else None,
                 "climatology_mae": mae_clim,
                 "climatology_rmse": rmse_clim,
+                "velocity_baseline_mae": None,
+                "velocity_baseline_rmse": None,
                 "tc_graphformer_mae": mae_nn,
                 "tc_graphformer_rmse": rmse_nn,
                 "improvement_over_persist": impr_persist,
                 "improvement_over_clim": impr_clim,
+                "improvement_over_velocity": None,
                 "units": "kt",
                 "checkpoint_status": ckpt_info["status"],
             })
@@ -684,8 +717,38 @@ def evaluate_all(
             pr_auc_nn, brier_nn, prec_50, rec_50 = compute_pr_auc_and_brier(rit, rip_nn)
             pr_auc_clim, brier_clim, clim_p50, clim_r50 = compute_pr_auc_and_brier(rit, rip_clim)
 
+            n_pos = int(np.sum(rit == 1.0))
+            n_neg = int(np.sum(rit == 0.0))
+
+            # Calibrate threshold strictly on VAL only; apply frozen threshold to TEST
+            if part_name == "VAL" and n_pos > 0:
+                best_f1_val = -1.0
+                best_th_val = 0.5
+                for th_cand in np.linspace(0.02, 0.90, 89):
+                    pr_b = (rip_nn >= th_cand).astype(float)
+                    tp_c = float(np.sum((pr_b == 1.0) & (rit == 1.0)))
+                    fp_c = float(np.sum((pr_b == 1.0) & (rit == 0.0)))
+                    fn_c = float(np.sum((pr_b == 0.0) & (rit == 1.0)))
+                    p_c = tp_c / (tp_c + fp_c) if (tp_c + fp_c) > 0 else 0.0
+                    r_c = tp_c / (tp_c + fn_c) if (tp_c + fn_c) > 0 else 0.0
+                    f1_c = (2 * p_c * r_c) / (p_c + r_c) if (p_c + r_c) > 0 else 0.0
+                    if f1_c > best_f1_val:
+                        best_f1_val = f1_c
+                        best_th_val = float(round(th_cand, 2))
+                val_calibrated_ri_threshold = best_th_val
+
+            pred_cal = (rip_nn >= val_calibrated_ri_threshold).astype(float)
+            tp_cal = float(np.sum((pred_cal == 1.0) & (rit == 1.0)))
+            fp_cal = float(np.sum((pred_cal == 1.0) & (rit == 0.0)))
+            fn_cal = float(np.sum((pred_cal == 0.0) & (rit == 1.0)))
+            prec_cal = tp_cal / (tp_cal + fp_cal) if (tp_cal + fp_cal) > 0 else 0.0
+            rec_cal = tp_cal / (tp_cal + fn_cal) if (tp_cal + fn_cal) > 0 else 0.0
+            f1_cal = (2 * prec_cal * rec_cal) / (prec_cal + rec_cal) if (prec_cal + rec_cal) > 0 else 0.0
+            uncertainty_note = f" [LOW_POS_UNCERTAINTY: n_pos={n_pos}<5]" if n_pos < 5 else ""
+
             baseline_records.append({
                 "partition": part_name,
+                "task_category": "future_forecasting",
                 "task": "Rapid Intensification (24h >= 30kt)",
                 "model": "Training Climatology (Base Rate)",
                 "n_samples": len(rit),
@@ -693,11 +756,12 @@ def evaluate_all(
                 "rmse": round(float(np.sqrt(brier_clim)), 4),
                 "bias": 0.0,
                 "units": "brier_score",
-                "notes": f"PR-AUC: {pr_auc_clim:.4f}, Base Rate: {ri_mean_train:.3f}",
+                "notes": f"PR-AUC: {pr_auc_clim:.4f}, Base Rate: {ri_mean_train:.3f}, Pos: {n_pos}, Neg: {n_neg}{uncertainty_note}",
                 "checkpoint_status": "baseline_climatology",
             })
             baseline_records.append({
                 "partition": part_name,
+                "task_category": "future_forecasting",
                 "task": "Rapid Intensification (24h >= 30kt)",
                 "model": model_label,
                 "n_samples": len(rit),
@@ -705,7 +769,10 @@ def evaluate_all(
                 "rmse": round(float(np.sqrt(brier_nn)), 4),
                 "bias": 0.0,
                 "units": "brier_score",
-                "notes": f"PR-AUC: {pr_auc_nn:.4f}, Prec@0.5: {prec_50:.4f}, Rec@0.5: {rec_50:.4f}",
+                "notes": (
+                    f"PR-AUC: {pr_auc_nn:.4f}, F1@{val_calibrated_ri_threshold:.2f}: {f1_cal:.4f} "
+                    f"(Prec: {prec_cal:.4f}, Rec: {rec_cal:.4f}), Pos: {n_pos}, Neg: {n_neg}{uncertainty_note}"
+                ),
                 "checkpoint_status": ckpt_info["status"],
             })
 
@@ -717,24 +784,40 @@ def evaluate_all(
             if n_valid_tr > 0:
                 true_vec = tr_true[m_tr, h_idx]  # (M, 2) in km
                 pred_vec = tr_pred_nn[m_tr, h_idx]  # (M, 2) in km
-                track_errs = compute_track_errors(true_vec, pred_vec, clim_vec=train_track_clim.get(h))
+                c_vec = train_track_clim.get(h)
+                # Observation-time strictly causal velocity extrapolation baseline: (u_kmh * h, v_kmh * h)
+                # Falls back to training climatology vector when causal prior fix is unavailable (has_kin == 0)
+                kin_sub = kin_anchor[m_tr]
+                has_k = (kin_sub[:, 9:10] > 0.5).astype(np.float64)
+                raw_vel_vec = np.column_stack([kin_sub[:, 0] * float(h), kin_sub[:, 1] * float(h)])
+                if c_vec is not None:
+                    c_arr = np.array([[c_vec[0], c_vec[1]]], dtype=np.float64)
+                    vel_vec = has_k * raw_vel_vec + (1.0 - has_k) * c_arr
+                else:
+                    vel_vec = raw_vel_vec
+                track_errs = compute_track_errors(true_vec, pred_vec, clim_vec=c_vec, vel_vec=vel_vec)
                 persist_mae = track_errs["persist_mae"]
                 persist_rmse = track_errs["persist_rmse"]
                 persist_median = track_errs["persist_median"]
                 clim_mae = track_errs["clim_mae"]
                 clim_rmse = track_errs["clim_rmse"]
+                vel_mae = track_errs["vel_mae"]
+                vel_rmse = track_errs["vel_rmse"]
                 nn_mae = track_errs["nn_mae"]
                 nn_rmse = track_errs["nn_rmse"]
                 impr_persist = track_errs["impr_persist"]
                 impr_clim = track_errs["impr_clim"]
+                impr_vel = track_errs["impr_vel"]
             else:
                 persist_mae, persist_rmse, persist_median = None, None, None
                 clim_mae, clim_rmse = None, None
+                vel_mae, vel_rmse = None, None
                 nn_mae, nn_rmse = None, None
-                impr_persist, impr_clim = None, None
+                impr_persist, impr_clim, impr_vel = None, None, None
 
             horizon_records.append({
                 "partition": part_name,
+                "task_category": "future_forecasting",
                 "horizon_hours": f"Track_{h}h",
                 "n_valid_targets": n_valid_tr,
                 "persistence_mae": persist_mae,
@@ -742,10 +825,13 @@ def evaluate_all(
                 "persistence_median_error": persist_median,
                 "climatology_mae": clim_mae,
                 "climatology_rmse": clim_rmse,
+                "velocity_baseline_mae": vel_mae,
+                "velocity_baseline_rmse": vel_rmse,
                 "tc_graphformer_mae": nn_mae,
                 "tc_graphformer_rmse": nn_rmse,
                 "improvement_over_persist": impr_persist,
                 "improvement_over_clim": impr_clim,
+                "improvement_over_velocity": impr_vel,
                 "units": "km",
                 "checkpoint_status": ckpt_info["status"],
             })
@@ -796,6 +882,7 @@ def evaluate_all(
         "use_sequences": use_sequences,
         "max_history_len": max_history_len,
         "train_track_climatology": {str(k): list(v) if v is not None else None for k, v in train_track_clim.items()},
+        "val_calibrated_ri_threshold": val_calibrated_ri_threshold,
         "partitions_evaluated": [p[0] for p in partitions],
         "total_baseline_records": len(baseline_records),
         "total_horizon_records": len(horizon_records),

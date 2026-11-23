@@ -136,15 +136,15 @@ class TaskPredictionHeads(nn.Module):
             v_kmh = kin[:, 1:2]
             has_kin = (kin[:, 9:10] > 0.5).to(raw_tr.dtype)
 
-            # TRAIN-fitted damped kinematic translation prior across +6h, +12h, +18h, +24h
-            dx_6 = 1.040 * (u_kmh * 6.0) + 4.21
-            dy_6 = 1.014 * (v_kmh * 6.0) - 0.34
-            dx_12 = 1.008 * (u_kmh * 12.0) + 11.83
-            dy_12 = 0.947 * (v_kmh * 12.0) + 7.10
-            dx_18 = 0.965 * (u_kmh * 18.0) + 15.75
-            dy_18 = 0.910 * (v_kmh * 18.0) + 14.09
-            dx_24 = 0.943 * (u_kmh * 24.0) + 30.60
-            dy_24 = 0.867 * (v_kmh * 24.0) + 21.84
+            # Strictly causal TRAIN-fitted damped kinematic translation prior across +6h, +12h, +18h, +24h
+            dx_6 = 0.970 * (u_kmh * 6.0) + 5.10
+            dy_6 = 0.849 * (v_kmh * 6.0) + 4.47
+            dx_12 = 0.938 * (u_kmh * 12.0) + 14.14
+            dy_12 = 0.785 * (v_kmh * 12.0) + 16.01
+            dx_18 = 0.888 * (u_kmh * 18.0) + 15.96
+            dy_18 = 0.761 * (v_kmh * 18.0) + 27.49
+            dx_24 = 0.868 * (u_kmh * 24.0) + 28.74
+            dy_24 = 0.749 * (v_kmh * 24.0) + 35.16
 
             kin_disp = torch.cat([dx_6, dy_6, dx_12, dy_12, dx_18, dy_18, dx_24, dy_24], dim=-1)
             base_tr = has_kin * kin_disp + (1.0 - has_kin) * clim_tr
