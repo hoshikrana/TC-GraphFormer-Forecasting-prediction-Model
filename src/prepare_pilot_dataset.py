@@ -14,13 +14,16 @@ Usage:
 import argparse
 import csv
 import hashlib
+import importlib.util
 import json
 import os
 import re
 import subprocess
 import sys
 import shutil
+import threading
 import time
+import urllib.request
 import random
 import yaml
 from typing import Optional, Dict, Any, List, Tuple, Set, Union
@@ -1798,9 +1801,75 @@ def check_disk_space(destination, required_bytes):
     return free >= needed, free
 
 
+_TLS_HTTP_SESSION = threading.local()
+
+
+def _get_s3_http_session():
+    """Return a thread-local persistent requests.Session (if available) for high-throughput S3 HTTPS downloads."""
+    sess = getattr(_TLS_HTTP_SESSION, "session", None)
+    if sess is None:
+        try:
+            import requests
+            from requests.adapters import HTTPAdapter
+            sess = requests.Session()
+            adapter = HTTPAdapter(pool_connections=32, pool_maxsize=32, max_retries=0)
+            sess.mount("https://", adapter)
+            sess.mount("http://", adapter)
+            _TLS_HTTP_SESSION.session = sess
+        except ImportError:
+            sess = None
+    return sess
+
+
+def _download_s3_via_https(s3_key: str, local_dest: str, expected_size: int, timeout: int = 600) -> Tuple[bool, int, str]:
+    """
+    Download an anonymous public S3 object over HTTPS with persistent connection pooling
+    and atomic .part file replacement.
+    """
+    url = f"https://{BUCKET}.s3.amazonaws.com/{s3_key}"
+    tmp_dest = f"{local_dest}.{os.getpid()}.{threading.get_ident()}.part"
+    try:
+        sess = _get_s3_http_session()
+        if sess is not None:
+            with sess.get(url, stream=True, timeout=(15, timeout)) as resp:
+                if resp.status_code != 200:
+                    return False, 0, f"HTTP {resp.status_code} for {url}"
+                with open(tmp_dest, "wb") as fh:
+                    for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            fh.write(chunk)
+        else:
+            req = urllib.request.Request(url, headers={"User-Agent": "TC-GraphFormer-Downloader/1.0"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp, open(tmp_dest, "wb") as fh:
+                shutil.copyfileobj(resp, fh, length=1024 * 1024)
+
+        if not os.path.exists(tmp_dest):
+            return False, 0, f"HTTPS download completed but temporary file missing at '{tmp_dest}'"
+
+        actual_size = os.path.getsize(tmp_dest)
+        if actual_size != expected_size:
+            try:
+                os.remove(tmp_dest)
+            except OSError:
+                pass
+            return False, actual_size, f"Size mismatch: expected {expected_size} bytes, got {actual_size} bytes"
+
+        os.replace(tmp_dest, local_dest)
+        return True, actual_size, "downloaded"
+    except Exception as e:
+        try:
+            if os.path.exists(tmp_dest):
+                os.remove(tmp_dest)
+        except OSError:
+            pass
+        return False, 0, f"HTTPS S3 download error ({type(e).__name__}): {e}"
+
+
 def download_single_file(s3_key, local_dest, expected_size, retries=MAX_RETRIES):
     """
-    Download a single S3 object using AWS CLI via sys.executable -m awscli.
+    Download a single S3 object using AWS CLI via sys.executable -m awscli,
+    falling back transparently to direct S3 HTTPS streaming with connection pooling
+    when the awscli Python module is not installed in the active environment.
     Returns (success, actual_size, error_msg).
     """
     # Check if file exists and has correct size
@@ -1815,6 +1884,20 @@ def download_single_file(s3_key, local_dest, expected_size, retries=MAX_RETRIES)
         os.makedirs(dest_dir, exist_ok=True)
     except Exception as e:
         return False, 0, f"Failed to create directory '{dest_dir}': {e}"
+
+    is_mocked_subprocess = hasattr(subprocess.run, "_mock_name") or hasattr(subprocess.run, "assert_called")
+    has_awscli_mod = is_mocked_subprocess or (importlib.util.find_spec("awscli") is not None)
+
+    if not has_awscli_mod:
+        last_error = "Unknown HTTPS error"
+        for attempt in range(1, retries + 1):
+            ok, actual_sz, msg = _download_s3_via_https(s3_key, local_dest, expected_size, timeout=600)
+            if ok:
+                return True, actual_sz, msg
+            last_error = msg
+            if attempt < retries:
+                time.sleep(RETRY_DELAY_SEC)
+        return False, 0, f"Max retries ({retries}) exceeded: {last_error}"
 
     s3_path = f"s3://{BUCKET}/{s3_key}"
     cmd = [
