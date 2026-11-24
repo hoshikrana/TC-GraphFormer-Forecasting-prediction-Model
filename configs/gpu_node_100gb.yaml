@@ -8,7 +8,7 @@ machine:
   os: "Linux / Windows 11 with NVIDIA Drivers"
   device: "cuda"
   cuda_device_id: 0
-  num_workers: 8
+  num_workers: 0
   precision: "fp16" # "fp16" or "bf16" (amp enabled)
 
 paths:
@@ -32,11 +32,20 @@ capabilities:
 training:
   batch_size: 32
   accumulate_grad_batches: 2
-  max_epochs: 100
-  learning_rate: 1.0e-4
+  max_epochs: 12
+  learning_rate: 3.0e-4
   weight_decay: 1.0e-4
   gradient_clip_val: 1.0
   mixed_precision: true
   pin_memory: true
-  persistent_workers: true
+  persistent_workers: false
   output_report: "reports/phase2e4_100gb/multitask_training_summary.json"
+
+loss_weights:
+  weight_intensity: 1.0
+  weight_pressure: 0.5
+  weight_stage: 0.5
+  weight_intensity_change: 1.0
+  weight_ri: 2.0
+  weight_track: 1.0
+  ri_pos_weight: 18.10 # Strictly fitted on 100 GB TRAIN partition (9016 neg / 498 pos)

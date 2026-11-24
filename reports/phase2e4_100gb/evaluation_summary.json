@@ -1,0 +1,84 @@
+{
+  "evaluation_timestamp_utc": "2026-11-24T01:39:13.696627+00:00",
+  "sample_index": "reports/pipeline_100gb/sample_index.csv",
+  "checkpoint": {
+    "is_trained": true,
+    "checkpoint_path": "checkpoints/tcprimed_100gb/best_checkpoint.pt",
+    "status": "trained_checkpoint",
+    "model_label": "TC-GraphFormer",
+    "matched_keys": 333,
+    "total_keys": 333,
+    "missing_keys_count": 0,
+    "shape_mismatches_count": 0,
+    "epoch": 5,
+    "metrics": {
+      "val_loss": 16.7881,
+      "total_val_samples": 1815,
+      "val_wind_mae_kt": 7.84,
+      "val_wind_rmse_kt": 10.52,
+      "val_wind_bias_kt": 1.36,
+      "valid_wind_samples": 1815,
+      "val_pressure_mae_hpa": 5.99,
+      "val_pressure_rmse_hpa": 8.29,
+      "val_pressure_bias_hpa": 1.54,
+      "valid_pressure_samples": 1604,
+      "val_stage_acc_pct": 65.14,
+      "val_stage_balanced_acc_pct": 64.27,
+      "valid_stage_samples": 1549,
+      "val_dv_6h_mae_kt": 3.22,
+      "val_dv_6h_rmse_kt": 4.75,
+      "valid_dv_6h_samples": 1722,
+      "val_dv_12h_mae_kt": 5.96,
+      "val_dv_12h_rmse_kt": 8.38,
+      "valid_dv_12h_samples": 1671,
+      "val_dv_18h_mae_kt": 8.27,
+      "val_dv_18h_rmse_kt": 11.28,
+      "valid_dv_18h_samples": 1627,
+      "val_dv_24h_mae_kt": 10.18,
+      "val_dv_24h_rmse_kt": 13.64,
+      "valid_dv_24h_samples": 1576,
+      "val_ri_precision": 0.6889,
+      "val_ri_recall": 0.337,
+      "val_ri_f1": 0.4526,
+      "val_ri_far": 0.3111,
+      "val_ri_valid_pos": 92,
+      "val_ri_valid_neg": 1484,
+      "val_track_6h_err_km": 35.72,
+      "valid_track_6h_samples": 290,
+      "val_track_12h_err_km": 85.89,
+      "valid_track_12h_samples": 287,
+      "val_track_18h_err_km": 147.15,
+      "valid_track_18h_samples": 276,
+      "val_track_24h_err_km": 213.65,
+      "valid_track_24h_samples": 270
+    }
+  },
+  "use_sequences": true,
+  "max_history_len": 4,
+  "train_track_climatology": {
+    "6": [
+      -38.05391880880047,
+      28.564956702040792
+    ],
+    "12": [
+      -77.01912847261264,
+      56.40528355872715
+    ],
+    "18": [
+      -112.50772742636995,
+      85.07030046999444
+    ],
+    "24": [
+      -154.43646259182725,
+      112.17986236385286
+    ]
+  },
+  "val_calibrated_ri_threshold": 0.25,
+  "partitions_evaluated": [
+    "VAL",
+    "TEST"
+  ],
+  "total_baseline_records": 20,
+  "total_horizon_records": 16,
+  "total_basin_records": 12
+}

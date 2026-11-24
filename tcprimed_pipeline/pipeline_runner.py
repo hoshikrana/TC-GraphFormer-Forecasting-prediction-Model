@@ -233,9 +233,10 @@ class PipelineRunner:
                             overpasses_processed += 1
                 continue
 
-            # Read Environmental Best Track
+            # Read Environmental Best Track and keep per-storm env slice cache
             env_rec = sdata["env_file"]
             best_track = {"times": [], "lats": [], "lons": [], "intensities": [], "pressures": []}
+            env_slice_cache: Dict[int, Dict[str, Any]] = {}
             if env_rec and os.path.exists(env_rec["file_path"]):
                 total_raw_bytes += env_rec["file_size_bytes"]
                 self.env_matcher.register_storm_environmental_file(sid, env_rec["file_path"])
@@ -244,108 +245,113 @@ class PipelineRunner:
 
             # Process all overpasses for this storm
             storm_observations = []
-            for op in sdata["overpass_files"]:
-                op_path = op["file_path"]
-                total_raw_bytes += op["file_size_bytes"]
+            try:
+                for op in sdata["overpass_files"]:
+                    op_path = op["file_path"]
+                    total_raw_bytes += op["file_size_bytes"]
 
-                if not os.path.exists(op_path):
-                    continue
+                    if not os.path.exists(op_path):
+                        continue
 
-                with open_netcdf(op_path, "r") as ds_op:
-                    # 1. Metadata
-                    op_meta = MetadataExtractor.extract_overpass_metadata(ds_op)
-                    t_epoch = op_meta["time_epoch"] or 0
-                    targets = MetadataExtractor.extract_overpass_targets(ds_op)
+                    with open_netcdf(op_path, "r") as ds_op:
+                        # 1. Metadata
+                        op_meta = MetadataExtractor.extract_overpass_metadata(ds_op)
+                        t_epoch = op_meta["time_epoch"] or 0
+                        targets = MetadataExtractor.extract_overpass_targets(ds_op)
 
-                    # 2. Future track coordinates from Best Track
-                    future_track = MetadataExtractor.query_future_track_coordinates(
-                        best_track, t_epoch, self.config.targets.horizons_hours
-                    )
+                        # 2. Future track coordinates from Best Track
+                        future_track = MetadataExtractor.query_future_track_coordinates(
+                            best_track, t_epoch, self.config.targets.horizons_hours
+                        )
 
-                    # 3. Modalities
-                    pmw_data = ModalityProcessors.process_passive_microwave(ds_op)
-                    ir_data = ModalityProcessors.process_infrared(ds_op)
-                    gprof_data = ModalityProcessors.process_gprof(ds_op)
-                    radar_data = ModalityProcessors.process_radar(ds_op)
+                        # 3. Modalities
+                        pmw_data = ModalityProcessors.process_passive_microwave(ds_op)
+                        ir_data = ModalityProcessors.process_infrared(ds_op)
+                        gprof_data = ModalityProcessors.process_gprof(ds_op)
+                        radar_data = ModalityProcessors.process_radar(ds_op)
 
-                    # 4. Environmental match
-                    env_match = self.env_matcher.match_overpass(sid, t_epoch)
-                    env_slice_data = {}
-                    if env_match.get("has_match") and env_rec:
-                        matched_idx = env_match["matched_index"]
-                        with open_netcdf(env_rec["file_path"], "r") as ds_env:
-                            env_slice_data = ModalityProcessors.process_environmental_slice(ds_env, matched_idx)
+                        # 4. Environmental match
+                        env_match = self.env_matcher.match_overpass(sid, t_epoch)
+                        env_slice_data = {}
+                        if env_match.get("has_match") and env_rec:
+                            matched_idx = env_match["matched_index"]
+                            if matched_idx not in env_slice_cache:
+                                with open_netcdf(env_rec["file_path"], "r") as ds_env:
+                                    env_slice_cache[matched_idx] = ModalityProcessors.process_environmental_slice(ds_env, matched_idx)
+                            env_slice_data = env_slice_cache[matched_idx]
 
-                    # 5. Quality Control validation & policy enforcement
-                    is_valid, issues = self.qc.validate_overpass(
-                        op_path, op_meta, pmw_data, ir_data, targets
-                    )
-                    self.qc_examined_count += 1
-                    if is_valid:
-                        self.qc_valid_count += 1
-                    else:
-                        self.qc_rejected_count += 1
-                        for issue in issues:
-                            self.qc_rejection_reasons[issue] = self.qc_rejection_reasons.get(issue, 0) + 1
+                        # 5. Quality Control validation & policy enforcement
+                        is_valid, issues = self.qc.validate_overpass(
+                            op_path, op_meta, pmw_data, ir_data, targets
+                        )
+                        self.qc_examined_count += 1
+                        if is_valid:
+                            self.qc_valid_count += 1
+                        else:
+                            self.qc_rejected_count += 1
+                            for issue in issues:
+                                self.qc_rejection_reasons[issue] = self.qc_rejection_reasons.get(issue, 0) + 1
 
-                        if self.qc_policy == "reject":
-                            logger.warning(f"[QC REJECT] Rejected overpass {op_path} due to: {issues}")
-                            continue
-                        elif self.qc_policy == "quarantine":
-                            logger.warning(f"[QC QUARANTINE] Quarantined overpass {op_path} due to: {issues}")
-                            continue
+                            if self.qc_policy == "reject":
+                                logger.warning(f"[QC REJECT] Rejected overpass {op_path} due to: {issues}")
+                                continue
+                            elif self.qc_policy == "quarantine":
+                                logger.warning(f"[QC QUARANTINE] Quarantined overpass {op_path} due to: {issues}")
+                                continue
 
-                    # Modality flags
-                    mod_flags = {
-                        "has_pmw": pmw_data.get("is_available", False),
-                        "has_ir": ir_data.get("is_available", False),
-                        "has_gprof": gprof_data.get("is_available", False),
-                        "has_radar": radar_data.get("is_available", False),
-                    }
+                        # Modality flags
+                        mod_flags = {
+                            "has_pmw": pmw_data.get("is_available", False),
+                            "has_ir": ir_data.get("is_available", False),
+                            "has_gprof": gprof_data.get("is_available", False),
+                            "has_radar": radar_data.get("is_available", False),
+                        }
 
-                    obs_record = {
-                        "observation_id": f"{sid}_{op['instrument']}_{op['platform']}_{op['timestamp_str']}",
-                        "timestamp_str": op["timestamp_str"],
-                        "timestamp_epoch": t_epoch,
-                        "timestamp_utc": op_meta["time_utc"],
-                        "instrument": op["instrument"],
-                        "platform": op["platform"],
-                        "has_pmw": mod_flags["has_pmw"],
-                        "has_ir": mod_flags["has_ir"],
-                        "has_gprof": mod_flags["has_gprof"],
-                        "has_radar": mod_flags["has_radar"],
-                        "has_causal_env": env_match.get("has_match", False),
-                        "env_time_diff_hours": env_match.get("time_diff_hours"),
-                        "env_is_causal": not env_match.get("is_future_leakage", False),
-                        "targets": targets,
-                        "pmw_data": pmw_data,
-                        "ir_data": ir_data,
-                        "gprof_data": gprof_data,
-                        "radar_data": radar_data,
-                        "env_slice_data": env_slice_data,
-                    }
-                    storm_observations.append(obs_record)
+                        obs_record = {
+                            "observation_id": f"{sid}_{op['instrument']}_{op['platform']}_{op['timestamp_str']}",
+                            "timestamp_str": op["timestamp_str"],
+                            "timestamp_epoch": t_epoch,
+                            "timestamp_utc": op_meta["time_utc"],
+                            "instrument": op["instrument"],
+                            "platform": op["platform"],
+                            "has_pmw": mod_flags["has_pmw"],
+                            "has_ir": mod_flags["has_ir"],
+                            "has_gprof": mod_flags["has_gprof"],
+                            "has_radar": mod_flags["has_radar"],
+                            "has_causal_env": env_match.get("has_match", False),
+                            "env_time_diff_hours": env_match.get("time_diff_hours"),
+                            "env_is_causal": not env_match.get("is_future_leakage", False),
+                            "targets": targets,
+                            "pmw_data": pmw_data,
+                            "ir_data": ir_data,
+                            "gprof_data": gprof_data,
+                            "radar_data": radar_data,
+                            "env_slice_data": env_slice_data,
+                        }
+                        storm_observations.append(obs_record)
 
-                    # Index sample
-                    dest_cpath = self.storage_writer.get_storm_container_path(season, basin, sid)
-                    storage_info = {
-                        "container_path": dest_cpath,
-                        "group_path": f"/overpasses/obs_{op['timestamp_str']}_{op['instrument']}",
-                    }
-                    self.sample_builder.add_sample(
-                        observation_id=obs_record["observation_id"],
-                        storm_id=sid,
-                        partition=partition,
-                        season=season,
-                        basin=basin,
-                        overpass_meta=op_meta,
-                        targets=targets,
-                        future_track=future_track,
-                        modality_flags=mod_flags,
-                        env_match=env_match,
-                        storage_info=storage_info,
-                    )
-                    overpasses_processed += 1
+                        # Index sample
+                        dest_cpath = self.storage_writer.get_storm_container_path(season, basin, sid)
+                        storage_info = {
+                            "container_path": dest_cpath,
+                            "group_path": f"/overpasses/obs_{op['timestamp_str']}_{op['instrument']}",
+                        }
+                        self.sample_builder.add_sample(
+                            observation_id=obs_record["observation_id"],
+                            storm_id=sid,
+                            partition=partition,
+                            season=season,
+                            basin=basin,
+                            overpass_meta=op_meta,
+                            targets=targets,
+                            future_track=future_track,
+                            modality_flags=mod_flags,
+                            env_match=env_match,
+                            storage_info=storage_info,
+                        )
+                        overpasses_processed += 1
+            finally:
+                env_slice_cache.clear()
 
             # Write storm container atomically
             if storm_observations:

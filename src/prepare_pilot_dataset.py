@@ -714,6 +714,8 @@ def audit_local_radar(
 
             candidates = []
             if local_dir:
+                sf_rel = sf[len(PREFIX):] if sf.startswith(PREFIX) else sf
+                candidates.append(os.path.join(local_dir, sf_rel.replace("/", os.sep), fname))
                 candidates.append(os.path.join(local_dir, sf, fname))
                 candidates.append(os.path.join(local_dir, fname))
             if "local_destination" in row:

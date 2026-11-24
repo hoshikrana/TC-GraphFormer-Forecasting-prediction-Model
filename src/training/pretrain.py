@@ -120,8 +120,11 @@ def run_pretraining(
         total_visible_tokens = 0
 
         latest_grad_norms = {}
+        latest_param_updates = {}
+        num_loader_batches = len(loader)
 
-        for batch in loader:
+        for batch_idx, batch in enumerate(loader):
+            is_last_batch = (batch_idx + 1 == num_loader_batches)
             ir = batch["ir"].to(device)
             pmw = batch["pmw"].to(device)
             gprof = batch["gprof"].to(device)
@@ -271,39 +274,39 @@ def run_pretraining(
                 loss = torch.tensor(0.0, device=device)
                 optimizer.zero_grad()
 
-            # Record gradient norms
-            latest_grad_norms = {
-                "ir_encoder": round(compute_module_grad_norm(model.ir_encoder), 6),
-                "pmw_encoder": round(compute_module_grad_norm(model.pmw_encoder), 6),
-                "gprof_encoder": round(compute_module_grad_norm(model.gprof_encoder), 6),
-                "radar_encoder": round(compute_module_grad_norm(model.radar_encoder), 6),
-                "env_encoder": round(compute_module_grad_norm(model.env_encoder), 6),
-                "fusion": round(compute_module_grad_norm(model.fusion), 6),
-                "recon_head": round(compute_module_grad_norm(recon_head), 6),
-            }
+            # Record gradient norms and parameter update norms on final batch of epoch
+            if is_last_batch:
+                latest_grad_norms = {
+                    "ir_encoder": round(compute_module_grad_norm(model.ir_encoder), 6),
+                    "pmw_encoder": round(compute_module_grad_norm(model.pmw_encoder), 6),
+                    "gprof_encoder": round(compute_module_grad_norm(model.gprof_encoder), 6),
+                    "radar_encoder": round(compute_module_grad_norm(model.radar_encoder), 6),
+                    "env_encoder": round(compute_module_grad_norm(model.env_encoder), 6),
+                    "fusion": round(compute_module_grad_norm(model.fusion), 6),
+                    "recon_head": round(compute_module_grad_norm(recon_head), 6),
+                }
 
-            # Snapshot weights prior to optimizer step to compute actual parameter updates
-            old_ir = [p.clone().detach() for p in model.ir_encoder.parameters()]
-            old_pmw = [p.clone().detach() for p in model.pmw_encoder.parameters()]
-            old_gp = [p.clone().detach() for p in model.gprof_encoder.parameters()]
-            old_rad = [p.clone().detach() for p in model.radar_encoder.parameters()]
-            old_env = [p.clone().detach() for p in model.env_encoder.parameters()]
-            old_fusion = [p.clone().detach() for p in model.fusion.parameters()]
-            old_head = [p.clone().detach() for p in recon_head.parameters()]
+                old_ir = [p.clone().detach() for p in model.ir_encoder.parameters()]
+                old_pmw = [p.clone().detach() for p in model.pmw_encoder.parameters()]
+                old_gp = [p.clone().detach() for p in model.gprof_encoder.parameters()]
+                old_rad = [p.clone().detach() for p in model.radar_encoder.parameters()]
+                old_env = [p.clone().detach() for p in model.env_encoder.parameters()]
+                old_fusion = [p.clone().detach() for p in model.fusion.parameters()]
+                old_head = [p.clone().detach() for p in recon_head.parameters()]
 
             torch.nn.utils.clip_grad_norm_(params, 1.0)
             optimizer.step()
 
-            # Record actual optimizer parameter update norms
-            latest_param_updates = {
-                "ir_encoder": round(compute_module_param_update_norm(model.ir_encoder, old_ir), 6),
-                "pmw_encoder": round(compute_module_param_update_norm(model.pmw_encoder, old_pmw), 6),
-                "gprof_encoder": round(compute_module_param_update_norm(model.gprof_encoder, old_gp), 6),
-                "radar_encoder": round(compute_module_param_update_norm(model.radar_encoder, old_rad), 6),
-                "env_encoder": round(compute_module_param_update_norm(model.env_encoder, old_env), 6),
-                "fusion": round(compute_module_param_update_norm(model.fusion, old_fusion), 6),
-                "recon_head": round(compute_module_param_update_norm(recon_head, old_head), 6),
-            }
+            if is_last_batch:
+                latest_param_updates = {
+                    "ir_encoder": round(compute_module_param_update_norm(model.ir_encoder, old_ir), 6),
+                    "pmw_encoder": round(compute_module_param_update_norm(model.pmw_encoder, old_pmw), 6),
+                    "gprof_encoder": round(compute_module_param_update_norm(model.gprof_encoder, old_gp), 6),
+                    "radar_encoder": round(compute_module_param_update_norm(model.radar_encoder, old_rad), 6),
+                    "env_encoder": round(compute_module_param_update_norm(model.env_encoder, old_env), 6),
+                    "fusion": round(compute_module_param_update_norm(model.fusion, old_fusion), 6),
+                    "recon_head": round(compute_module_param_update_norm(recon_head, old_head), 6),
+                }
 
             total_loss += loss.item()
             total_batches += 1
@@ -362,6 +365,7 @@ def run_pretraining(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TC-GraphFormer Self-Supervised Pretraining")
+    parser.add_argument("--train-index", default="reports/pipeline/sample_index.csv", help="Path to sample index CSV")
     parser.add_argument("--epochs", type=int, default=3, help="Pretraining epochs")
     parser.add_argument("--batch-size", type=int, default=16, help="Batch size")
     parser.add_argument("--lr", type=float, default=2e-4, help="Learning rate")
@@ -370,9 +374,11 @@ if __name__ == "__main__":
     parser.add_argument("--max-samples", type=int, default=None, help="Max samples")
     parser.add_argument("--checkpoint-dir", default="checkpoints", help="Checkpoints directory")
     parser.add_argument("--output-report", default="reports/phase2e/pretraining_summary.json", help="Summary report")
+    parser.add_argument("--gradient-report", default="reports/phase2e/pretraining_gradient_report.json", help="Gradient report")
     args = parser.parse_args()
 
     run_pretraining(
+        train_index=args.train_index,
         epochs=args.epochs,
         batch_size=args.batch_size,
         lr=args.lr,
@@ -381,4 +387,5 @@ if __name__ == "__main__":
         max_samples=args.max_samples,
         checkpoint_dir=args.checkpoint_dir,
         output_report=args.output_report,
+        gradient_report_path=args.gradient_report,
     )

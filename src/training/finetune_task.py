@@ -298,6 +298,8 @@ def run_finetuning(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TC-GraphFormer Fine-Tuning")
     parser.add_argument("--checkpoint", default="checkpoints/best_checkpoint.pt", help="Base checkpoint")
+    parser.add_argument("--sample-index", default="reports/pipeline/sample_index.csv", help="Sample index CSV")
+    parser.add_argument("--checkpoint-dir", default="checkpoints", help="Checkpoints directory")
     parser.add_argument("--task", default="intensity_change", choices=SUPPORTED_TASKS)
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch-size", type=int, default=16)
@@ -305,6 +307,9 @@ if __name__ == "__main__":
     parser.add_argument("--lr-backbone", type=float, default=1e-5)
     parser.add_argument("--d-model", type=int, default=128)
     parser.add_argument("--max-samples", type=int, default=None)
+    parser.add_argument("--max-history-len", type=int, default=4)
+    parser.add_argument("--use-sequences", dest="use_sequences", action="store_true", default=True)
+    parser.add_argument("--single-obs", dest="use_sequences", action="store_false")
     parser.add_argument("--no-freeze", action="store_true")
     parser.add_argument("--allow-scratch", action="store_true")
     parser.add_argument("--output-report", default=None)
@@ -320,6 +325,10 @@ if __name__ == "__main__":
         d_model=args.d_model,
         max_samples=args.max_samples,
         freeze_encoders=(not args.no_freeze),
+        use_sequences=args.use_sequences,
+        max_history_len=args.max_history_len,
+        sample_index_csv=args.sample_index,
+        checkpoint_dir=args.checkpoint_dir,
         allow_scratch=args.allow_scratch,
         output_report=args.output_report,
     )

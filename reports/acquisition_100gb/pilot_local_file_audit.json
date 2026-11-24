@@ -1,0 +1,66 @@
+{
+  "audit_timestamp_utc": "2026-11-23 20:19:09 UTC",
+  "destination_root": "D:\\Enjula uchoi\\TC-GraphFormer-verified\\data\\raw\\tcprimed_100gb",
+  "total_manifest_entries": 13898,
+  "expected_total_bytes": 99997769720,
+  "expected_total_gb": 99.9978,
+  "expected_total_gib": 93.1302,
+  "correct_count": 13898,
+  "correct_bytes": 99997769720,
+  "correct_gb": 99.9978,
+  "correct_gib": 93.1302,
+  "missing_count": 0,
+  "missing_bytes": 0,
+  "missing_gb": 0.0,
+  "missing_gib": 0.0,
+  "incomplete_count": 0,
+  "incomplete_expected_bytes": 0,
+  "incomplete_actual_bytes": 0,
+  "unexpected_count": 0,
+  "unexpected_bytes": 0,
+  "unexpected_files": [],
+  "correct_sample": [
+    {
+      "s3_key": "v01r01/final/1997/CP/05/TCPRIMED_v01r01-final_CP051997_SSMI_F11_030976_19971128182906.nc",
+      "local_destination": "data/raw/tcprimed_100gb\\1997\\CP\\05\\TCPRIMED_v01r01-final_CP051997_SSMI_F11_030976_19971128182906.nc",
+      "expected_size": 3655872,
+      "actual_size": 3655872,
+      "storm_id": "CP051997",
+      "is_environmental": false
+    },
+    {
+      "s3_key": "v01r01/final/1997/CP/05/TCPRIMED_v01r01-final_CP051997_SSMI_F11_030990_19971129181518.nc",
+      "local_destination": "data/raw/tcprimed_100gb\\1997\\CP\\05\\TCPRIMED_v01r01-final_CP051997_SSMI_F11_030990_19971129181518.nc",
+      "expected_size": 3788672,
+      "actual_size": 3788672,
+      "storm_id": "CP051997",
+      "is_environmental": false
+    },
+    {
+      "s3_key": "v01r01/final/1997/CP/05/TCPRIMED_v01r01-final_CP051997_SSMI_F11_031004_19971130180118.nc",
+      "local_destination": "data/raw/tcprimed_100gb\\1997\\CP\\05\\TCPRIMED_v01r01-final_CP051997_SSMI_F11_031004_19971130180118.nc",
+      "expected_size": 3874738,
+      "actual_size": 3874738,
+      "storm_id": "CP051997",
+      "is_environmental": false
+    },
+    {
+      "s3_key": "v01r01/final/1997/CP/05/TCPRIMED_v01r01-final_CP051997_SSMI_F11_031026_19971202063631.nc",
+      "local_destination": "data/raw/tcprimed_100gb\\1997\\CP\\05\\TCPRIMED_v01r01-final_CP051997_SSMI_F11_031026_19971202063631.nc",
+      "expected_size": 3834290,
+      "actual_size": 3834290,
+      "storm_id": "CP051997",
+      "is_environmental": false
+    },
+    {
+      "s3_key": "v01r01/final/1997/CP/05/TCPRIMED_v01r01-final_CP051997_SSMI_F11_031040_19971203062302.nc",
+      "local_destination": "data/raw/tcprimed_100gb\\1997\\CP\\05\\TCPRIMED_v01r01-final_CP051997_SSMI_F11_031040_19971203062302.nc",
+      "expected_size": 1765435,
+      "actual_size": 1765435,
+      "storm_id": "CP051997",
+      "is_environmental": false
+    }
+  ],
+  "missing_sample": [],
+  "incomplete_sample": []
+}

@@ -1468,3 +1468,51 @@ class TCPRIMEDSequenceDataset(Dataset):
         indices = self.sequence_index[idx]
         # Return list of observation dicts in chronological order
         return [self.base_dataset[i] for i in indices]
+
+
+def _warm_cache_chunk_worker(args_tuple: Tuple[str, int, int]) -> int:
+    """Top-level multiprocessing worker to populate on-disk 64x64 resampled cache for a slice of sample_index_csv."""
+    sample_index_csv, start_idx, end_idx = args_tuple
+    df_full = pd.read_csv(sample_index_csv)
+    df_slice = df_full.iloc[start_idx:end_idx].copy().reset_index(drop=True)
+    ds = TCPRIMEDDataset(
+        sample_index_csv=sample_index_csv,
+        partition=None,
+        df=df_slice,
+        max_cache_entries=64,
+    )
+    count = 0
+    for i in range(len(ds)):
+        _ = ds[i]
+        count += 1
+    return count
+
+
+def warm_disk_cache_parallel(sample_index_csv: str, max_workers: int = 12) -> int:
+    """Populate the atomic on-disk preprocessing cache in parallel across multiple CPU workers."""
+    from concurrent.futures import ProcessPoolExecutor, as_completed
+    df_full = pd.read_csv(sample_index_csv)
+    n_total = len(df_full)
+    if n_total == 0:
+        return 0
+    chunk_size = max(1, (n_total + max_workers * 4 - 1) // (max_workers * 4))
+    tasks = []
+    for s in range(0, n_total, chunk_size):
+        tasks.append((sample_index_csv, s, min(n_total, s + chunk_size)))
+
+    done_samples = 0
+    t0 = os.times().elapsed if hasattr(os.times(), "elapsed") else 0.0
+    import time
+    t_start = time.time()
+    with ProcessPoolExecutor(max_workers=max_workers) as ex:
+        futs = [ex.submit(_warm_cache_chunk_worker, t) for t in tasks]
+        for idx, fut in enumerate(as_completed(futs), 1):
+            done_samples += fut.result()
+            if idx % 4 == 0 or done_samples == n_total:
+                el = max(1e-3, time.time() - t_start)
+                print(
+                    f"[PARALLEL CACHE WARM] {done_samples}/{n_total} samples cached "
+                    f"({100.0 * done_samples / n_total:.1f}%, {done_samples / el:.1f} samples/sec, {el:.1f}s elapsed)",
+                    flush=True,
+                )
+    return done_samples
