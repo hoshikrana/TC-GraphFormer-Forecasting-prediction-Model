@@ -85,6 +85,21 @@ class CausalTemporalTransformer(nn.Module):
         # In PyTorch nn.TransformerEncoder, True means masked / forbidden
         causal_mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=features.device), diagonal=1)
 
-        out = self.transformer(h, mask=causal_mask, src_key_padding_mask=mask)
-        return self.norm(out)
+        safe_mask = mask
+        all_masked = None
+        if mask is not None:
+            all_masked = mask.all(dim=1)
+            # Also guard case where timestep 0 is padded (row 0 of causal_mask only attends to col 0)
+            first_masked = mask[:, 0]
+            needs_unmask = all_masked | first_masked
+            if needs_unmask.any():
+                safe_mask = mask.clone()
+                safe_mask[needs_unmask, 0] = False
+
+        out = self.transformer(h, mask=causal_mask, src_key_padding_mask=safe_mask)
+        out = self.norm(out)
+        if mask is not None:
+            valid_step = (~mask).unsqueeze(-1).to(out.dtype)
+            out = out * valid_step
+        return out
 

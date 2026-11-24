@@ -29,7 +29,10 @@ class MultiTaskLoss(nn.Module):
         weight_intensity_change: float = 1.0,
         weight_ri: float = 2.0,
         weight_track: float = 1.0,
-        ri_pos_weight: float = 33.53, # Fitted strictly on TRAIN partition (1207 neg / 36 pos)
+        ri_pos_weight: float = 33.53, # Fitted strictly on TRAIN partition (1207 neg / 36 pos; 18.10 on 100GB TRAIN)
+        regime_max_extra_weight: float = 2.5,
+        regime_power: float = 2.0,
+        ri_prior_shift_factor: float = 0.85,
     ):
         super().__init__()
         self.w_v = weight_intensity
@@ -38,6 +41,9 @@ class MultiTaskLoss(nn.Module):
         self.w_dv = weight_intensity_change
         self.w_ri = weight_ri
         self.w_track = weight_track
+        self.regime_max_extra_weight = float(regime_max_extra_weight)
+        self.regime_power = float(regime_power)
+        self.ri_prior_shift_factor = float(ri_prior_shift_factor)
 
         self.register_buffer("ri_weight", torch.tensor([ri_pos_weight], dtype=torch.float32))
 
@@ -73,7 +79,7 @@ class MultiTaskLoss(nn.Module):
         v_mask = targets.get("intensity_mask", torch.ones_like(v_true))
         # Emphasize underrepresented Hurricane (>=64 kt) and Major Hurricane (>=96 kt) regimes per sample
         v_excess = torch.clamp((v_true.detach() - 50.0) / 50.0, min=0.0, max=2.0) * v_mask
-        w_v_regime = 1.0 + 2.5 * (v_excess ** 2)
+        w_v_regime = 1.0 + self.regime_max_extra_weight * (v_excess ** self.regime_power)
         diff_v = F.smooth_l1_loss(v_pred, v_true, reduction="none", beta=8.0) * w_v_regime
         unreduced_v = (diff_v * v_mask).sum()
         batch_valid_v = v_mask.sum()
@@ -114,9 +120,9 @@ class MultiTaskLoss(nn.Module):
         ri_pred = preds["ri_logits"] # (B,)
         ri_true = targets["rapid_intensification"] # (B,)
         ri_mask = targets["ri_mask"] # (B,)
-        # Prior odds offset keeps predicted sigmoid(ri_pred) calibrated to physical base rate (~0.029)
-        # while retaining full pos_weight gradient amplification on positive RI examples
-        prior_shift = torch.log(self.ri_weight.clamp(min=1.0)) * 0.85
+        # Prior odds offset keeps predicted sigmoid(ri_pred) calibrated to physical base rate
+        # When ri_prior_shift_factor == 1.0, stationary logit has exact 0 offset: sigmoid(z*) = P(RI=1|x)
+        prior_shift = torch.log(self.ri_weight.clamp(min=1.0)) * self.ri_prior_shift_factor
         ri_bce = F.binary_cross_entropy_with_logits(
             ri_pred + prior_shift, ri_true, pos_weight=self.ri_weight, reduction="none"
         )

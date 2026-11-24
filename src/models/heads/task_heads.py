@@ -3,10 +3,10 @@ Multi-Task Prediction Heads for TC-GraphFormer.
 Decodes shared latent spatiotemporal representation into:
 - Current Wind Speed (kt)
 - Central Minimum Pressure (hPa)
-- Development Stage (6 classes)
+- Development Stage (5 canonical classes: 0=TD/SD/MD, 1=TS/SS, 2=HU/TY, 3=EX, 4=DB/LO/WV)
 - Intensity Changes (+6h, +12h, +18h, +24h)
 - Rapid Intensification (24h binary flag)
-- Track Displacements (Delta lat, Delta lon across horizons)
+- Track Displacements (Delta x_east, Delta y_north in km across horizons)
 """
 
 import torch
@@ -38,7 +38,7 @@ class TaskPredictionHeads(nn.Module):
             nn.Linear(64, 1),
         )
 
-        # 3. Development Stage Classification Head (6 classes)
+        # 3. Development Stage Classification Head (5 canonical classes: TD, TS, HU/TY, EX, DB/LO/WV)
         self.head_stage = nn.Sequential(
             nn.Linear(d_model, 64),
             nn.GELU(),
