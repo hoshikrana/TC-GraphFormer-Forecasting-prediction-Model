@@ -33,6 +33,8 @@ class MultiTaskLoss(nn.Module):
         regime_max_extra_weight: float = 2.5,
         regime_power: float = 2.0,
         ri_prior_shift_factor: float = 0.85,
+        intensity_huber_beta: float = 8.0,
+        intensity_std_scale: float = 1.0,
     ):
         super().__init__()
         self.w_v = weight_intensity
@@ -44,6 +46,8 @@ class MultiTaskLoss(nn.Module):
         self.regime_max_extra_weight = float(regime_max_extra_weight)
         self.regime_power = float(regime_power)
         self.ri_prior_shift_factor = float(ri_prior_shift_factor)
+        self.intensity_huber_beta = float(intensity_huber_beta)
+        self.intensity_std_scale = float(intensity_std_scale)
 
         self.register_buffer("ri_weight", torch.tensor([ri_pos_weight], dtype=torch.float32))
 
@@ -80,7 +84,17 @@ class MultiTaskLoss(nn.Module):
         # Emphasize underrepresented Hurricane (>=64 kt) and Major Hurricane (>=96 kt) regimes per sample
         v_excess = torch.clamp((v_true.detach() - 50.0) / 50.0, min=0.0, max=2.0) * v_mask
         w_v_regime = 1.0 + self.regime_max_extra_weight * (v_excess ** self.regime_power)
-        diff_v = F.smooth_l1_loss(v_pred, v_true, reduction="none", beta=8.0) * w_v_regime
+        v_scale = max(1e-6, self.intensity_std_scale)
+        diff_v = (
+            F.smooth_l1_loss(
+                v_pred / v_scale,
+                v_true / v_scale,
+                reduction="none",
+                beta=(self.intensity_huber_beta / v_scale),
+            )
+            * v_scale
+            * w_v_regime
+        )
         unreduced_v = (diff_v * v_mask).sum()
         batch_valid_v = v_mask.sum()
         n_v = group_target_counts.get("intensity") if (group_target_counts and "intensity" in group_target_counts) else batch_valid_v.clamp(min=1.0)
