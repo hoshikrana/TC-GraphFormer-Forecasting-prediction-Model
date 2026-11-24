@@ -281,14 +281,34 @@ class TCGraphFormerTrainer:
         """
         Evaluate model on validation or test partition with strict target masking.
         Computes regression MAE/RMSE/bias, classification Macro-F1/balanced accuracy,
-        and binary RI PR metrics.
+        binary RI PR-AUC/Brier/F1 metrics, global valid-target-normalized per-task losses,
+        and the fixed multi-task relative error selection criterion (val_mt_rel_err).
         """
         self.model.eval()
         total_loss = 0.0
         total_samples = 0
 
+        # Global valid-target-normalized loss accumulators
+        unreduced_sums = {
+            "intensity": 0.0,
+            "pressure": 0.0,
+            "stage": 0.0,
+            "intensity_change": 0.0,
+            "ri": 0.0,
+            "track": 0.0,
+        }
+        valid_counts = {
+            "intensity": 0,
+            "pressure": 0,
+            "stage": 0,
+            "intensity_change": 0,
+            "ri": 0,
+            "track": 0,
+        }
+
         # Intensity accumulators
         v_errs, v_sq_errs = [], []
+        maj_v_errs, maj_v_sq_errs = [], []
         # Pressure accumulators
         p_errs, p_sq_errs = [], []
         # Stage metrics
@@ -306,11 +326,22 @@ class TCGraphFormerTrainer:
                 targets = {k: v.to(self.device) for k, v in batch["targets"].items() if isinstance(v, torch.Tensor)}
 
                 preds = self._forward_batch(batch)
-                loss, _ = self.loss_fn(preds, targets)
+                loss, loss_dict = self.loss_fn(preds, targets)
 
                 B = batch["ir"].size(0)
                 total_samples += B
                 total_loss += loss.item() * B
+
+                for t_key in unreduced_sums:
+                    u_key = f"unreduced_loss_{t_key}"
+                    if t_key == "track":
+                        c_key = "valid_track_components_count" if "valid_track_components_count" in loss_dict else "valid_track_count"
+                    else:
+                        c_key = f"valid_{t_key}_count"
+                    if u_key in loss_dict and c_key in loss_dict:
+                        u_val = loss_dict[u_key]
+                        unreduced_sums[t_key] += float(u_val.item() if isinstance(u_val, torch.Tensor) else u_val)
+                        valid_counts[t_key] += int(loss_dict[c_key])
 
                 # 1. Intensity (Wind Speed kt)
                 v_pred = preds["intensity"].cpu().numpy()
@@ -320,6 +351,11 @@ class TCGraphFormerTrainer:
                     e_v = v_pred[v_mask] - v_true[v_mask]
                     v_errs.extend(e_v.tolist())
                     v_sq_errs.extend((e_v ** 2).tolist())
+                    maj_mask = v_mask & (v_true >= 96.0)
+                    if np.any(maj_mask):
+                        e_maj = v_pred[maj_mask] - v_true[maj_mask]
+                        maj_v_errs.extend(e_maj.tolist())
+                        maj_v_sq_errs.extend((e_maj ** 2).tolist())
 
                 # 2. Central Minimum Pressure (hPa)
                 p_pred = preds["pressure"].cpu().numpy()
@@ -369,10 +405,32 @@ class TCGraphFormerTrainer:
                         dist_err = np.sqrt(dx_err ** 2 + dy_err ** 2)
                         tr_errs_by_h[h].extend(dist_err.tolist())
 
+        # Compile global valid-target-normalized per-task validation losses
+        w_map = {
+            "intensity": float(getattr(self.loss_fn, "w_v", getattr(self.loss_fn, "weight_intensity", 1.0))),
+            "pressure": float(getattr(self.loss_fn, "w_p", getattr(self.loss_fn, "weight_pressure", 0.5))),
+            "stage": float(getattr(self.loss_fn, "w_s", getattr(self.loss_fn, "weight_stage", 0.5))),
+            "intensity_change": float(getattr(self.loss_fn, "w_dv", getattr(self.loss_fn, "weight_intensity_change", 1.0))),
+            "ri": float(getattr(self.loss_fn, "w_ri", getattr(self.loss_fn, "weight_ri", 2.0))),
+            "track": float(getattr(self.loss_fn, "w_track", getattr(self.loss_fn, "weight_track", 1.0))),
+        }
+        val_task_losses = {}
+        val_weighted_task_losses = {}
+        val_loss_global = 0.0
+        for t_key, w_val in w_map.items():
+            raw_t = unreduced_sums[t_key] / max(1, valid_counts[t_key]) if valid_counts[t_key] > 0 else 0.0
+            w_t = w_val * raw_t
+            val_task_losses[f"val_loss_{t_key}"] = round(raw_t, 4)
+            val_weighted_task_losses[f"val_weighted_loss_{t_key}"] = round(w_t, 4)
+            val_loss_global += w_t
+
         # Compile Metrics
         val_metrics: Dict[str, Any] = {
             "val_loss": round(total_loss / max(1, total_samples), 4),
+            "val_loss_global": round(val_loss_global, 4),
             "total_val_samples": total_samples,
+            **val_task_losses,
+            **val_weighted_task_losses,
         }
 
         # Wind stats
@@ -383,6 +441,14 @@ class TCGraphFormerTrainer:
             val_metrics["valid_wind_samples"] = len(v_errs)
         else:
             val_metrics["val_wind_mae_kt"] = 0.0
+
+        if maj_v_errs:
+            val_metrics["val_major_wind_mae_kt"] = round(float(np.mean(np.abs(maj_v_errs))), 2)
+            val_metrics["val_major_wind_rmse_kt"] = round(float(np.sqrt(np.mean(maj_v_sq_errs))), 2)
+            val_metrics["val_major_wind_bias_kt"] = round(float(np.mean(maj_v_errs)), 2)
+            val_metrics["valid_major_wind_samples"] = len(maj_v_errs)
+        else:
+            val_metrics["val_major_wind_mae_kt"] = 0.0
 
         # Pressure stats
         if p_errs:
@@ -435,6 +501,30 @@ class TCGraphFormerTrainer:
             f1 = (2 * precision * recall) / max(1e-5, (precision + recall))
             far = fp / max(1e-5, (tp + fp)) # False alarm ratio
 
+            # Threshold-free PR-AUC (Average Precision) & Brier Score
+            brier = float(np.mean((p_ri - y_ri) ** 2))
+            if np.sum(y_ri == 1.0) > 0:
+                order = np.argsort(-p_ri, kind="mergesort")
+                y_sorted = y_ri[order]
+                tps = np.cumsum(y_sorted == 1.0)
+                fps = np.cumsum(y_sorted == 0.0)
+                prec_curve = tps / np.maximum(1.0, tps + fps)
+                pr_auc = float(np.sum(prec_curve[y_sorted == 1.0]) / np.sum(y_ri == 1.0))
+            else:
+                pr_auc = 0.0
+
+            # Also record F1 at the fixed VAL-calibrated threshold th=0.25
+            pred_ri_25 = (p_ri >= 0.25).astype(float)
+            tp25 = float(np.sum((pred_ri_25 == 1.0) & (y_ri == 1.0)))
+            fp25 = float(np.sum((pred_ri_25 == 1.0) & (y_ri == 0.0)))
+            fn25 = float(np.sum((pred_ri_25 == 0.0) & (y_ri == 1.0)))
+            p25 = tp25 / max(1e-5, (tp25 + fp25))
+            r25 = tp25 / max(1e-5, (tp25 + fn25))
+            f1_25 = (2 * p25 * r25) / max(1e-5, (p25 + r25))
+
+            val_metrics["val_ri_pr_auc"] = round(pr_auc, 4)
+            val_metrics["val_ri_brier"] = round(brier, 4)
+            val_metrics["val_ri_f1_at_025"] = round(f1_25, 4)
             val_metrics["val_ri_precision"] = round(precision, 4)
             val_metrics["val_ri_recall"] = round(recall, 4)
             val_metrics["val_ri_f1"] = round(f1, 4)
@@ -442,6 +532,9 @@ class TCGraphFormerTrainer:
             val_metrics["val_ri_valid_pos"] = int(np.sum(y_ri == 1.0))
             val_metrics["val_ri_valid_neg"] = int(np.sum(y_ri == 0.0))
         else:
+            val_metrics["val_ri_pr_auc"] = 0.0
+            val_metrics["val_ri_brier"] = 0.0
+            val_metrics["val_ri_f1_at_025"] = 0.0
             val_metrics["val_ri_f1"] = 0.0
 
         # Track error stats (km)
@@ -449,6 +542,22 @@ class TCGraphFormerTrainer:
             if tr_errs_by_h[h]:
                 val_metrics[f"val_track_{h}h_err_km"] = round(float(np.mean(tr_errs_by_h[h])), 2)
                 val_metrics[f"valid_track_{h}h_samples"] = len(tr_errs_by_h[h])
+
+        # Fixed baseline-normalized 6-task relative error selection score (VAL_MT_REL_ERR)
+        dv_vals = [val_metrics.get(f"val_dv_{h}h_mae_kt", 0.0) for h in [6, 12, 18, 24]]
+        tr_vals = [val_metrics.get(f"val_track_{h}h_err_km", 0.0) for h in [6, 12, 18, 24]]
+        rel_wind = val_metrics.get("val_wind_mae_kt", 0.0) / 24.71
+        rel_press = val_metrics.get("val_pressure_mae_hpa", 0.0) / 18.92
+        rel_stage = (100.0 - val_metrics.get("val_stage_acc_pct", 0.0)) / 78.05
+        rel_dv = (float(np.mean(dv_vals)) / 8.1075) if any(dv_vals) else 1.0
+        rel_ri = 0.5 * (
+            (1.0 - val_metrics.get("val_ri_pr_auc", 0.0)) / 0.9564
+            + (val_metrics.get("val_ri_brier", 0.0550) / 0.0550)
+        )
+        rel_track = (float(np.mean(tr_vals)) / 119.2525) if any(tr_vals) else 1.0
+        val_metrics["val_mt_rel_err"] = round(
+            float((rel_wind + rel_press + rel_stage + rel_dv + rel_ri + rel_track) / 6.0), 4
+        )
 
         return val_metrics
 
