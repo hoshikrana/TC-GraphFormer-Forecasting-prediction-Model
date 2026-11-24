@@ -19,10 +19,14 @@ class TaskPredictionHeads(nn.Module):
     Multi-task prediction heads operating on shared latent representation.
     """
 
-    def __init__(self, d_model: int = 128, num_stages: int = 5):
+    def __init__(self, d_model: int = 128, num_stages: int = 5, head_dropout: float = 0.0):
         super().__init__()
         self.d_model = d_model
         self.num_stages = num_stages
+        self.head_dropout = float(head_dropout)
+        if not (0.0 <= self.head_dropout < 1.0):
+            raise ValueError(f"head_dropout must be in [0.0, 1.0), got {head_dropout}")
+        self.head_drop = nn.Dropout(p=self.head_dropout)
 
         # 1. Current Intensity Head (Wind Speed in knots)
         self.head_intensity = nn.Sequential(
@@ -90,6 +94,17 @@ class TaskPredictionHeads(nn.Module):
                 )
             )
 
+    def _apply_head(self, head: nn.Sequential, latent: torch.Tensor) -> torch.Tensor:
+        """
+        Apply 2-layer task head with optional intermediate dropout after GELU activation:
+        Linear(d_model, 64) -> GELU -> Dropout(p=head_dropout) -> Linear(64, out_dim).
+        """
+        h = head[0](latent)
+        h = head[1](h)
+        if self.head_dropout > 0.0:
+            h = self.head_drop(h)
+        return head[2](h)
+
     def forward(
         self,
         latent: torch.Tensor,
@@ -106,23 +121,23 @@ class TaskPredictionHeads(nn.Module):
             ri_logits: (B,)
             track_delta: (B, 8)
         """
-        raw_v = self.head_intensity(latent).squeeze(-1)   # (B,)
+        raw_v = self._apply_head(self.head_intensity, latent).squeeze(-1)   # (B,)
         v_pred = 38.19 + 12.0 * (raw_v - 38.19)
 
-        raw_p = self.head_pressure(latent).squeeze(-1)    # (B,)
+        raw_p = self._apply_head(self.head_pressure, latent).squeeze(-1)    # (B,)
         p_pred = 997.25 + 12.0 * (raw_p - 997.25)
 
-        stage_logits = self.head_stage(latent)            # (B, num_stages)
+        stage_logits = self._apply_head(self.head_stage, latent)            # (B, num_stages)
 
-        raw_dv = self.head_intensity_change(latent)       # (B, 4)
+        raw_dv = self._apply_head(self.head_intensity_change, latent)       # (B, 4)
         dv_prior = torch.tensor(
             [0.231, 0.575, 1.075, 1.596], device=latent.device, dtype=raw_dv.dtype
         )
         dv_pred = dv_prior + 5.0 * (raw_dv - dv_prior)
 
-        ri_logit = self.head_ri(latent).squeeze(-1)       # (B,)
+        ri_logit = self._apply_head(self.head_ri, latent).squeeze(-1)       # (B,)
 
-        raw_tr = self.head_track(latent)                  # (B, 8)
+        raw_tr = self._apply_head(self.head_track, latent)                  # (B, 8)
         clim_tr = torch.tensor(
             [-25.35, 27.92, -40.77, 60.58, -62.82, 88.80, -79.29, 114.98],
             device=latent.device,

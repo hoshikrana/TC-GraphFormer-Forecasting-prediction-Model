@@ -38,10 +38,12 @@ class TCGraphFormer(nn.Module):
         num_stages: int = 5,
         min_sector_coverage: float = 0.05,
         dropout: float = 0.1,
+        head_dropout: float = 0.0,
     ):
         super().__init__()
         self.d_model = d_model
         self.min_sector_coverage = min_sector_coverage
+        self.head_dropout = float(head_dropout)
 
         # 1. Modality Encoders (extract 2D spatial feature representations)
         self.ir_encoder = IREncoder(in_channels=1, d_model=d_model)
@@ -94,7 +96,9 @@ class TCGraphFormer(nn.Module):
         )
 
         # 7. Multi-Task Heads
-        self.task_heads = TaskPredictionHeads(d_model=d_model, num_stages=num_stages)
+        self.task_heads = TaskPredictionHeads(
+            d_model=d_model, num_stages=num_stages, head_dropout=self.head_dropout
+        )
 
     def extract_overpass_features(
         self,

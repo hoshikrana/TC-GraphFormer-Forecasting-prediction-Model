@@ -103,6 +103,34 @@ class TestV2LossAndMasks(unittest.TestCase):
         self.assertAlmostEqual(d_v1["loss_intensity"], 66.0, places=4)
         self.assertAlmostEqual(d_v2["loss_intensity"], 18.0, places=4)
 
+    def test_head_dropout_train_vs_eval_and_state_dict_compatibility(self):
+        torch.manual_seed(42)
+        m_base = TCGraphFormer(d_model=128, num_stages=5, head_dropout=0.0)
+        m_drop = TCGraphFormer(d_model=128, num_stages=5, head_dropout=0.15)
+
+        # 1. Exact state_dict key & shape compatibility (333 tensors)
+        self.assertEqual(list(m_base.state_dict().keys()), list(m_drop.state_dict().keys()))
+        m_drop.load_state_dict(m_base.state_dict(), strict=True)
+
+        # 2. In model.eval() mode, m_drop and m_base must produce bit-identical predictions
+        m_base.eval()
+        m_drop.eval()
+        z = torch.randn(8, 128)
+        kin = torch.randn(8, 10)
+        out_base = m_base.task_heads(z, kinematic_state=kin)
+        out_drop_eval1 = m_drop.task_heads(z, kinematic_state=kin)
+        out_drop_eval2 = m_drop.task_heads(z, kinematic_state=kin)
+        for k in out_base:
+            self.assertTrue(torch.equal(out_base[k], out_drop_eval1[k]), f"Eval mismatch on {k}")
+            self.assertTrue(torch.equal(out_drop_eval1[k], out_drop_eval2[k]), f"Non-deterministic eval on {k}")
+
+        # 3. In model.train() mode, m_drop applies stochastic dropout on intermediate 64-D head activations
+        m_drop.train()
+        out_train1 = m_drop.task_heads(z, kinematic_state=kin)
+        out_train2 = m_drop.task_heads(z, kinematic_state=kin)
+        self.assertFalse(torch.equal(out_train1["intensity"], out_train2["intensity"]))
+        self.assertFalse(torch.equal(out_train1["ri_logits"], out_train2["ri_logits"]))
+
 
 if __name__ == "__main__":
     unittest.main()
