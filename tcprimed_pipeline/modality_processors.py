@@ -18,9 +18,12 @@ class ModalityProcessors:
     # 1. Passive Microwave Processor
     # -----------------------------------------------------------------------
     @staticmethod
-    def process_passive_microwave(ds: nc.Dataset) -> Dict[str, Any]:
+    def process_passive_microwave(
+        ds: nc.Dataset,
+        swath_names: Tuple[str, ...] = ("S1", "S2"),
+    ) -> Dict[str, Any]:
         """
-        Process passive microwave swaths (S1 and optional S2).
+        Process passive microwave swaths (default S1/S2 for v2.3, or S1..S6 for v2.4).
         Preserves all TB channels, native scan/pixel dimensions, and coordinates.
         """
         out: Dict[str, Any] = {
@@ -37,7 +40,7 @@ class ModalityProcessors:
         swaths_found = {}
         all_channels = []
 
-        for sw_name in ["S1", "S2"]:
+        for sw_name in swath_names:
             if sw_name not in pmw.groups:
                 continue
             sw_group = pmw.groups[sw_name]
@@ -315,15 +318,25 @@ class ModalityProcessors:
         if "longitude" in rect.variables:
             out["longitude"] = rect.variables["longitude"][time_index, :]
 
-        # Extract selected surface / integrated fields
-        for field_name in ["precipitable_water", "sst", "pressure_msl", "temperature_2m", "u_10m", "v_10m"]:
-            if field_name in rect.variables:
-                raw_var = rect.variables[field_name]
-                arr_slice = raw_var[time_index, :, :]
-                if isinstance(arr_slice, np.ma.MaskedArray):
-                    arr_slice = arr_slice.filled(np.nan)
-                out[field_name] = arr_slice
-                out["grid_shape"] = arr_slice.shape
+        # Extract selected surface / integrated fields (supports both raw u_wind_10m/v_wind_10m and canonical u_10m/v_10m)
+        field_aliases = [
+            ("precipitable_water", ("precipitable_water",)),
+            ("sst", ("sst",)),
+            ("pressure_msl", ("pressure_msl",)),
+            ("temperature_2m", ("temperature_2m",)),
+            ("u_10m", ("u_10m", "u_wind_10m")),
+            ("v_10m", ("v_10m", "v_wind_10m")),
+        ]
+        for canonical_name, candidate_names in field_aliases:
+            for cand in candidate_names:
+                if cand in rect.variables:
+                    raw_var = rect.variables[cand]
+                    arr_slice = raw_var[time_index, :, :]
+                    if isinstance(arr_slice, np.ma.MaskedArray):
+                        arr_slice = arr_slice.filled(np.nan)
+                    out[canonical_name] = arr_slice
+                    out["grid_shape"] = arr_slice.shape
+                    break
 
         return out
 
