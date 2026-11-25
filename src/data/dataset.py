@@ -67,9 +67,9 @@ NUM_STAGES = 5
 # Canonical PMW 4-channel mapping across supported sensor families
 # Channel 0: ~19 GHz V (18.7V, 19.35V)
 # Channel 1: ~19 GHz H (18.7H, 19.35H)
-# Channel 2: ~37 GHz V (36.5V, 36.64V, 37.0V)
-# Channel 3: ~85-91 GHz V/QV (85.5V, 88.2QV, 89.0V, 91.665V)
-SENSOR_PMW_CHANNEL_MAP_V23 = {
+# Channel 2: ~37 GHz V (36.64V, 37.0V)
+# Channel 3: ~85-91 GHz V (85.5V, 89.0V)
+SENSOR_PMW_CHANNEL_MAP = {
     "SSMI": {
         0: ("S1", "TB_19.35V"),
         1: ("S1", "TB_19.35H"),
@@ -125,67 +125,6 @@ SENSOR_PMW_CHANNEL_MAP_V23 = {
         3: None,
     },
 }
-
-# Versioned v2.4 PMW 4-channel mapping recovering S3..S6 36.5 GHz and 85.5-91.665 GHz swaths
-# while strictly preserving physical frequency semantics (no mixing of 23.8/31.4 GHz into 19/37 GHz)
-SENSOR_PMW_CHANNEL_MAP_V24 = {
-    "SSMI": {
-        0: ("S1", "TB_19.35V"),
-        1: ("S1", "TB_19.35H"),
-        2: ("S1", "TB_37.0V"),
-        3: ("S2", "TB_85.5V"),
-    },
-    "SSMIS": {
-        0: ("S1", "TB_19.35V"),
-        1: ("S1", "TB_19.35H"),
-        2: ("S2", "TB_37.0V"),
-        3: ("S4", "TB_91.665V"),
-    },
-    "GMI": {
-        0: ("S1", "TB_18.7V"),
-        1: ("S1", "TB_18.7H"),
-        2: ("S1", "TB_36.64V"),
-        3: ("S1", "TB_89.0V"),
-    },
-    "TMI": {
-        0: ("S2", "TB_19.35V"),
-        1: ("S2", "TB_19.35H"),
-        2: ("S2", "TB_37.0V"),
-        3: ("S3", "TB_85.5V"),
-    },
-    "AMSR2": {
-        0: ("S2", "TB_18.7V"),
-        1: ("S2", "TB_18.7H"),
-        2: ("S4", "TB_36.5V"),
-        3: [("S5", "TB_A89.0V"), ("S6", "TB_B89.0V")],
-    },
-    "AMSRE": {
-        0: ("S2", "TB_18.7V"),
-        1: ("S2", "TB_18.7H"),
-        2: ("S4", "TB_36.5V"),
-        3: [("S6", "TB_B89.0V"), ("S5", "TB_A89.0V")],
-    },
-    "AMSUB": {
-        0: None,
-        1: None,
-        2: None,
-        3: ("S1", "TB_89.0_0.9QV"),
-    },
-    "MHS": {
-        0: None,
-        1: None,
-        2: None,
-        3: ("S1", "TB_89.0V"),
-    },
-    "ATMS": {
-        0: None,
-        1: None,
-        2: None,
-        3: ("S3", "TB_88.2QV"),
-    },
-}
-
-SENSOR_PMW_CHANNEL_MAP = SENSOR_PMW_CHANNEL_MAP_V23
 
 
 def compute_tangent_plane_displacement_km(
@@ -234,16 +173,13 @@ class TCPRIMEDDataset(Dataset):
     DEFAULT_MAX_CACHE_ENTRIES: int = 2048
     DEFAULT_DISK_CACHE_DIR: str = "data/cache/resampled_64x64"
     CACHE_PREPROCESSING_VERSION: str = "v3_strict_causal_kin_cappi16_grid64"
-    CACHE_PREPROCESSING_VERSION_V24: str = "v4_pmw_s3s6_recovered_cappi16_grid64"
 
     def __new__(cls, *args, **kwargs):
         instance = super().__new__(cls)
         instance.geospatial_policy = "nominal_fallback"
         instance.strict_mode = False
-        instance.pmw_schema_version = "v2.3"
         instance._query_pts_cache = {}
         instance._raw_radar_coord_cache = {}
-        instance._raw_overpass_path_map = {}
         instance._grp_resample_cache = {}
         instance._sample_cache = cls._GLOBAL_SAMPLE_CACHE
         instance.max_cache_entries = cls.DEFAULT_MAX_CACHE_ENTRIES
@@ -268,16 +204,12 @@ class TCPRIMEDDataset(Dataset):
         raw_data_dir: Optional[str] = "data/raw/pilot",
         max_cache_entries: int = DEFAULT_MAX_CACHE_ENTRIES,
         disk_cache_dir: Optional[str] = DEFAULT_DISK_CACHE_DIR,
-        pmw_schema_version: str = "v2.3",
     ):
         super().__init__()
         self.sample_index_csv = sample_index_csv
         self.partition = partition.upper() if partition else None
         self.grid_size = grid_size
         self.strict_mode = strict_mode
-        if pmw_schema_version not in ("v2.3", "v2.4"):
-            raise ValueError(f"Unsupported pmw_schema_version '{pmw_schema_version}'. Must be 'v2.3' or 'v2.4'.")
-        self.pmw_schema_version = pmw_schema_version
         # Geospatial policy: "raise", "exclude_modality", "exclude_sample", or "nominal_fallback"
         if geospatial_policy is not None:
             policy = geospatial_policy.lower()
@@ -298,21 +230,8 @@ class TCPRIMEDDataset(Dataset):
         }
         self.transform = transform
         self.basin = basin
-        if raw_data_dir and os.path.exists(raw_data_dir):
-            self.raw_data_dir = raw_data_dir
-        else:
-            self.raw_data_dir = None
-        self._raw_100gb_dir = "data/raw/tcprimed_100gb" if os.path.exists("data/raw/tcprimed_100gb") else self.raw_data_dir
+        self.raw_data_dir = raw_data_dir if (raw_data_dir and os.path.exists(raw_data_dir)) else None
         self._raw_radar_coord_cache: Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
-        self._raw_overpass_path_map: Dict[str, str] = {}
-        if self.pmw_schema_version == "v2.4":
-            obs_man_cand = os.path.join(os.path.dirname(sample_index_csv), "observation_manifest.csv")
-            if os.path.exists(obs_man_cand):
-                try:
-                    df_obs_m = pd.read_csv(obs_man_cand, usecols=["observation_id", "overpass_file_path"])
-                    self._raw_overpass_path_map = dict(zip(df_obs_m["observation_id"].astype(str), df_obs_m["overpass_file_path"].astype(str)))
-                except Exception:
-                    self._raw_overpass_path_map = {}
         self._query_pts_cache: Dict[Tuple[int, int, bool], np.ndarray] = {}
         self._grp_resample_cache: Dict[Tuple[Any, ...], Any] = {}
         if not hasattr(self, "_sample_cache") or self._sample_cache is None:
@@ -886,13 +805,8 @@ class TCPRIMEDDataset(Dataset):
                 except OSError:
                     pass
             part_label = str(row.get("partition", self.partition or "ALL")).strip().upper()
-            active_cache_ver = (
-                self.CACHE_PREPROCESSING_VERSION_V24
-                if getattr(self, "pmw_schema_version", "v2.3") == "v2.4"
-                else self.CACHE_PREPROCESSING_VERSION
-            )
             cache_key = (
-                active_cache_ver,
+                self.CACHE_PREPROCESSING_VERSION,
                 part_label,
                 storm_id,
                 nc_path,
@@ -948,161 +862,6 @@ class TCPRIMEDDataset(Dataset):
                     loaded_from_cache = True
             except Exception:
                 loaded_from_cache = False
-
-        # Fast-path for v2.4: reuse existing v2.3 disk cache for IR/GPROF/Radar/Env/Kinematics and only resample missing S3..S6 PMW swaths
-        if (
-            not loaded_from_cache
-            and getattr(self, "pmw_schema_version", "v2.3") == "v2.4"
-            and getattr(self, "enable_disk_cache", True)
-            and "data/processed" in nc_path.replace("\\", "/")
-        ):
-            v23_cache_key = (self.CACHE_PREPROCESSING_VERSION,) + cache_key[1:] if cache_key is not None else None
-            v23_hash = hashlib.sha256(repr(v23_cache_key).encode("utf-8")).hexdigest()[:16] if v23_cache_key is not None else ""
-            safe_sid = "".join(c if (c.isalnum() or c in ("_", "-")) else "_" for c in sample_id)
-            v23_disk_path = os.path.join(self.DEFAULT_DISK_CACHE_DIR, f"{part_label}_{safe_sid}_{v23_hash}.pt")
-            if os.path.exists(v23_disk_path):
-                try:
-                    base_p = torch.load(v23_disk_path, map_location="cpu", weights_only=False)
-                    if len(base_p) == 29:
-                        (
-                            ir_tensor,
-                            pmw_tensor,
-                            gprof_tensor,
-                            radar_tensor,
-                            env_tensor,
-                            ir_pixel_mask,
-                            pmw_pixel_mask,
-                            gprof_pixel_mask,
-                            radar_voxel_mask,
-                            radar_echo_mask,
-                            env_pixel_mask,
-                            pmw_channel_mask,
-                            gprof_channel_mask,
-                            env_channel_mask,
-                            has_ir,
-                            has_pmw,
-                            has_gprof,
-                            has_radar,
-                            has_env,
-                            ir_src,
-                            pmw_srcs,
-                            gp_srcs,
-                            rad_src,
-                            env_srcs,
-                            storm_lat_from_nc,
-                            storm_lon_from_nc,
-                            causal_u_kmh,
-                            causal_v_kmh,
-                            causal_has_kin,
-                        ) = base_p
-                        pmw_tensor = pmw_tensor.clone()
-                        pmw_pixel_mask = pmw_pixel_mask.clone()
-                        pmw_channel_mask = pmw_channel_mask.clone()
-                        pmw_srcs = list(pmw_srcs)
-                        ch_map_v24 = SENSOR_PMW_CHANNEL_MAP_V24.get(instrument, {})
-                        need_recovery = any(
-                            ch_map_v24.get(ci) is not None and float(pmw_channel_mask[ci].item()) < 0.5
-                            for ci in range(4)
-                        )
-                        if need_recovery:
-                            storm_lat = storm_lat_from_nc if storm_lat_from_nc is not None else (float(row["storm_latitude"]) if "storm_latitude" in row and not pd.isna(row["storm_latitude"]) else None)
-                            storm_lon = storm_lon_from_nc if storm_lon_from_nc is not None else (float(row["storm_longitude"]) if "storm_longitude" in row and not pd.isna(row["storm_longitude"]) else None)
-                            pmw_dist_thresh = self.resampling_thresholds.get("pmw", 35.0)
-                            obs_id_str = str(row.get("observation_id", sample_id.replace("SMP_", "")))
-                            raw_op_rel = getattr(self, "_raw_overpass_path_map", {}).get(obs_id_str)
-                            raw_op_cand = None
-                            if raw_op_rel:
-                                if os.path.exists(raw_op_rel):
-                                    raw_op_cand = raw_op_rel
-                                else:
-                                    alt_r = raw_op_rel.replace("\\", "/")
-                                    if os.path.exists(alt_r):
-                                        raw_op_cand = alt_r
-                            if raw_op_cand is None and getattr(self, "_raw_100gb_dir", None):
-                                import glob
-                                tm_str = obs_id_str.split("_")[-1]
-                                season_s = storm_id[4:8] if len(storm_id) >= 8 else ""
-                                basin_s = storm_id[:2] if len(storm_id) >= 2 else ""
-                                num_s = storm_id[2:4] if len(storm_id) >= 4 else ""
-                                g_cands = glob.glob(os.path.join(self._raw_100gb_dir, season_s, basin_s, num_s, f"*{instrument}*{tm_str}*.nc"))
-                                if g_cands:
-                                    raw_op_cand = g_cands[0]
-                            if raw_op_cand and os.path.exists(raw_op_cand):
-                                with nc.Dataset(raw_op_cand, "r") as ds_raw_op:
-                                    if "passive_microwave" in ds_raw_op.groups:
-                                        pmw_raw_g = ds_raw_op.groups["passive_microwave"]
-                                        for ch_idx in range(4):
-                                            if float(pmw_channel_mask[ch_idx].item()) > 0.5:
-                                                continue
-                                            mapping = ch_map_v24.get(ch_idx)
-                                            if mapping is None:
-                                                continue
-                                            candidates = mapping if isinstance(mapping, list) else [mapping]
-                                            for sw_name, var_name in candidates:
-                                                if sw_name in pmw_raw_g.groups and var_name in pmw_raw_g.groups[sw_name].variables:
-                                                    sw_grp = pmw_raw_g.groups[sw_name]
-                                                    raw_tb = np.ma.filled(sw_grp.variables[var_name][:], np.nan)
-                                                    valid_tb = (~np.isnan(raw_tb)) & (raw_tb > -9000.0) & (raw_tb > 50.0) & (raw_tb < 360.0)
-                                                    if np.any(valid_tb):
-                                                        norm_tb = np.where(valid_tb, np.clip((raw_tb - 100.0) / 220.0, 0.0, 1.0), np.nan)
-                                                        t_ch, m_ch, ch_src = self._resample_swath_with_coords(
-                                                            norm_tb, sw_grp, storm_lat, storm_lon, (H, W), max_dist_km=pmw_dist_thresh
-                                                        )
-                                                        if m_ch.sum() > 0:
-                                                            pmw_tensor[ch_idx] = t_ch.squeeze(0)
-                                                            pmw_pixel_mask[ch_idx] = m_ch.squeeze(0)
-                                                            pmw_channel_mask[ch_idx] = 1.0
-                                                            pmw_srcs.append(ch_src)
-                                                            has_pmw = True
-                                                            break
-                        v24_payload = (
-                            ir_tensor,
-                            pmw_tensor,
-                            gprof_tensor,
-                            radar_tensor,
-                            env_tensor,
-                            ir_pixel_mask,
-                            pmw_pixel_mask,
-                            gprof_pixel_mask,
-                            radar_voxel_mask,
-                            radar_echo_mask,
-                            env_pixel_mask,
-                            pmw_channel_mask,
-                            gprof_channel_mask,
-                            env_channel_mask,
-                            has_ir,
-                            has_pmw,
-                            has_gprof,
-                            has_radar,
-                            has_env,
-                            ir_src,
-                            list(pmw_srcs),
-                            list(gp_srcs),
-                            rad_src,
-                            list(env_srcs),
-                            storm_lat_from_nc,
-                            storm_lon_from_nc,
-                            causal_u_kmh,
-                            causal_v_kmh,
-                            causal_has_kin,
-                        )
-                        if cache_key is not None and sample_cache is not None:
-                            max_entries = max(1, int(getattr(self, "max_cache_entries", 2048)))
-                            while len(sample_cache) >= max_entries:
-                                sample_cache.pop(next(iter(sample_cache)))
-                            sample_cache[cache_key] = v24_payload
-                        if disk_cache_path is not None and not os.path.exists(disk_cache_path):
-                            tmp_p = f"{disk_cache_path}.{os.getpid()}.{threading.get_ident()}.tmp"
-                            try:
-                                os.makedirs(os.path.dirname(disk_cache_path), exist_ok=True)
-                                torch.save(v24_payload, tmp_p)
-                                os.replace(tmp_p, disk_cache_path)
-                            except Exception:
-                                pass
-                        loaded_from_cache = True
-                        cached_payload = v24_payload
-                except Exception:
-                    loaded_from_cache = False
 
         if loaded_from_cache:
             (
@@ -1238,78 +997,31 @@ class TCPRIMEDDataset(Dataset):
                                 has_ir = False
                                 self._record_error(sample_id, storm_id, nc_path, group_path, "infrared", "IRWIN", str(e_ir))
 
-                        # 2. Passive Microwave (Deterministic Sensor-Aware Channel Selection; v2.3 or v2.4 S3..S6 recovery)
+                        # 2. Passive Microwave (Deterministic Sensor-Aware Channel Selection)
                         if has_pmw and "passive_microwave" in curr_grp.groups:
                             try:
                                 pmw_grp = curr_grp.groups["passive_microwave"]
-                                is_v24 = getattr(self, "pmw_schema_version", "v2.3") == "v2.4"
-                                active_map = SENSOR_PMW_CHANNEL_MAP_V24 if is_v24 else SENSOR_PMW_CHANNEL_MAP
-                                ch_map = active_map.get(instrument, {})
+                                ch_map = SENSOR_PMW_CHANNEL_MAP.get(instrument, {})
                                 pmw_dist_thresh = self.resampling_thresholds.get("pmw", 35.0)
-                                ds_raw_op = None
 
-                                try:
-                                    for ch_idx in range(4):
-                                        mapping = ch_map.get(ch_idx)
-                                        if mapping is None:
-                                            continue
-                                        candidates = mapping if isinstance(mapping, list) else [mapping]
-                                        for sw_name, var_name in candidates:
-                                            sw_grp = None
-                                            if sw_name in pmw_grp.groups and var_name in pmw_grp.groups[sw_name].variables:
-                                                sw_grp = pmw_grp.groups[sw_name]
-                                            elif is_v24:
-                                                if ds_raw_op is None:
-                                                    obs_id_str = str(row.get("observation_id", sample_id.replace("SMP_", "")))
-                                                    raw_op_rel = getattr(self, "_raw_overpass_path_map", {}).get(obs_id_str)
-                                                    raw_op_cand = None
-                                                    if raw_op_rel:
-                                                        if os.path.exists(raw_op_rel):
-                                                            raw_op_cand = raw_op_rel
-                                                        else:
-                                                            alt_r = raw_op_rel.replace("\\", "/")
-                                                            if os.path.exists(alt_r):
-                                                                raw_op_cand = alt_r
-                                                    if raw_op_cand is None and getattr(self, "raw_data_dir", None):
-                                                        import glob
-                                                        tm_str = obs_id_str.split("_")[-1]
-                                                        season_s = storm_id[4:8] if len(storm_id) >= 8 else ""
-                                                        basin_s = storm_id[:2] if len(storm_id) >= 2 else ""
-                                                        num_s = storm_id[2:4] if len(storm_id) >= 4 else ""
-                                                        g_cands = glob.glob(os.path.join(self.raw_data_dir, season_s, basin_s, num_s, f"*{instrument}*{tm_str}*.nc"))
-                                                        if g_cands:
-                                                            raw_op_cand = g_cands[0]
-                                                    if raw_op_cand and os.path.exists(raw_op_cand):
-                                                        ds_raw_op = nc.Dataset(raw_op_cand, "r")
-                                                if (
-                                                    ds_raw_op is not None
-                                                    and "passive_microwave" in ds_raw_op.groups
-                                                    and sw_name in ds_raw_op.groups["passive_microwave"].groups
-                                                    and var_name in ds_raw_op.groups["passive_microwave"].groups[sw_name].variables
-                                                ):
-                                                    sw_grp = ds_raw_op.groups["passive_microwave"].groups[sw_name]
-
-                                            if sw_grp is not None:
-                                                raw_tb = np.ma.filled(sw_grp.variables[var_name][:], np.nan)
-                                                # Raw valid range check: [50, 360] K before arithmetic
-                                                valid_tb = (~np.isnan(raw_tb)) & (raw_tb > -9000.0) & (raw_tb > 50.0) & (raw_tb < 360.0)
-                                                if np.any(valid_tb):
-                                                    norm_tb = np.where(valid_tb, np.clip((raw_tb - 100.0) / 220.0, 0.0, 1.0), np.nan)
-                                                    t_ch, m_ch, ch_src = self._resample_swath_with_coords(
-                                                        norm_tb, sw_grp, storm_lat, storm_lon, (H, W), max_dist_km=pmw_dist_thresh
-                                                    )
-                                                    if m_ch.sum() > 0:
-                                                        pmw_tensor[ch_idx] = t_ch.squeeze(0)
-                                                        pmw_pixel_mask[ch_idx] = m_ch.squeeze(0)
-                                                        pmw_channel_mask[ch_idx] = 1.0
-                                                        pmw_srcs.append(ch_src)
-                                                        break
-                                finally:
-                                    if ds_raw_op is not None:
-                                        try:
-                                            ds_raw_op.close()
-                                        except Exception:
-                                            pass
+                                for ch_idx in range(4):
+                                    mapping = ch_map.get(ch_idx)
+                                    if mapping is not None:
+                                        sw_name, var_name = mapping
+                                        if sw_name in pmw_grp.groups and var_name in pmw_grp.groups[sw_name].variables:
+                                            sw_grp = pmw_grp.groups[sw_name]
+                                            raw_tb = np.ma.filled(sw_grp.variables[var_name][:], np.nan)
+                                            # Raw valid range check: [50, 360] K before arithmetic
+                                            valid_tb = (~np.isnan(raw_tb)) & (raw_tb > -9000.0) & (raw_tb > 50.0) & (raw_tb < 360.0)
+                                            norm_tb = np.where(valid_tb, np.clip((raw_tb - 100.0) / 220.0, 0.0, 1.0), np.nan)
+                                            t_ch, m_ch, ch_src = self._resample_swath_with_coords(
+                                                norm_tb, sw_grp, storm_lat, storm_lon, (H, W), max_dist_km=pmw_dist_thresh
+                                            )
+                                            if m_ch.sum() > 0:
+                                                pmw_tensor[ch_idx] = t_ch.squeeze(0)
+                                                pmw_pixel_mask[ch_idx] = m_ch.squeeze(0)
+                                                pmw_channel_mask[ch_idx] = 1.0
+                                                pmw_srcs.append(ch_src)
 
                                 if pmw_channel_mask.sum() == 0:
                                     has_pmw = False
@@ -1698,8 +1410,6 @@ class TCPRIMEDSequenceDataset(Dataset):
         strict_mode: bool = False,
         basin: Optional[str] = None,
         df: Optional[pd.DataFrame] = None,
-        pmw_schema_version: str = "v2.3",
-        disk_cache_dir: Optional[str] = TCPRIMEDDataset.DEFAULT_DISK_CACHE_DIR,
     ):
         super().__init__()
         self.base_dataset = TCPRIMEDDataset(
@@ -1709,8 +1419,6 @@ class TCPRIMEDSequenceDataset(Dataset):
             strict_mode=strict_mode,
             basin=basin,
             df=df,
-            pmw_schema_version=pmw_schema_version,
-            disk_cache_dir=disk_cache_dir,
         )
         self.max_history_len = max_history_len
         self.max_history_hours = max_history_hours

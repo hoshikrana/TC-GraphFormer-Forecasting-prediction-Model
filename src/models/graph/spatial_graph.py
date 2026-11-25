@@ -19,18 +19,20 @@ from .grid_geometry import (
     CANONICAL_SECTOR_AREAS_KM2,
     CANONICAL_SECTOR_ANGLES_DEG,
 )
+from ..fusion.cross_modal_fusion import drop_path
 
 
 class GraphMessagePassingLayer(nn.Module):
     """
     Message Passing Layer with directional edge attributes, residual connection,
-    and strict node-validity masking.
+    optional stochastic depth (DropPath), and strict node-validity masking.
     m_{ij} = MLP([h_i, h_j, e_{ij}]) * v_i
-    h_i' = LayerNorm(h_i + Aggregate(m_{ij})) * v_i
+    h_i' = LayerNorm(h_i + DropPath(Aggregate(m_{ij}))) * v_i
     """
 
-    def __init__(self, d_model: int, edge_dim: int = 8):
+    def __init__(self, d_model: int, edge_dim: int = 8, drop_path_rate: float = 0.0):
         super().__init__()
+        self.drop_path_rate = float(drop_path_rate)
         self.msg_mlp = nn.Sequential(
             nn.Linear(d_model * 2 + edge_dim, d_model),
             nn.GELU(),
@@ -98,8 +100,9 @@ class GraphMessagePassingLayer(nn.Module):
             ).clamp(min=1.0)
             agg = agg / deg.view(1, N, 1)
 
-        # Update node states with residual
+        # Update node states with residual and optional DropPath
         updated = self.update_mlp(torch.cat([nodes, agg], dim=-1))
+        updated = drop_path(updated, self.drop_path_rate, self.training)
         out = self.norm(nodes + updated)
 
         # Gate destination node states: invalid node remains strictly zero
@@ -251,12 +254,19 @@ class SpatialGraphEncoder(nn.Module):
         num_spatial_nodes: int = 16,
         num_layers: int = 2,
         domain_radius_km: float = CANONICAL_DOMAIN_RADIUS_KM,
+        drop_path_rates: Optional[List[float]] = None,
     ):
         super().__init__()
         self.d_model = d_model
         self.num_nodes = num_spatial_nodes
         self.edge_dim = 8
         self.domain_radius_km = domain_radius_km
+        if drop_path_rates is None:
+            self.drop_path_rates = [0.0] * num_layers
+        else:
+            if len(drop_path_rates) != num_layers:
+                raise ValueError(f"Expected {num_layers} drop_path_rates, got {len(drop_path_rates)}")
+            self.drop_path_rates = [float(r) for r in drop_path_rates]
 
         radii_km = list(CANONICAL_RING_CENTERS_KM)
         angles_deg = list(CANONICAL_SECTOR_ANGLES_DEG)
@@ -334,8 +344,12 @@ class SpatialGraphEncoder(nn.Module):
 
         # Graph message passing layers
         self.layers = nn.ModuleList([
-            GraphMessagePassingLayer(d_model=d_model, edge_dim=self.edge_dim)
-            for _ in range(num_layers)
+            GraphMessagePassingLayer(
+                d_model=d_model,
+                edge_dim=self.edge_dim,
+                drop_path_rate=self.drop_path_rates[idx],
+            )
+            for idx in range(num_layers)
         ])
 
         # Graph pooling into single graph representation vector

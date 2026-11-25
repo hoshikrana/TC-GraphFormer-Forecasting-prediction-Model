@@ -112,7 +112,6 @@ def _get_cached_dataloader(
             grid_size=64,
             max_history_len=4,
             max_history_hours=72.0,
-            pmw_schema_version="v2.3",
         )
         loader = DataLoader(
             dataset,
@@ -166,7 +165,10 @@ def evaluate(
     if use_ema:
         ema_state = ckpt.get("ema_state_dict") or ckpt.get("model_ema_state_dict") or ckpt.get("ema_model_state_dict")
         if ema_state is None:
-            raise ValueError(f"use_ema=True requested, but checkpoint '{ckpt_path_str}' does not contain EMA weights.")
+            if ckpt.get("provenance", {}).get("model_state_is_ema") is True:
+                ema_state = ckpt.get("model_state_dict", ckpt)
+            else:
+                raise ValueError(f"use_ema=True requested, but checkpoint '{ckpt_path_str}' does not contain EMA weights.")
         model.load_state_dict(ema_state, strict=True)
     else:
         state_dict = ckpt.get("model_state_dict", ckpt)

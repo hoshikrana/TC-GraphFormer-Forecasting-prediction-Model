@@ -8,13 +8,170 @@ import os
 import time
 import math
 from collections import defaultdict
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from .losses import MultiTaskLoss
+
+
+class ModelEMA:
+    """
+    Exponential Moving Average (EMA) of model parameters and floating-point buffers.
+    Maintains a shadow dictionary of float32 tensors on the model's device:
+      theta_ema <- decay * theta_ema + (1 - decay) * theta_live
+    after every optimizer step. Integer/boolean buffers (e.g., BatchNorm num_batches_tracked,
+    graph edge_index) are copied directly from the live model.
+    """
+
+    def __init__(self, model: nn.Module, decay: float = 0.999):
+        if not (0.0 < decay < 1.0):
+            raise ValueError(f"EMA decay must be in (0.0, 1.0), got {decay}")
+        self.decay = float(decay)
+        self.num_updates = 0
+        self.shadow: Dict[str, torch.Tensor] = {}
+        for k, v in model.state_dict().items():
+            self.shadow[k] = v.detach().clone()
+
+    @torch.no_grad()
+    def update(self, model: nn.Module) -> None:
+        self.num_updates += 1
+        d = self.decay
+        for k, v in model.state_dict().items():
+            v_det = v.detach()
+            if k not in self.shadow:
+                self.shadow[k] = v_det.clone()
+            elif v_det.is_floating_point():
+                self.shadow[k].mul_(d).add_(v_det, alpha=(1.0 - d))
+            else:
+                self.shadow[k].copy_(v_det)
+
+    def state_dict(self) -> Dict[str, torch.Tensor]:
+        return {k: v.detach().clone() for k, v in self.shadow.items()}
+
+    def load_state_dict(self, state_dict: Dict[str, torch.Tensor]) -> None:
+        self.shadow = {k: v.detach().clone() for k, v in state_dict.items()}
+
+    def copy_to(self, model: nn.Module) -> None:
+        model.load_state_dict(self.shadow, strict=True)
+
+
+def build_storm_balanced_weights(
+    storm_ids: List[str],
+    intensities_kt: Optional[np.ndarray] = None,
+    exponent: float = 0.5,
+    min_major_ratio: float = 0.80,
+    min_exponent: float = 0.25,
+) -> Tuple[np.ndarray, Dict[str, Any]]:
+    """
+    Compute mild storm-balanced sampling weights per observation:
+      w_i = (1 / n_{storm(i)})^exponent, normalized so sum_i w_i == 1.0.
+    If intensities_kt is provided and the expected major-hurricane (>= 96 kt) share
+    falls below `min_major_ratio` (80%) of the unbalanced share, automatically lowers
+    the exponent toward `min_exponent` (0.25) until the >= 80% guardrail is met.
+    """
+    if len(storm_ids) == 0:
+        raise ValueError("storm_ids cannot be empty")
+    s_arr = np.asarray(storm_ids, dtype=str)
+    unique_s, counts = np.unique(s_arr, return_counts=True)
+    count_map = dict(zip(unique_s.tolist(), counts.tolist()))
+    n_per_obs = np.array([ float(count_map[s]) for s in s_arr ], dtype=np.float64)
+
+    active_exp = float(exponent)
+    weights = (1.0 / n_per_obs) ** active_exp
+    weights = weights / np.sum(weights)
+
+    unbal_major_share = None
+    expected_major_share = None
+    major_share_ratio = None
+
+    if intensities_kt is not None and len(intensities_kt) == len(s_arr):
+        v_arr = np.asarray(intensities_kt, dtype=np.float64)
+        maj_mask = (~np.isnan(v_arr)) & (v_arr >= 96.0)
+        unbal_major_share = float(np.mean(maj_mask))
+        if unbal_major_share > 0.0:
+            expected_major_share = float(np.sum(weights * maj_mask))
+            major_share_ratio = expected_major_share / unbal_major_share
+            if major_share_ratio < min_major_ratio and active_exp > min_exponent:
+                for cand_exp in np.linspace(active_exp, min_exponent, 26):
+                    w_cand = (1.0 / n_per_obs) ** float(cand_exp)
+                    w_cand = w_cand / np.sum(w_cand)
+                    exp_cand = float(np.sum(w_cand * maj_mask))
+                    active_exp = float(cand_exp)
+                    weights = w_cand
+                    expected_major_share = exp_cand
+                    major_share_ratio = exp_cand / unbal_major_share
+                    if major_share_ratio >= min_major_ratio:
+                        break
+
+    info = {
+        "requested_exponent": float(exponent),
+        "active_exponent": round(active_exp, 4),
+        "num_observations": int(len(s_arr)),
+        "num_storms": int(len(unique_s)),
+        "weights_sum": float(np.sum(weights)),
+        "unbalanced_major_hurricane_share": round(unbal_major_share, 6) if unbal_major_share is not None else None,
+        "expected_major_hurricane_share": round(expected_major_share, 6) if expected_major_share is not None else None,
+        "expected_to_unbalanced_major_ratio": round(major_share_ratio, 6) if major_share_ratio is not None else None,
+    }
+    return weights, info
+
+
+def build_decoupled_param_groups(
+    model: nn.Module,
+    head_lr: float = 3e-4,
+    backbone_lr_scale: float = 1.0,
+    weight_decay: float = 1e-4,
+) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
+    """
+    Construct AdamW parameter groups with:
+      - Separate learning rate for backbone (`head_lr * backbone_lr_scale`) vs. `task_heads` (`head_lr`)
+      - Decoupled weight decay applied strictly to >=2D weight matrices, excluding 1D biases,
+        LayerNorm/BatchNorm parameters, and spatial/positional embeddings.
+    """
+    backbone_lr = float(head_lr) * float(backbone_lr_scale)
+    backbone_decay, backbone_no_decay = [], []
+    head_decay, head_no_decay = [], []
+
+    for name, param in model.named_parameters():
+        if not param.requires_grad:
+            continue
+        is_head = name.startswith("task_heads.")
+        no_wd = (
+            param.ndim < 2
+            or name.endswith(".bias")
+            or "norm" in name.lower()
+            or "bn" in name.lower()
+            or "pos_embed" in name.lower()
+            or "modality_embed" in name.lower()
+        )
+        if is_head:
+            if no_wd:
+                head_no_decay.append(param)
+            else:
+                head_decay.append(param)
+        else:
+            if no_wd:
+                backbone_no_decay.append(param)
+            else:
+                backbone_decay.append(param)
+
+    param_groups = [
+        {"params": backbone_decay, "lr": backbone_lr, "weight_decay": float(weight_decay), "group_name": "backbone_decay"},
+        {"params": backbone_no_decay, "lr": backbone_lr, "weight_decay": 0.0, "group_name": "backbone_no_decay"},
+        {"params": head_decay, "lr": float(head_lr), "weight_decay": float(weight_decay), "group_name": "head_decay"},
+        {"params": head_no_decay, "lr": float(head_lr), "weight_decay": 0.0, "group_name": "head_no_decay"},
+    ]
+    param_groups = [g for g in param_groups if len(g["params"]) > 0]
+    counts = {
+        "backbone_decay_tensors": len(backbone_decay),
+        "backbone_no_decay_tensors": len(backbone_no_decay),
+        "head_decay_tensors": len(head_decay),
+        "head_no_decay_tensors": len(head_no_decay),
+    }
+    return param_groups, counts
 
 
 class TCGraphFormerTrainer:
@@ -35,6 +192,8 @@ class TCGraphFormerTrainer:
         grad_clip_norm: float = 1.0,
         accumulate_grad_batches: int = 1,
         best_val_loss: float = float("inf"),
+        use_ema: bool = False,
+        ema_decay: float = 0.999,
     ):
         self.model = model.to(device)
         self.optimizer = optimizer
@@ -50,6 +209,10 @@ class TCGraphFormerTrainer:
         # GradScaler is primarily used for fp16; bf16 has wider dynamic range
         scaler_enabled = self.use_amp and (self.precision != "bf16")
         self.scaler = torch.cuda.amp.GradScaler(enabled=scaler_enabled)
+
+        self.use_ema = bool(use_ema)
+        self.ema_decay = float(ema_decay)
+        self.ema: Optional[ModelEMA] = ModelEMA(self.model, decay=self.ema_decay) if self.use_ema else None
 
         os.makedirs(checkpoint_dir, exist_ok=True)
         self.best_val_loss = best_val_loss
@@ -116,6 +279,10 @@ class TCGraphFormerTrainer:
         self.optimizer.zero_grad()
         num_batches = len(dataloader)
         optimizer_steps = 0
+        major_hurr_samples = 0
+        valid_wind_samples_epoch = 0
+        grad_norms_preclip = []
+        grad_clipped_steps = 0
 
         # Import MultiTaskLoss check
         from src.training.losses import MultiTaskLoss
@@ -177,6 +344,11 @@ class TCGraphFormerTrainer:
                 for b in group_batches:
                     targets = {k: v.to(self.device) for k, v in b["targets"].items() if isinstance(v, torch.Tensor)}
                     B = b["ir"].size(0)
+                    if "intensity" in targets:
+                        v_t = targets["intensity"]
+                        v_m = targets.get("intensity_mask", torch.ones_like(v_t)) > 0.5
+                        valid_wind_samples_epoch += int(v_m.sum().item())
+                        major_hurr_samples += int((v_m & (v_t >= 96.0)).sum().item())
 
                     with torch.cuda.amp.autocast(enabled=self.use_amp, dtype=self.amp_dtype):
                         preds = self._forward_batch(b)
@@ -223,16 +395,28 @@ class TCGraphFormerTrainer:
                 # Step optimizer once for the entire accumulation group
                 if self.use_amp:
                     self.scaler.unscale_(self.optimizer)
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
+                    g_norm = float(torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm).item())
+                    if math.isfinite(g_norm):
+                        grad_norms_preclip.append(g_norm)
+                        if g_norm > self.grad_clip_norm:
+                            grad_clipped_steps += 1
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
                     self.optimizer.zero_grad()
                     optimizer_steps += 1
+                    if self.ema is not None:
+                        self.ema.update(self.model)
                 else:
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
+                    g_norm = float(torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm).item())
+                    if math.isfinite(g_norm):
+                        grad_norms_preclip.append(g_norm)
+                        if g_norm > self.grad_clip_norm:
+                            grad_clipped_steps += 1
                     self.optimizer.step()
                     self.optimizer.zero_grad()
                     optimizer_steps += 1
+                    if self.ema is not None:
+                        self.ema.update(self.model)
 
                 group_batches = []
 
@@ -275,15 +459,45 @@ class TCGraphFormerTrainer:
         metrics["total_batches"] = num_batches
         metrics["accumulate_grad_batches"] = self.accumulate_grad_batches
         metrics["epoch_time_sec"] = round(time.time() - start_time, 2)
+        metrics["major_hurricane_samples"] = major_hurr_samples
+        metrics["valid_wind_samples_epoch"] = valid_wind_samples_epoch
+        metrics["major_hurricane_share"] = round(
+            float(major_hurr_samples) / max(1.0, float(valid_wind_samples_epoch)), 6
+        )
+        if grad_norms_preclip:
+            metrics["grad_norm_preclip_mean"] = round(float(np.mean(grad_norms_preclip)), 4)
+            metrics["grad_norm_preclip_max"] = round(float(np.max(grad_norms_preclip)), 4)
+            metrics["grad_clipped_steps"] = int(grad_clipped_steps)
+            metrics["grad_clipped_fraction_pct"] = round(
+                100.0 * float(grad_clipped_steps) / max(1.0, float(len(grad_norms_preclip))), 2
+            )
+        if self.ema is not None:
+            metrics["ema_num_updates"] = int(self.ema.num_updates)
         return metrics
 
-    def evaluate(self, dataloader: DataLoader) -> Dict[str, Any]:
+    def evaluate(self, dataloader: DataLoader, use_ema: Optional[bool] = None) -> Dict[str, Any]:
         """
         Evaluate model on validation or test partition with strict target masking.
+        If `use_ema` is True (or None when `self.use_ema` is enabled), temporarily swaps
+        the EMA shadow weights into `self.model` for evaluation and restores the live weights
+        upon completion.
         Computes regression MAE/RMSE/bias, classification Macro-F1/balanced accuracy,
         binary RI PR-AUC/Brier/F1 metrics, global valid-target-normalized per-task losses,
         and the fixed multi-task relative error selection criterion (val_mt_rel_err).
         """
+        eval_with_ema = (self.use_ema and self.ema is not None) if use_ema is None else (bool(use_ema) and self.ema is not None)
+        live_backup = None
+        if eval_with_ema:
+            live_backup = {k: v.detach().clone() for k, v in self.model.state_dict().items()}
+            self.ema.copy_to(self.model)
+
+        try:
+            return self._evaluate_impl(dataloader, evaluated_with_ema=eval_with_ema)
+        finally:
+            if live_backup is not None:
+                self.model.load_state_dict(live_backup, strict=True)
+
+    def _evaluate_impl(self, dataloader: DataLoader, evaluated_with_ema: bool = False) -> Dict[str, Any]:
         self.model.eval()
         total_loss = 0.0
         total_samples = 0
@@ -558,6 +772,7 @@ class TCGraphFormerTrainer:
         val_metrics["val_mt_rel_err"] = round(
             float((rel_wind + rel_press + rel_stage + rel_dv + rel_ri + rel_track) / 6.0), 4
         )
+        val_metrics["evaluated_with_ema"] = bool(evaluated_with_ema)
 
         return val_metrics
 
@@ -566,23 +781,39 @@ class TCGraphFormerTrainer:
         epoch: int,
         metrics: Dict[str, Any],
         is_best: bool = False,
+        is_best_composite: bool = False,
         filename: str = None,
         extra_metadata: Dict[str, Any] = None,
+        save_ema_as_model: Optional[bool] = None,
     ) -> str:
         """
         Serialize model weights, optimizer state, scheduler state, AMP scaler state,
         historical best validation loss, metrics, and explicit training provenance.
+        When `use_ema` is enabled (or `save_ema_as_model=True`), saves the EMA weights
+        as `model_state_dict` so all downstream evaluators load the EMA model directly,
+        while also storing `ema_state_dict` and `raw_model_state_dict`.
         """
         if filename is None:
             filename = f"checkpoint_epoch_{epoch:03d}.pt"
 
-        if is_best and "val_loss" in metrics:
-            self.best_val_loss = float(metrics["val_loss"])
+        if is_best:
+            loss_val = metrics.get("val_loss_global", metrics.get("val_loss"))
+            if loss_val is not None:
+                self.best_val_loss = float(loss_val)
+
+        use_ema_weights = (self.use_ema and self.ema is not None) if save_ema_as_model is None else (bool(save_ema_as_model) and self.ema is not None)
+        live_state = self.model.state_dict()
+        ema_state = self.ema.state_dict() if self.ema is not None else None
+        primary_model_state = ema_state if (use_ema_weights and ema_state is not None) else live_state
 
         filepath = os.path.join(self.checkpoint_dir, filename)
         state = {
             "epoch": epoch,
-            "model_state_dict": self.model.state_dict(),
+            "model_state_dict": primary_model_state,
+            "ema_state_dict": ema_state,
+            "raw_model_state_dict": live_state if use_ema_weights else None,
+            "use_ema": bool(self.use_ema),
+            "ema_decay": float(self.ema_decay) if self.use_ema else None,
             "optimizer_state_dict": self.optimizer.state_dict(),
             "scheduler_state_dict": self.scheduler.state_dict() if self.scheduler is not None else None,
             "scaler_state_dict": self.scaler.state_dict() if (self.use_amp and self.scaler is not None) else None,
@@ -600,6 +831,8 @@ class TCGraphFormerTrainer:
                 "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "has_scheduler_state": self.scheduler is not None,
                 "has_scaler_state": (self.use_amp and self.scaler is not None),
+                "has_ema_state": ema_state is not None,
+                "model_state_is_ema": bool(use_ema_weights and ema_state is not None),
             },
             "extra_metadata": extra_metadata or {},
         }
@@ -608,6 +841,14 @@ class TCGraphFormerTrainer:
         if is_best:
             best_path = os.path.join(self.checkpoint_dir, "best_checkpoint.pt")
             torch.save(state, best_path)
+            best_loss_path = os.path.join(self.checkpoint_dir, "best_global_loss_checkpoint.pt")
+            torch.save(state, best_loss_path)
+
+        if is_best_composite:
+            best_comp_path = os.path.join(self.checkpoint_dir, "best_mt_rel_err_checkpoint.pt")
+            torch.save(state, best_comp_path)
+            best_comp_alias = os.path.join(self.checkpoint_dir, "best_composite_checkpoint.pt")
+            torch.save(state, best_comp_alias)
 
         latest_path = os.path.join(self.checkpoint_dir, "latest_checkpoint.pt")
         torch.save(state, latest_path)
@@ -615,13 +856,14 @@ class TCGraphFormerTrainer:
         return filepath
 
     def restore_checkpoint(self, checkpoint_path: str, allow_legacy_resume: bool = False) -> Dict[str, Any]:
-        """Restore model, optimizer, scheduler, and AMP scaler state from checkpoint."""
+        """Restore model, optimizer, scheduler, AMP scaler, and optional EMA state from checkpoint."""
         res = restore_checkpoint_state(
             checkpoint_path=checkpoint_path,
             model=self.model,
             optimizer=self.optimizer,
             scheduler=self.scheduler,
             scaler=self.scaler,
+            ema=self.ema,
             use_amp=self.use_amp,
             precision=self.precision,
             allow_legacy_resume=allow_legacy_resume,
@@ -637,6 +879,7 @@ def restore_checkpoint_state(
     optimizer: Optional[torch.optim.Optimizer] = None,
     scheduler: Optional[Any] = None,
     scaler: Optional[Any] = None,
+    ema: Optional[ModelEMA] = None,
     use_amp: bool = False,
     precision: str = "fp16",
     allow_legacy_resume: bool = False,
@@ -658,14 +901,15 @@ def restore_checkpoint_state(
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
 
-    ckpt = torch.load(checkpoint_path, map_location=device)
+    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
     if not isinstance(ckpt, dict):
         raise ValueError(f"Invalid checkpoint format in '{checkpoint_path}': expected dict, got {type(ckpt)}")
 
     is_legacy_resume = False
 
-    # 1. Model State
-    state = ckpt.get("model_state_dict", ckpt)
+    # 1. Model State (restore raw live model weights when resuming training if raw_model_state_dict is present)
+    raw_state = ckpt.get("raw_model_state_dict")
+    state = raw_state if (raw_state is not None and isinstance(raw_state, dict)) else ckpt.get("model_state_dict", ckpt)
     model_state = model.state_dict()
     model_keys = set(model_state.keys())
     ckpt_keys = set(state.keys())
@@ -686,6 +930,14 @@ def restore_checkpoint_state(
             f"Missing keys: {len(missing_keys)}, Shape mismatches: {len(mismatched_shapes)}."
         )
     model.load_state_dict(state, strict=True)
+
+    # 1b. Optional EMA State
+    if ema is not None:
+        ema_state = ckpt.get("ema_state_dict")
+        if ema_state is not None and isinstance(ema_state, dict):
+            ema.load_state_dict(ema_state)
+        else:
+            ema.load_state_dict(ckpt.get("model_state_dict", state))
 
     # 2. Training Epoch
     epoch = ckpt.get("epoch")
