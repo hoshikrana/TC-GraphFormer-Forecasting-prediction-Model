@@ -58,6 +58,10 @@ reports/acquisition_100gb/s3_inventory_100gb.csv
 checkpoints/*.pt
 checkpoints/*.pth
 checkpoints/*.bin
+checkpoints/**/*.pt
+checkpoints/**/*.pth
+checkpoints/**/*.bin
+checkpoints/tcprimed_100gb*/
 !checkpoints/.gitkeep
 
 # IDEs & System files
@@ -74,4 +78,3 @@ desktop.ini
 temp/
 tmp/
 *.tmp
-
