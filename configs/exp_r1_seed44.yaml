@@ -1,0 +1,77 @@
+# Experiment R1 — Regularized TC-GraphFormer Configuration (Seed 44)
+# Exact frozen R1 recipe from configs/exp_r1.yaml with seed=44
+experiment:
+  name: "exp_r1_regularized_seed44"
+  description: "EMA (0.999) + Train-Only Whole-Modality Dropout (0.15) + Fusion Sector-Token Dropout (0.10) + Linear DropPath (0->0.10) + Mild Storm-Balanced Sampler (exp=0.5) + Differential LR (0.5x Backbone, 1e-2 Decoupled WD) - Seed 44"
+
+machine:
+  role: "gpu_node"
+  device: "cuda"
+  cuda_device_id: 0
+  num_workers: 0
+  precision: "fp16"
+
+paths:
+  staged_data_dir: "data/processed/tcprimed_100gb"
+  sample_index_path: "reports/pipeline_100gb/sample_index.csv"
+  split_manifest_path: "reports/pipeline_100gb/storm_split_manifest.csv"
+  checkpoints_dir: "checkpoints/tcprimed_100gb_exp_r1_seed44"
+  reports_dir: "reports/phase2e4_100gb"
+  training_summary_path: "reports/phase2e4_100gb/exp_r1_seed44_summary.json"
+  epoch_csv_path: "reports/phase2e4_100gb/exp_r1_seed44_epochs.csv"
+
+training:
+  seed: 44
+  epochs: 24
+  cosine_t_max: 24
+  eta_min: 1.0e-6
+  batch_size: 32
+  accumulate_grad_batches: 2
+  learning_rate: 3.0e-4
+  backbone_lr_scale: 0.5
+  weight_decay: 1.0e-2
+  decoupled_weight_decay: true
+  d_model: 128
+  head_dropout: 0.0
+  grad_clip_norm: 1.0
+  mixed_precision: true
+  precision: "fp16"
+  pin_memory: true
+  persistent_workers: false
+  use_sequences: true
+  max_history_len: 4
+  max_history_hours: 72.0
+  pretrained_checkpoint: "checkpoints/tcprimed_100gb/pretrained_backbone.pt"
+  checkpoint_dir: "checkpoints/tcprimed_100gb_exp_r1_seed44"
+  output_report: "reports/phase2e4_100gb/exp_r1_seed44_summary.json"
+  epoch_csv_report: "reports/phase2e4_100gb/exp_r1_seed44_epochs.csv"
+
+  # Feature-flagged R1 regularizers (all default to OFF in code when omitted)
+  use_ema: true
+  ema_decay: 0.999
+  modality_dropout_prob: 0.15
+  sector_token_dropout: 0.10
+  drop_path_rate: 0.10
+  use_storm_balanced_sampler: true
+  storm_balance_exponent: 0.50
+  storm_balance_min_major_ratio: 0.80
+  storm_balance_min_exponent: 0.25
+
+  # Checkpoint selection & early stopping
+  selection_metric: "val_mt_rel_err"
+  early_stop_patience: 5
+  train_eval_subset_size: 2048
+  full_train_eval_on_best: true
+
+loss_weights:
+  weight_intensity: 1.0
+  weight_pressure: 0.5
+  weight_stage: 0.5
+  weight_intensity_change: 1.0
+  weight_ri: 2.0
+  weight_track: 1.0
+  ri_pos_weight: 18.10
+  regime_max_extra_weight: 2.5
+  regime_power: 2.0
+  ri_prior_shift_factor: 0.85
+

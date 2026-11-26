@@ -214,3 +214,4 @@ All R1 regularized artifacts and checkpoints have been saved and verified in the
   - Canonical Summary: [reports/canonical/val_table.csv](file:///D:/Enjula%20uchoi/TC-GraphFormer-verified/reports/canonical/val_table.csv)
 
 The reference checkpoints (`Original_Ep5`, `C1_Ep8`, `T6_Ep6`, `S24_Ep7`, `S24_Ep10`) remain unaltered as the official operational baselines. `FINAL_TEST` was strictly unaccessed.
+

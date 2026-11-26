@@ -224,7 +224,7 @@ def evaluate(
 
     v_pred_all, v_true_all, v_mask_all = [], [], []
     p_pred_all, p_true_all, p_mask_all = [], [], []
-    s_pred_all, s_true_all, s_mask_all = [], [], []
+    s_pred_all, s_prob_all, s_true_all, s_mask_all = [], [], [], []
     dv_pred_all, dv_true_all, dv_mask_all = [], [], []
     ri_prob_all, ri_logit_all, ri_true_all, ri_mask_all = [], [], [], []
     tr_pred_all, tr_true_all, tr_mask_all = [], [], []
@@ -288,7 +288,9 @@ def evaluate(
             p_true_all.append(targets["pressure"].cpu().numpy())
             p_mask_all.append(targets["pressure_mask"].cpu().numpy() > 0.5)
 
-            s_pred_all.append(preds["stage_logits"].argmax(dim=-1).cpu().numpy())
+            s_logits = preds["stage_logits"]
+            s_prob_all.append(torch.softmax(s_logits, dim=-1).cpu().numpy())
+            s_pred_all.append(s_logits.argmax(dim=-1).cpu().numpy())
             s_true_all.append(targets["stage"].cpu().numpy())
             s_mask_all.append(targets["stage_mask"].cpu().numpy() > 0.5)
 
@@ -323,6 +325,7 @@ def evaluate(
     p_mask = np.concatenate(p_mask_all, axis=0)
 
     s_pred = np.concatenate(s_pred_all, axis=0)
+    s_prob = np.concatenate(s_prob_all, axis=0)
     s_true = np.concatenate(s_true_all, axis=0)
     s_mask = np.concatenate(s_mask_all, axis=0)
 
@@ -495,6 +498,7 @@ def evaluate(
         "p_true": p_true,
         "p_mask": p_mask,
         "s_pred": s_pred,
+        "s_prob": s_prob,
         "s_true": s_true,
         "s_mask": s_mask,
         "dv_pred": dv_pred,
