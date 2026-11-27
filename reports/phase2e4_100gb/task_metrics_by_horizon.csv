@@ -1,0 +1,17 @@
+partition,task_category,horizon_hours,n_valid_targets,persistence_mae,persistence_rmse,persistence_median_error,climatology_mae,climatology_rmse,velocity_baseline_mae,velocity_baseline_rmse,tc_graphformer_mae,tc_graphformer_rmse,improvement_over_persist,improvement_over_clim,improvement_over_velocity,units,checkpoint_status
+VAL,future_forecasting,Intensity_6h,1722,3.49,5.67,3.0,3.5,5.67,,,3.22,4.75,0.27,0.28,,kt,trained_checkpoint
+VAL,future_forecasting,Intensity_12h,1671,6.8,10.39,5.0,6.81,10.39,,,5.96,8.38,0.84,0.85,,kt,trained_checkpoint
+VAL,future_forecasting,Intensity_18h,1627,9.76,14.3,6.0,9.77,14.3,,,8.27,11.28,1.49,1.5,,kt,trained_checkpoint
+VAL,future_forecasting,Intensity_24h,1576,12.38,17.85,9.0,12.39,17.83,,,10.18,13.64,2.2,2.21,,kt,trained_checkpoint
+VAL,future_forecasting,Track_6h,290,121.18,141.92,109.19,106.26,133.95,34.7,44.77,35.72,44.97,85.46,70.54,-1.02,km,trained_checkpoint
+VAL,future_forecasting,Track_12h,287,241.77,284.65,211.52,212.07,269.32,84.18,105.54,85.89,106.36,155.88,126.18,-1.71,km,trained_checkpoint
+VAL,future_forecasting,Track_18h,276,358.74,420.42,317.02,314.54,396.33,144.98,175.06,147.15,178.18,211.59,167.39,-2.17,km,trained_checkpoint
+VAL,future_forecasting,Track_24h,270,477.87,564.38,437.14,418.76,533.75,213.15,257.63,213.65,260.55,264.22,205.11,-0.5,km,trained_checkpoint
+TEST,future_forecasting,Intensity_6h,1352,3.58,5.63,2.5,3.59,5.63,,,3.02,4.27,0.56,0.57,,kt,trained_checkpoint
+TEST,future_forecasting,Intensity_12h,1312,7.0,10.56,5.0,7.01,10.56,,,5.62,8.02,1.38,1.39,,kt,trained_checkpoint
+TEST,future_forecasting,Intensity_18h,1266,10.17,14.94,6.0,10.19,14.94,,,7.96,11.17,2.21,2.23,,kt,trained_checkpoint
+TEST,future_forecasting,Intensity_24h,1227,13.32,19.19,10.0,13.36,19.18,,,10.02,14.13,3.3,3.34,,kt,trained_checkpoint
+TEST,future_forecasting,Track_6h,238,110.62,128.32,103.64,97.19,115.47,33.89,45.13,33.99,44.99,76.63,63.2,-0.1,km,trained_checkpoint
+TEST,future_forecasting,Track_12h,231,220.4,257.17,206.09,192.26,231.8,79.45,109.43,78.57,108.39,141.83,113.69,0.88,km,trained_checkpoint
+TEST,future_forecasting,Track_18h,225,322.63,365.45,301.07,280.1,325.56,132.28,168.72,130.9,166.12,191.73,149.2,1.38,km,trained_checkpoint
+TEST,future_forecasting,Track_24h,219,430.2,489.04,403.17,371.03,436.04,194.06,245.82,187.73,238.78,242.47,183.3,6.33,km,trained_checkpoint

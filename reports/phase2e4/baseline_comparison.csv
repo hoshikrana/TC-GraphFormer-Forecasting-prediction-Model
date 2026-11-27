@@ -1,13 +1,21 @@
-partition,task,model,n_samples,mae,rmse,bias,units,checkpoint_status,notes
-VAL,Current Intensity (v_max),Climatology (Train Mean),2,18.19,18.19,18.19,kt,partially_matched_checkpoint,
-VAL,Current Intensity (v_max),Linear Regression,2,19.09,19.09,19.09,kt,partially_matched_checkpoint,
-VAL,Current Intensity (v_max),TC-GraphFormer (Untrained Smoke-Test),2,19.84,19.84,-19.84,kt,partially_matched_checkpoint,
-VAL,Development Stage Classification,Majority Class (TS),2,100.0,0.0,0.0,error_rate_pct,baseline_climatology,Accuracy: 0.00%
-VAL,Development Stage Classification,TC-GraphFormer (Untrained Smoke-Test),2,0.0,0.0,0.0,error_rate_pct,partially_matched_checkpoint,Accuracy: 100.00%
-TEST,Current Intensity (v_max),Climatology (Train Mean),2,4.81,5.67,-4.81,kt,partially_matched_checkpoint,
-TEST,Current Intensity (v_max),Linear Regression,2,7.2,7.52,-7.2,kt,partially_matched_checkpoint,
-TEST,Current Intensity (v_max),TC-GraphFormer (Untrained Smoke-Test),2,43.01,43.11,-43.01,kt,partially_matched_checkpoint,
-TEST,Development Stage Classification,Majority Class (TS),2,100.0,0.0,0.0,error_rate_pct,baseline_climatology,Accuracy: 0.00%
-TEST,Development Stage Classification,TC-GraphFormer (Untrained Smoke-Test),2,100.0,0.0,0.0,error_rate_pct,partially_matched_checkpoint,Accuracy: 0.00%
-TEST,Rapid Intensification (24h >= 30kt),Training Climatology (Base Rate),1,0.0008,0.0283,0.0,brier_score,baseline_climatology,"PR-AUC: 0.0000, Base Rate: 0.029"
-TEST,Rapid Intensification (24h >= 30kt),TC-GraphFormer (Untrained Smoke-Test),1,0.2422,0.4921,0.0,brier_score,partially_matched_checkpoint,"PR-AUC: 0.0000, Prec@0.5: 0.0000, Rec@0.5: 0.0000"
+partition,task_category,task,model,n_samples,mae,rmse,bias,units,checkpoint_status,notes
+VAL,current_state_estimation,Current Intensity (v_max),Climatology (Train Mean),612,15.73,22.76,-2.17,kt,trained_checkpoint,
+VAL,current_state_estimation,Current Intensity (v_max),Linear Regression,612,15.53,22.64,-2.96,kt,trained_checkpoint,
+VAL,current_state_estimation,Current Intensity (v_max),TC-GraphFormer,612,14.48,20.01,-4.49,kt,trained_checkpoint,
+VAL,current_state_estimation,Central Pressure (p_min),Climatology (Train Mean),476,9.11,11.45,1.12,hPa,trained_checkpoint,
+VAL,current_state_estimation,Central Pressure (p_min),Linear Pressure-Wind Fit,476,5.1,6.52,1.1,hPa,trained_checkpoint,
+VAL,current_state_estimation,Central Pressure (p_min),TC-GraphFormer,476,9.86,13.75,7.32,hPa,trained_checkpoint,
+VAL,current_state_estimation,Development Stage Classification,Majority Class (TS),612,68.79,0.0,0.0,error_rate_pct,baseline_climatology,Accuracy: 31.21%
+VAL,current_state_estimation,Development Stage Classification,TC-GraphFormer,612,58.17,0.0,0.0,error_rate_pct,trained_checkpoint,Accuracy: 41.83%
+VAL,future_forecasting,Rapid Intensification (24h >= 30kt),Training Climatology (Base Rate),428,0.0339,0.1841,0.0,brier_score,baseline_climatology,"PR-AUC: 0.0326, Base Rate: 0.029, Pos: 15, Neg: 413"
+VAL,future_forecasting,Rapid Intensification (24h >= 30kt),TC-GraphFormer,428,0.0266,0.1631,0.0,brier_score,trained_checkpoint,"PR-AUC: 0.4498, F1@0.22: 0.4828 (Prec: 0.5000, Rec: 0.4667), Pos: 15, Neg: 413"
+TEST,current_state_estimation,Current Intensity (v_max),Climatology (Train Mean),245,12.31,17.08,6.02,kt,trained_checkpoint,
+TEST,current_state_estimation,Current Intensity (v_max),Linear Regression,245,12.75,18.81,4.97,kt,trained_checkpoint,
+TEST,current_state_estimation,Current Intensity (v_max),TC-GraphFormer,245,7.38,16.38,-3.32,kt,trained_checkpoint,
+TEST,current_state_estimation,Central Pressure (p_min),Climatology (Train Mean),172,7.11,7.48,-5.79,hPa,trained_checkpoint,
+TEST,current_state_estimation,Central Pressure (p_min),Linear Pressure-Wind Fit,172,2.87,3.84,0.3,hPa,trained_checkpoint,
+TEST,current_state_estimation,Central Pressure (p_min),TC-GraphFormer,172,5.96,7.07,5.91,hPa,trained_checkpoint,
+TEST,current_state_estimation,Development Stage Classification,Majority Class (TS),213,42.25,0.0,0.0,error_rate_pct,baseline_climatology,Accuracy: 57.75%
+TEST,current_state_estimation,Development Stage Classification,TC-GraphFormer,213,49.77,0.0,0.0,error_rate_pct,trained_checkpoint,Accuracy: 50.23%
+TEST,future_forecasting,Rapid Intensification (24h >= 30kt),Training Climatology (Base Rate),113,0.0092,0.0959,0.0,brier_score,baseline_climatology,"PR-AUC: 0.0169, Base Rate: 0.029, Pos: 1, Neg: 112 [LOW_POS_UNCERTAINTY: n_pos=1<5]"
+TEST,future_forecasting,Rapid Intensification (24h >= 30kt),TC-GraphFormer,113,0.0095,0.0975,0.0,brier_score,trained_checkpoint,"PR-AUC: 0.0101, F1@0.22: 0.0000 (Prec: 0.0000, Rec: 0.0000), Pos: 1, Neg: 112 [LOW_POS_UNCERTAINTY: n_pos=1<5]"

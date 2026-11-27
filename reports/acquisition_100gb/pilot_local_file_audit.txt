@@ -1,0 +1,24 @@
+========================================================================================
+TC PRIMED PILOT DATASET: LOCAL FILE AUDIT REPORT
+Audit Timestamp: 2026-11-23 20:19:09 UTC
+Destination:     D:\Enjula uchoi\TC-GraphFormer-verified\data\raw\tcprimed_100gb
+========================================================================================
+
+1. AUDIT CLASSIFICATION SUMMARY
+----------------------------------------------------------------------------------------
+  Total Manifest Entries:         13,898
+  Expected Manifest Size:         99.9978 GB (93.1302 GiB / 99,997,769,720 bytes)
+
+  [CORRECT]    Fully Downloaded:  13,898 files (99.9978 GB / 93.1302 GiB)
+  [MISSING]    Missing on Disk:   0 files (0.0000 GB / 0.0000 GiB)
+  [INCOMPLETE] Wrong Size:        0 files (0 bytes expected)
+  [UNEXPECTED] Extraneous Files:  0 files (0.0000 GB / 0 bytes)
+
+2. DOWNLOAD PROGRESS
+----------------------------------------------------------------------------------------
+  Completed Files:  100.00% (13,898 of 13,898)
+  Completed Bytes:  100.00% (99.9978 of 99.9978 GB)
+
+========================================================================================
+END OF LOCAL FILE AUDIT REPORT
+========================================================================================

@@ -1,0 +1,102 @@
+{
+  "workflow": "Self-Supervised Masked Feature Pretraining (Phase 2E.2)",
+  "epochs": 3,
+  "mask_ratio": 0.3,
+  "final_loss_mse": 0.37031,
+  "checkpoint_path": "checkpoints\\pretrained_backbone.pt",
+  "history": [
+    {
+      "epoch": 1,
+      "loss_mse": 0.5493,
+      "valid_tokens": 104072,
+      "masked_tokens": 30900,
+      "visible_tokens": 73172,
+      "gradient_norms": {
+        "ir_encoder": 0.038705,
+        "pmw_encoder": 0.042782,
+        "gprof_encoder": 0.03814,
+        "radar_encoder": 0.036642,
+        "env_encoder": 0.041347,
+        "fusion": 0.09215,
+        "recon_head": 0.261364
+      },
+      "parameter_update_norms": {
+        "ir_encoder": 0.085007,
+        "pmw_encoder": 0.085373,
+        "gprof_encoder": 0.065914,
+        "radar_encoder": 0.02292,
+        "env_encoder": 0.064616,
+        "fusion": 0.090693,
+        "recon_head": 0.028582
+      }
+    },
+    {
+      "epoch": 2,
+      "loss_mse": 0.50711,
+      "valid_tokens": 104072,
+      "masked_tokens": 30900,
+      "visible_tokens": 73172,
+      "gradient_norms": {
+        "ir_encoder": 0.043411,
+        "pmw_encoder": 0.044075,
+        "gprof_encoder": 0.067325,
+        "radar_encoder": 0.040951,
+        "env_encoder": 0.042424,
+        "fusion": 0.069138,
+        "recon_head": 0.157811
+      },
+      "parameter_update_norms": {
+        "ir_encoder": 0.074366,
+        "pmw_encoder": 0.040482,
+        "gprof_encoder": 0.048769,
+        "radar_encoder": 0.016477,
+        "env_encoder": 0.041637,
+        "fusion": 0.047293,
+        "recon_head": 0.02464
+      }
+    },
+    {
+      "epoch": 3,
+      "loss_mse": 0.37031,
+      "valid_tokens": 104072,
+      "masked_tokens": 30900,
+      "visible_tokens": 73172,
+      "gradient_norms": {
+        "ir_encoder": 0.44606,
+        "pmw_encoder": 1.01877,
+        "gprof_encoder": 0.446889,
+        "radar_encoder": 0.445325,
+        "env_encoder": 0.447102,
+        "fusion": 0.446591,
+        "recon_head": 0.260084
+      },
+      "parameter_update_norms": {
+        "ir_encoder": 0.062085,
+        "pmw_encoder": 0.138053,
+        "gprof_encoder": 0.05628,
+        "radar_encoder": 0.02152,
+        "env_encoder": 0.054566,
+        "fusion": 0.077505,
+        "recon_head": 0.021733
+      }
+    }
+  ],
+  "final_gradient_norms": {
+    "ir_encoder": 0.44606,
+    "pmw_encoder": 1.01877,
+    "gprof_encoder": 0.446889,
+    "radar_encoder": 0.445325,
+    "env_encoder": 0.447102,
+    "fusion": 0.446591,
+    "recon_head": 0.260084
+  },
+  "final_parameter_updates": {
+    "ir_encoder": 0.062085,
+    "pmw_encoder": 0.138053,
+    "gprof_encoder": 0.05628,
+    "radar_encoder": 0.02152,
+    "env_encoder": 0.054566,
+    "fusion": 0.077505,
+    "recon_head": 0.021733
+  }
+}

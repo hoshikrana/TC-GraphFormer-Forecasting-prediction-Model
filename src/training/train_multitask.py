@@ -5,29 +5,42 @@ intensity changes, rapid intensification, and track displacements.
 Supports both single-observation and causal historical sequence training,
 with verifiable pretrained backbone weight loading, YAML configuration parsing,
 gradient accumulation, reliable full checkpoint resume (optimizer, scheduler, scaler),
-and strict parameter and checkpoint provenance validation.
+strict parameter and checkpoint provenance validation, and feature-flagged R1
+regularization (Weight EMA, train-only whole-modality dropout, fusion sector-token dropout,
+linearly scheduled stochastic depth DropPath, mild storm-balanced sampler, differential
+backbone/head learning rates with decoupled AdamW weight decay, dual best-composite /
+best-global-loss checkpoint preservation, and eval-mode TRAIN_EVAL / VAL global loss tracking).
 """
 
 import os
 import sys
 import json
+import time
+import platform
+import hashlib
 import random
 import argparse
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 import yaml
 import numpy as np
+import pandas as pd
 
 # Ensure project root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler, Subset
 
 from src.data.dataset import TCPRIMEDDataset, TCPRIMEDSequenceDataset
 from src.data.collate import collate_multimodal_batch, collate_sequence_batch
 from src.models.tc_graphformer import TCGraphFormer
 from src.training.losses import MultiTaskLoss
-from src.training.trainer import TCGraphFormerTrainer, restore_checkpoint_state
+from src.training.trainer import (
+    TCGraphFormerTrainer,
+    restore_checkpoint_state,
+    build_storm_balanced_weights,
+    build_decoupled_param_groups,
+)
 
 
 def validate_checkpoint_compatibility(
@@ -44,7 +57,7 @@ def validate_checkpoint_compatibility(
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
 
-    ckpt = torch.load(checkpoint_path, map_location=device)
+    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
     state = ckpt.get("model_state_dict", ckpt)
 
     model_state = model.state_dict()
@@ -79,7 +92,6 @@ def validate_checkpoint_compatibility(
         )
         raise ValueError(err_msg)
 
-    # Check for verifiable training provenance (strictly requiring supervised_multitask_training and epoch >= 1)
     is_trained = (
         is_compatible
         and (ckpt.get("is_trained") is True)
@@ -116,7 +128,7 @@ def load_pretrained_backbone(
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(f"Pretrained checkpoint not found at: {checkpoint_path}")
 
-    ckpt = torch.load(checkpoint_path, map_location=device)
+    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
     state = ckpt.get("model_state_dict", ckpt)
 
     backbone_prefixes = ("ir_encoder.", "pmw_encoder.", "gprof_encoder.", "radar_encoder.", "env_encoder.", "fusion.")
@@ -175,6 +187,21 @@ def load_yaml_config(config_path: str) -> Dict[str, Any]:
     return cfg
 
 
+def _extract_anchor_storm_ids_and_intensities(train_dataset: Any) -> Tuple[List[str], np.ndarray]:
+    """Extract anchor observation storm_ids and wind speeds (kt) for storm-balanced sampler construction."""
+    if isinstance(train_dataset, TCPRIMEDSequenceDataset):
+        df = train_dataset.base_dataset.df
+        anchor_indices = [seq[-1] for seq in train_dataset.sequence_index]
+        sub = df.iloc[anchor_indices]
+    elif isinstance(train_dataset, TCPRIMEDDataset):
+        sub = train_dataset.df
+    else:
+        raise TypeError(f"Unsupported dataset type for storm-balanced sampler: {type(train_dataset)}")
+    storm_ids = sub["storm_id"].astype(str).tolist()
+    intensities = pd.to_numeric(sub["intensity_vmax_kt"], errors="coerce").to_numpy(dtype=np.float64)
+    return storm_ids, intensities
+
+
 def run_multitask_training(
     config_path: Optional[str] = None,
     train_index: str = "reports/pipeline/sample_index.csv",
@@ -205,11 +232,32 @@ def run_multitask_training(
     seed: int = 42,
     loss_weights: Optional[Dict[str, float]] = None,
     dry_run: bool = False,
+    # Feature-flagged R1 regularization options (all default to OFF for 100% backward compatibility)
+    use_ema: bool = False,
+    ema_decay: float = 0.999,
+    modality_dropout_prob: float = 0.0,
+    sector_token_dropout: float = 0.0,
+    drop_path_rate: float = 0.0,
+    head_dropout: float = 0.0,
+    use_storm_balanced_sampler: bool = False,
+    storm_balance_exponent: float = 0.5,
+    storm_balance_min_major_ratio: float = 0.80,
+    storm_balance_min_exponent: float = 0.25,
+    backbone_lr_scale: float = 1.0,
+    decoupled_weight_decay: bool = False,
+    cosine_t_max: Optional[int] = None,
+    eta_min: float = 1e-6,
+    early_stop_patience: Optional[int] = None,
+    selection_metric: str = "val_loss",
+    epoch_csv_report: Optional[str] = None,
+    train_eval_subset_size: int = 0,
+    full_train_eval_on_best: bool = False,
+    experiment_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Execute multi-task training and validation with full configuration validation,
     provenance tracking, sequence dataloading, loss weighting, gradient accumulation,
-    and complete resume recovery.
+    complete resume recovery, and feature-flagged R1 regularizers.
     """
     # 0. Reproducibility
     random.seed(seed)
@@ -258,20 +306,55 @@ def run_multitask_training(
     if ri_pos_weight <= 0:
         raise ValueError(f"ri_pos_weight must be positive, got {ri_pos_weight}")
 
+    t_max_sched = int(cosine_t_max) if (cosine_t_max is not None and int(cosine_t_max) > 0) else max(1, epochs)
+
+    config_payload_for_hash = {
+        "experiment_name": experiment_name or "supervised_multitask_training",
+        "epochs": epochs,
+        "cosine_t_max": t_max_sched,
+        "eta_min": float(eta_min),
+        "batch_size": batch_size,
+        "accumulate_grad_batches": accumulate_grad_batches,
+        "lr": float(lr),
+        "backbone_lr_scale": float(backbone_lr_scale),
+        "weight_decay": float(weight_decay),
+        "decoupled_weight_decay": bool(decoupled_weight_decay),
+        "d_model": int(d_model),
+        "head_dropout": float(head_dropout),
+        "grad_clip_norm": float(grad_clip_norm),
+        "precision": precision,
+        "seed": int(seed),
+        "use_ema": bool(use_ema),
+        "ema_decay": float(ema_decay) if use_ema else None,
+        "modality_dropout_prob": float(modality_dropout_prob),
+        "sector_token_dropout": float(sector_token_dropout),
+        "drop_path_rate": float(drop_path_rate),
+        "use_storm_balanced_sampler": bool(use_storm_balanced_sampler),
+        "storm_balance_exponent": float(storm_balance_exponent) if use_storm_balanced_sampler else None,
+        "selection_metric": selection_metric,
+        "early_stop_patience": early_stop_patience,
+        "loss_weights": lw,
+    }
+    config_hash = hashlib.sha256(json.dumps(config_payload_for_hash, sort_keys=True).encode("utf-8")).hexdigest()[:12]
+
+    software_versions = {
+        "python": platform.python_version(),
+        "torch": torch.__version__,
+        "cuda": torch.version.cuda if torch.cuda.is_available() else None,
+        "numpy": np.__version__,
+        "pandas": pd.__version__,
+        "gpu_name": torch.cuda.get_device_name(0) if (device.startswith("cuda") and torch.cuda.is_available()) else "CPU",
+    }
+
     print("=" * 70)
-    print("TC-GRAPHFORMER SUPERVISED MULTI-TASK TRAINING (PHASE 2E.4.1)")
-    print(f"Device: {device} | AMP: {use_amp} | d_model: {d_model} | Epochs: {epochs} | Batch size: {batch_size}")
-    print(f"Grad Accumulation: {accumulate_grad_batches} batches | Effective Batch Size: {batch_size * accumulate_grad_batches}")
-    print(f"Mode: {'Historical Sequences' if use_sequences else 'Single Overpass'}")
-    if use_sequences:
-        print(f"History Config: max_history_len={max_history_len}, max_window={max_history_hours}h")
+    print(f"TC-GRAPHFORMER SUPERVISED MULTI-TASK TRAINING ({experiment_name or 'PHASE 2E.4.1'})")
+    print(f"Config Hash: {config_hash} | Seed: {seed} | Python: {software_versions['python']} | Torch: {software_versions['torch']}")
+    print(f"Device: {device} ({software_versions['gpu_name']}) | AMP: {use_amp} ({precision}) | d_model: {d_model}")
+    print(f"Epochs: {epochs} (Cosine T_max={t_max_sched}) | Batch size: {batch_size} x Accum: {accumulate_grad_batches} (Eff={batch_size * accumulate_grad_batches})")
+    print(f"Head LR: {lr} | Backbone LR Scale: {backbone_lr_scale} (Backbone LR={lr * backbone_lr_scale}) | WD: {weight_decay} (Decoupled={decoupled_weight_decay})")
+    print(f"R1 Flags: EMA={use_ema} (decay={ema_decay}) | ModDrop={modality_dropout_prob} | TokDrop={sector_token_dropout} | DropPath={drop_path_rate} | StormSampler={use_storm_balanced_sampler} (exp={storm_balance_exponent})")
     print(f"Pretrained Init: {pretrained_checkpoint or 'Random Initialization (Scratch)'}")
-    if resume_checkpoint:
-        print(f"Resume Checkpoint: {resume_checkpoint} (allow_legacy_resume={allow_legacy_resume})")
-    print(f"Loss weights: intensity={lw.get('weight_intensity', 1.0)}, pressure={lw.get('weight_pressure', 0.5)}, "
-          f"stage={lw.get('weight_stage', 0.5)}, dv={lw.get('weight_intensity_change', 1.0)}, "
-          f"ri={lw.get('weight_ri', 2.0)}, track={lw.get('weight_track', 1.0)}, ri_pos_weight={ri_pos_weight}")
-    print("=" * 70)
+    print("=" * 70, flush=True)
 
     # 2. Datasets & DataLoaders
     if use_sequences:
@@ -307,10 +390,42 @@ def run_multitask_training(
         )
         collate_fn = collate_multimodal_batch
 
+    sampler_info: Dict[str, Any] = {"enabled": False}
+    train_sampler = None
+    active_sampler_exponent = float(storm_balance_exponent)
+
+    if use_storm_balanced_sampler:
+        tr_storm_ids, tr_intensities = _extract_anchor_storm_ids_and_intensities(train_dataset)
+        w_np, s_info = build_storm_balanced_weights(
+            storm_ids=tr_storm_ids,
+            intensities_kt=tr_intensities,
+            exponent=storm_balance_exponent,
+            min_major_ratio=storm_balance_min_major_ratio,
+            min_exponent=storm_balance_min_exponent,
+        )
+        active_sampler_exponent = float(s_info["active_exponent"])
+        sampler_gen = torch.Generator()
+        sampler_gen.manual_seed(seed)
+        train_sampler = WeightedRandomSampler(
+            weights=torch.as_tensor(w_np, dtype=torch.double),
+            num_samples=len(train_dataset),
+            replacement=True,
+            generator=sampler_gen,
+        )
+        sampler_info = {"enabled": True, **s_info}
+        print(
+            f"[SAMPLER] Storm-balanced sampler active: exp={active_sampler_exponent:.4f}, "
+            f"unbalanced_major_share={100.0 * (s_info['unbalanced_major_hurricane_share'] or 0.0):.2f}%, "
+            f"expected_major_share={100.0 * (s_info['expected_major_hurricane_share'] or 0.0):.2f}% "
+            f"(ratio={100.0 * (s_info['expected_to_unbalanced_major_ratio'] or 1.0):.2f}%)",
+            flush=True,
+        )
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=(train_sampler is None),
+        sampler=train_sampler,
         num_workers=num_workers,
         collate_fn=collate_fn,
         pin_memory=pin_memory,
@@ -326,8 +441,50 @@ def run_multitask_training(
         persistent_workers=(persistent_workers and num_workers > 0),
     )
 
+    # Optional deterministic TRAIN_EVAL loaders (subset for every epoch, full for best epochs)
+    train_eval_subset_loader = None
+    train_eval_full_loader = None
+    if train_eval_subset_size and int(train_eval_subset_size) > 0:
+        n_tr = len(train_dataset)
+        if int(train_eval_subset_size) < n_tr:
+            rng_sub = np.random.default_rng(seed)
+            sub_idx = sorted(rng_sub.choice(n_tr, size=int(train_eval_subset_size), replace=False).tolist())
+            train_eval_subset_loader = DataLoader(
+                Subset(train_dataset, sub_idx),
+                batch_size=batch_size,
+                shuffle=False,
+                num_workers=num_workers,
+                collate_fn=collate_fn,
+                pin_memory=pin_memory,
+            )
+        else:
+            train_eval_subset_loader = DataLoader(
+                train_dataset,
+                batch_size=batch_size,
+                shuffle=False,
+                num_workers=num_workers,
+                collate_fn=collate_fn,
+                pin_memory=pin_memory,
+            )
+    if full_train_eval_on_best:
+        train_eval_full_loader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            collate_fn=collate_fn,
+            pin_memory=pin_memory,
+        )
+
     # 3. Model & Checkpoint Loading
-    model = TCGraphFormer(d_model=d_model, num_stages=5)
+    model = TCGraphFormer(
+        d_model=d_model,
+        num_stages=5,
+        head_dropout=head_dropout,
+        modality_dropout_prob=modality_dropout_prob,
+        sector_token_dropout=sector_token_dropout,
+        drop_path_rate=drop_path_rate,
+    )
     init_provenance = "random_scratch"
     transfer_info = {}
 
@@ -343,14 +500,33 @@ def run_multitask_training(
         weight_ri=float(lw.get("weight_ri", 2.0)),
         weight_track=float(lw.get("weight_track", 1.0)),
         ri_pos_weight=ri_pos_weight,
+        regime_max_extra_weight=float(lw.get("regime_max_extra_weight", 2.5)),
+        regime_power=float(lw.get("regime_power", 2.0)),
+        ri_prior_shift_factor=float(lw.get("ri_prior_shift_factor", 0.85)),
     ).to(device)
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(1, epochs), eta_min=1e-6)
+    param_group_counts = {}
+    if decoupled_weight_decay or float(backbone_lr_scale) != 1.0:
+        param_groups, param_group_counts = build_decoupled_param_groups(
+            model=model,
+            head_lr=lr,
+            backbone_lr_scale=backbone_lr_scale,
+            weight_decay=weight_decay,
+        )
+        optimizer = torch.optim.AdamW(param_groups, lr=lr, weight_decay=weight_decay)
+    else:
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=t_max_sched, eta_min=float(eta_min))
 
     start_epoch = 1
     best_val_loss = float("inf")
+    best_val_loss_global = float("inf")
+    best_val_mt_rel_err = float("inf")
+    best_loss_epoch = 0
+    best_composite_epoch = 0
     training_history = []
+    epoch_csv_rows = []
 
     trainer = TCGraphFormerTrainer(
         model=model,
@@ -364,12 +540,15 @@ def run_multitask_training(
         grad_clip_norm=grad_clip_norm,
         accumulate_grad_batches=accumulate_grad_batches,
         best_val_loss=best_val_loss,
+        use_ema=use_ema,
+        ema_decay=ema_decay,
     )
 
     if resume_checkpoint:
         res = trainer.restore_checkpoint(resume_checkpoint, allow_legacy_resume=allow_legacy_resume)
         start_epoch = res["next_epoch"]
         best_val_loss = res["best_val_loss"]
+        best_val_loss_global = res["best_val_loss"]
         init_provenance = f"resumed_checkpoint ({resume_checkpoint}, start_epoch={start_epoch}, best_val_loss={best_val_loss:.4f})"
         print(f"[RESUME] Checkpoint verified. Resuming at epoch {start_epoch} (historical best_val_loss={best_val_loss:.4f})")
 
@@ -383,7 +562,7 @@ def run_multitask_training(
         train_metrics = {}
         if dry_batches:
             train_metrics = trainer.train_epoch(dry_batches, epoch=1)
-            print(f"[DRY-RUN] train_epoch verified successfully! Loss: {train_metrics.get('loss', 0.0):.4f}, "
+            print(f"[DRY-RUN] train_epoch verified successfully! Loss: {train_metrics.get('loss_total', 0.0):.4f}, "
                   f"Optimizer Steps: {train_metrics.get('optimizer_steps', 0)}")
         return {
             "status": "dry_run_success",
@@ -394,78 +573,294 @@ def run_multitask_training(
             "train_metrics": train_metrics,
         }
 
+    epochs_since_improvement = 0
+    early_stopped = False
+    stop_reason = None
+
     # 4. Training Loop
     for epoch in range(start_epoch, epochs + 1):
-        print(f"\n--- Epoch {epoch}/{epochs} ---")
+        lrs_now = [round(float(pg["lr"]), 8) for pg in optimizer.param_groups]
+        head_lr_now = lrs_now[-1]
+        backbone_lr_now = lrs_now[0]
+        print(f"\n--- Epoch {epoch}/{epochs} (backbone_lr={backbone_lr_now:.2e}, head_lr={head_lr_now:.2e}) ---", flush=True)
+
         train_metrics = trainer.train_epoch(train_loader, epoch=epoch)
         scheduler.step()
 
-        val_metrics = trainer.evaluate(val_loader)
-        val_loss = val_metrics["val_loss"]
+        # Check major-hurricane share guardrail if storm-balanced sampler is enabled
+        unbal_maj = sampler_info.get("unbalanced_major_hurricane_share")
+        obs_maj = train_metrics.get("major_hurricane_share", 0.0)
+        if use_storm_balanced_sampler and unbal_maj and unbal_maj > 0:
+            maj_ratio_epoch = obs_maj / float(unbal_maj)
+            train_metrics["major_hurricane_share_ratio_vs_unbalanced"] = round(maj_ratio_epoch, 4)
+            if maj_ratio_epoch < float(storm_balance_min_major_ratio) and active_sampler_exponent > float(storm_balance_min_exponent):
+                new_exp = max(float(storm_balance_min_exponent), active_sampler_exponent - 0.125)
+                print(
+                    f"[SAMPLER GUARDRAIL] Observed major-hurricane share {100.0 * obs_maj:.2f}% is < 80% of unbalanced "
+                    f"({100.0 * float(unbal_maj):.2f}%). Adjusting exponent {active_sampler_exponent:.3f} -> {new_exp:.3f}.",
+                    flush=True,
+                )
+                active_sampler_exponent = new_exp
+                tr_storm_ids, tr_intensities = _extract_anchor_storm_ids_and_intensities(train_dataset)
+                w_np, _ = build_storm_balanced_weights(
+                    storm_ids=tr_storm_ids,
+                    intensities_kt=tr_intensities,
+                    exponent=active_sampler_exponent,
+                    min_major_ratio=storm_balance_min_major_ratio,
+                    min_exponent=storm_balance_min_exponent,
+                )
+                train_loader.sampler.weights = torch.as_tensor(w_np, dtype=torch.double)
 
-        is_best = val_loss < best_val_loss
-        if is_best:
-            best_val_loss = val_loss
-            trainer.best_val_loss = best_val_loss
+        # Evaluate VAL using EMA weights when use_ema=True
+        val_metrics = trainer.evaluate(val_loader)
+        val_loss_batch = float(val_metrics["val_loss"])
+        val_loss_global = float(val_metrics.get("val_loss_global", val_loss_batch))
+        val_mt_rel_err = float(val_metrics.get("val_mt_rel_err", float("inf")))
+
+        # Evaluate TRAIN_EVAL in identical eval() mode (using EMA weights when use_ema=True)
+        train_eval_metrics = None
+        train_eval_loss_global = None
+        if train_eval_subset_loader is not None:
+            train_eval_metrics = trainer.evaluate(train_eval_subset_loader)
+            train_eval_loss_global = float(train_eval_metrics.get("val_loss_global", train_eval_metrics["val_loss"]))
+
+        is_best_loss = val_loss_global < best_val_loss_global
+        if is_best_loss:
+            best_val_loss_global = val_loss_global
+            best_val_loss = val_loss_global
+            best_loss_epoch = epoch
+            trainer.best_val_loss = best_val_loss_global
+
+        is_best_composite = val_mt_rel_err < best_val_mt_rel_err
+        if is_best_composite:
+            best_val_mt_rel_err = val_mt_rel_err
+            best_composite_epoch = epoch
+
+        if str(selection_metric).lower() in ("val_mt_rel_err", "composite", "mt_rel_err"):
+            improved = is_best_composite or is_best_loss
+        else:
+            improved = is_best_loss
+
+        if improved:
+            epochs_since_improvement = 0
+        else:
+            epochs_since_improvement += 1
 
         fn = f"multitask_epoch_{epoch:03d}.pt"
         saved_ckpt = trainer.save_checkpoint(
             epoch,
             val_metrics,
-            is_best=is_best,
+            is_best=is_best_loss,
+            is_best_composite=is_best_composite,
             filename=fn,
             extra_metadata={
+                "experiment": experiment_name or "supervised_multitask_training",
+                "config_hash": config_hash,
                 "initialization": init_provenance,
                 "transfer_info": transfer_info,
                 "use_sequences": use_sequences,
-                "config": {
-                    "epochs": epochs,
-                    "batch_size": batch_size,
-                    "learning_rate": lr,
-                    "weight_decay": weight_decay,
-                    "d_model": d_model,
-                    "grad_clip_norm": grad_clip_norm,
-                    "accumulate_grad_batches": accumulate_grad_batches,
-                    "max_history_len": max_history_len,
-                    "max_history_hours": max_history_hours,
-                    "seed": seed,
-                    "loss_weights": lw,
-                },
+                "is_best_loss": is_best_loss,
+                "is_best_composite": is_best_composite,
+                "best_val_loss_global": round(best_val_loss_global, 4),
+                "best_val_mt_rel_err": round(best_val_mt_rel_err, 4),
+                "train_eval_loss_global_subset": train_eval_loss_global,
+                "config": config_payload_for_hash,
+                "software_versions": software_versions,
             },
         )
 
-        training_history.append({
+        gen_gap_subset = round(val_loss_global - train_eval_loss_global, 4) if train_eval_loss_global is not None else None
+
+        epoch_record = {
             "epoch": epoch,
+            "backbone_lr": backbone_lr_now,
+            "head_lr": head_lr_now,
             "train": train_metrics,
+            "train_eval_subset": train_eval_metrics,
+            "train_eval_loss_global": train_eval_loss_global,
             "val": val_metrics,
+            "val_loss_global": val_loss_global,
+            "val_loss_batch": val_loss_batch,
+            "val_mt_rel_err": val_mt_rel_err,
+            "generalization_gap_global": gen_gap_subset,
+            "is_best_loss": is_best_loss,
+            "is_best_composite": is_best_composite,
+            "epochs_since_improvement": epochs_since_improvement,
             "saved_checkpoint": saved_ckpt,
+        }
+        training_history.append(epoch_record)
+
+        epoch_csv_rows.append({
+            "epoch": epoch,
+            "backbone_lr": backbone_lr_now,
+            "head_lr": head_lr_now,
+            "train_opt_loss": train_metrics.get("loss_total"),
+            "train_eval_loss_global": train_eval_loss_global,
+            "val_loss_global": val_loss_global,
+            "val_loss_batch": val_loss_batch,
+            "generalization_gap_global": gen_gap_subset,
+            "val_mt_rel_err": val_mt_rel_err,
+            "val_wind_mae_kt": val_metrics.get("val_wind_mae_kt"),
+            "val_wind_bias_kt": val_metrics.get("val_wind_bias_kt"),
+            "val_major_wind_mae_kt": val_metrics.get("val_major_wind_mae_kt"),
+            "val_major_wind_bias_kt": val_metrics.get("val_major_wind_bias_kt"),
+            "val_pressure_mae_hpa": val_metrics.get("val_pressure_mae_hpa"),
+            "val_stage_balanced_acc_pct": val_metrics.get("val_stage_balanced_acc_pct"),
+            "val_stage_acc_pct": val_metrics.get("val_stage_acc_pct"),
+            "val_dv_6h_mae_kt": val_metrics.get("val_dv_6h_mae_kt"),
+            "val_dv_12h_mae_kt": val_metrics.get("val_dv_12h_mae_kt"),
+            "val_dv_18h_mae_kt": val_metrics.get("val_dv_18h_mae_kt"),
+            "val_dv_24h_mae_kt": val_metrics.get("val_dv_24h_mae_kt"),
+            "val_ri_pr_auc": val_metrics.get("val_ri_pr_auc"),
+            "val_ri_brier": val_metrics.get("val_ri_brier"),
+            "val_ri_f1": val_metrics.get("val_ri_f1"),
+            "val_track_24h_err_km": val_metrics.get("val_track_24h_err_km"),
+            "train_major_hurricane_share": train_metrics.get("major_hurricane_share"),
+            "grad_norm_preclip_mean": train_metrics.get("grad_norm_preclip_mean"),
+            "grad_clipped_fraction_pct": train_metrics.get("grad_clipped_fraction_pct"),
+            "is_best_loss": is_best_loss,
+            "is_best_composite": is_best_composite,
+            "epoch_time_sec": train_metrics.get("epoch_time_sec"),
         })
 
-        print(f"[Train] Loss: {train_metrics['loss_total']:.4f} | Wind: {train_metrics['loss_intensity']:.4f} | Press: {train_metrics['loss_pressure']:.4f}")
-        print(f"[Val]   Loss: {val_loss:.4f} | Wind MAE: {val_metrics['val_wind_mae_kt']} kt | Press MAE: {val_metrics['val_pressure_mae_hpa']} hPa | Stage Acc: {val_metrics['val_stage_acc_pct']}%")
+        if epoch_csv_report:
+            os.makedirs(os.path.dirname(epoch_csv_report), exist_ok=True)
+            pd.DataFrame(epoch_csv_rows).to_csv(epoch_csv_report, index=False)
+
+        tags = []
+        if is_best_loss:
+            tags.append("★BEST_LOSS")
+        if is_best_composite:
+            tags.append("★BEST_COMPOSITE")
+        tag_str = (" " + " ".join(tags)) if tags else ""
+
+        print(
+            f"[Train] OptLoss: {train_metrics['loss_total']:.4f} | TrainEval: {train_eval_loss_global if train_eval_loss_global is not None else -1.0:.4f} | "
+            f"MajShare: {100.0 * train_metrics.get('major_hurricane_share', 0.0):.2f}% | GradMean: {train_metrics.get('grad_norm_preclip_mean', 0.0):.2f}",
+            flush=True,
+        )
+        print(
+            f"[Val]   GlobalLoss: {val_loss_global:.4f} (Batch: {val_loss_batch:.4f}) | MT_REL_ERR: {val_mt_rel_err:.4f} | "
+            f"Wind: {val_metrics['val_wind_mae_kt']} kt (Maj: {val_metrics.get('val_major_wind_mae_kt')} / Bias {val_metrics.get('val_major_wind_bias_kt')}) | "
+            f"Press: {val_metrics['val_pressure_mae_hpa']} hPa | Stage Bal/Acc: {val_metrics.get('val_stage_balanced_acc_pct')}%/{val_metrics['val_stage_acc_pct']}% | "
+            f"dV24: {val_metrics.get('val_dv_24h_mae_kt')} kt | RI PR-AUC/Brier: {val_metrics.get('val_ri_pr_auc')}/{val_metrics.get('val_ri_brier')} | "
+            f"Track24: {val_metrics.get('val_track_24h_err_km')} km{tag_str}",
+            flush=True,
+        )
+
+        # Save rolling summary report after every epoch
+        if summary_report:
+            os.makedirs(os.path.dirname(summary_report), exist_ok=True)
+            with open(summary_report, "w", encoding="utf-8") as f:
+                json.dump({
+                    "workflow": "Supervised Multi-Task Training (Phase 2E.4.1)",
+                    "experiment": experiment_name or "supervised_multitask_training",
+                    "config_hash": config_hash,
+                    "software_versions": software_versions,
+                    "config": config_payload_for_hash,
+                    "sampler_info": sampler_info,
+                    "param_group_counts": param_group_counts,
+                    "best_loss_epoch": best_loss_epoch,
+                    "best_val_loss_global": round(best_val_loss_global, 4),
+                    "best_composite_epoch": best_composite_epoch,
+                    "best_val_mt_rel_err": round(best_val_mt_rel_err, 4),
+                    "history": training_history,
+                }, f, indent=2)
+
+        if early_stop_patience is not None and int(early_stop_patience) > 0 and epochs_since_improvement >= int(early_stop_patience):
+            early_stopped = True
+            stop_reason = (
+                f"Early stopping triggered at Epoch {epoch}: no improvement in VAL_MT_REL_ERR "
+                f"(best Ep {best_composite_epoch}: {best_val_mt_rel_err:.4f}) or VAL_LOSS_GLOBAL "
+                f"(best Ep {best_loss_epoch}: {best_val_loss_global:.4f}) for {early_stop_patience} consecutive epochs."
+            )
+            print(f"\n[EARLY STOP] {stop_reason}", flush=True)
+            break
+
+    # 5. Full 10,545-sample TRAIN_EVAL passes on the best-loss and best-composite checkpoints
+    full_train_eval_results = {}
+    if full_train_eval_on_best and train_eval_full_loader is not None:
+        best_ckpts_to_eval = {}
+        best_loss_p = os.path.join(checkpoint_dir, "best_checkpoint.pt")
+        best_comp_p = os.path.join(checkpoint_dir, "best_mt_rel_err_checkpoint.pt")
+        if os.path.exists(best_loss_p):
+            best_ckpts_to_eval["best_global_loss_checkpoint"] = (best_loss_epoch, best_loss_p)
+        if os.path.exists(best_comp_p):
+            if best_composite_epoch == best_loss_epoch and "best_global_loss_checkpoint" in best_ckpts_to_eval:
+                best_ckpts_to_eval["best_composite_checkpoint"] = (best_composite_epoch, best_comp_p)
+            else:
+                best_ckpts_to_eval["best_composite_checkpoint"] = (best_composite_epoch, best_comp_p)
+
+        evaluated_by_epoch = {}
+        for label, (ep_num, ck_p) in best_ckpts_to_eval.items():
+            if ep_num in evaluated_by_epoch:
+                full_train_eval_results[label] = evaluated_by_epoch[ep_num]
+                continue
+            print(f"\n[FULL TRAIN_EVAL] Evaluating full TRAIN partition (10,545 sequences) on {label} (Epoch {ep_num})...", flush=True)
+            ck_loaded = torch.load(ck_p, map_location=device, weights_only=False)
+            trainer.model.load_state_dict(ck_loaded["model_state_dict"], strict=True)
+            tr_full_m = trainer.evaluate(train_eval_full_loader, use_ema=False)
+            val_m_for_ep = next((h["val"] for h in training_history if h["epoch"] == ep_num), {})
+            val_g = float(val_m_for_ep.get("val_loss_global", best_val_loss_global))
+            tr_g = float(tr_full_m.get("val_loss_global", tr_full_m["val_loss"]))
+            res_entry = {
+                "epoch": ep_num,
+                "checkpoint": ck_p,
+                "train_eval_loss_global_full": round(tr_g, 4),
+                "val_eval_loss_global": round(val_g, 4),
+                "generalization_gap_global_full": round(val_g - tr_g, 4),
+                "train_eval_metrics_full": tr_full_m,
+                "val_eval_metrics": val_m_for_ep,
+            }
+            evaluated_by_epoch[ep_num] = res_entry
+            full_train_eval_results[label] = res_entry
 
     summary = {
         "workflow": "Supervised Multi-Task Training (Phase 2E.4.1)",
+        "experiment": experiment_name or "supervised_multitask_training",
+        "config_hash": config_hash,
+        "software_versions": software_versions,
         "initialization": init_provenance,
         "transfer_info": transfer_info,
         "use_sequences": use_sequences,
         "epochs": epochs,
+        "cosine_t_max": t_max_sched,
         "batch_size": batch_size,
         "learning_rate": lr,
+        "backbone_lr_scale": backbone_lr_scale,
         "weight_decay": weight_decay,
+        "decoupled_weight_decay": decoupled_weight_decay,
         "d_model": d_model,
         "grad_clip_norm": grad_clip_norm,
         "accumulate_grad_batches": accumulate_grad_batches,
         "loss_weights": lw,
-        "best_val_loss": round(best_val_loss, 4),
+        "r1_regularization": {
+            "use_ema": use_ema,
+            "ema_decay": ema_decay,
+            "modality_dropout_prob": modality_dropout_prob,
+            "sector_token_dropout": sector_token_dropout,
+            "drop_path_rate": drop_path_rate,
+            "use_storm_balanced_sampler": use_storm_balanced_sampler,
+            "sampler_info": sampler_info,
+            "param_group_counts": param_group_counts,
+        },
+        "best_val_loss": round(best_val_loss_global, 4),
+        "best_val_loss_global": round(best_val_loss_global, 4),
+        "best_loss_epoch": best_loss_epoch,
+        "best_val_mt_rel_err": round(best_val_mt_rel_err, 4),
+        "best_composite_epoch": best_composite_epoch,
+        "early_stopped": early_stopped,
+        "stop_reason": stop_reason,
+        "full_train_eval_on_best": full_train_eval_results,
         "history": training_history,
     }
 
-    os.makedirs(os.path.dirname(summary_report), exist_ok=True)
-    with open(summary_report, "w", encoding="utf-8") as f:
-        json.dump(summary, f, indent=2)
+    if summary_report:
+        os.makedirs(os.path.dirname(summary_report), exist_ok=True)
+        with open(summary_report, "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2)
 
-    print(f"\n[OK] Multi-task training complete. Summary saved to: {summary_report}")
+    print(f"\n[OK] Multi-task training complete. Summary saved to: {summary_report}", flush=True)
     return summary
 
 
@@ -498,6 +893,7 @@ def build_parser():
     parser.add_argument("--no-persistent-workers", dest="persistent_workers", action="store_false", help="Disable persistent workers")
     parser.add_argument("--checkpoint-dir", default=None, help="Directory for model checkpoints")
     parser.add_argument("--summary-report", default=None, help="Summary report JSON path")
+    parser.add_argument("--epoch-csv-report", default=None, help="Per-epoch CSV log path")
     parser.add_argument("--device", default=None, help="Device to train on ('cuda', 'cpu')")
     parser.add_argument("--cuda-device-id", type=int, default=None, help="CUDA device index")
     parser.add_argument("--precision", default=None, choices=["fp16", "bf16", "fp32"], help="Floating-point precision ('fp16', 'bf16', 'fp32')")
@@ -524,6 +920,7 @@ def resolve_training_config(args, cfg=None):
             cfg = load_yaml_config(config_path)
 
     tr_cfg = cfg.get("training", {})
+    exp_cfg = cfg.get("experiment", {})
     loss_weights = cfg.get("loss_weights", {})
     mach_cfg = cfg.get("machine", {})
     paths_cfg = cfg.get("paths", {})
@@ -535,7 +932,6 @@ def resolve_training_config(args, cfg=None):
             return yaml_val
         return default
 
-    # Sequence mode logic: CLI explicit > YAML > default True
     yaml_use_seq = tr_cfg.get("use_sequences", True)
     use_sequences = resolve_val(getattr(args, "use_sequences", None), yaml_use_seq, True)
 
@@ -549,7 +945,6 @@ def resolve_training_config(args, cfg=None):
     resolved_max_hist_len = resolve_val(getattr(args, "max_history_len", None), tr_cfg.get("max_history_len"), 4)
     resolved_max_hist_hrs = resolve_val(getattr(args, "max_history_hours", None), tr_cfg.get("max_history_hours"), 72.0)
 
-    # Worker count resolution: 0 must not be overridden by mach_cfg
     tr_workers = tr_cfg.get("num_workers")
     yaml_workers = tr_workers if tr_workers is not None else mach_cfg.get("num_workers")
     resolved_workers = resolve_val(getattr(args, "num_workers", None), yaml_workers, 0)
@@ -557,7 +952,8 @@ def resolve_training_config(args, cfg=None):
     resolved_pin_mem = resolve_val(getattr(args, "pin_memory", None), tr_cfg.get("pin_memory"), None)
     resolved_persist = resolve_val(getattr(args, "persistent_workers", None), tr_cfg.get("persistent_workers"), False)
     resolved_ckpt_dir = resolve_val(getattr(args, "checkpoint_dir", None), tr_cfg.get("checkpoint_dir") or paths_cfg.get("checkpoints_dir"), "checkpoints")
-    resolved_report = resolve_val(getattr(args, "summary_report", None), tr_cfg.get("output_report") or tr_cfg.get("summary_report"), "reports/phase2e4/multitask_training_summary.json")
+    resolved_report = resolve_val(getattr(args, "summary_report", None), tr_cfg.get("output_report") or tr_cfg.get("summary_report") or paths_cfg.get("training_summary_path"), "reports/phase2e4/multitask_training_summary.json")
+    resolved_epoch_csv = resolve_val(getattr(args, "epoch_csv_report", None), tr_cfg.get("epoch_csv_report") or paths_cfg.get("epoch_csv_path"), None)
     resolved_device = resolve_val(getattr(args, "device", None), mach_cfg.get("device"), None)
     resolved_cuda_id = resolve_val(getattr(args, "cuda_device_id", None), mach_cfg.get("cuda_device_id"), None)
     resolved_precision = resolve_val(getattr(args, "precision", None), mach_cfg.get("precision") or tr_cfg.get("precision"), "fp16")
@@ -595,6 +991,7 @@ def resolve_training_config(args, cfg=None):
         "allow_legacy_resume": resolved_allow_legacy,
         "checkpoint_dir": resolved_ckpt_dir,
         "summary_report": resolved_report,
+        "epoch_csv_report": resolved_epoch_csv,
         "device": resolved_device,
         "cuda_device_id": resolved_cuda_id,
         "use_amp": resolved_amp,
@@ -602,6 +999,26 @@ def resolve_training_config(args, cfg=None):
         "seed": resolved_seed,
         "loss_weights": loss_weights,
         "dry_run": getattr(args, "dry_run", False),
+        # R1 feature-flagged options
+        "use_ema": bool(tr_cfg.get("use_ema", False)),
+        "ema_decay": float(tr_cfg.get("ema_decay", 0.999)),
+        "modality_dropout_prob": float(tr_cfg.get("modality_dropout_prob", 0.0)),
+        "sector_token_dropout": float(tr_cfg.get("sector_token_dropout", 0.0)),
+        "drop_path_rate": float(tr_cfg.get("drop_path_rate", 0.0)),
+        "head_dropout": float(tr_cfg.get("head_dropout", 0.0)),
+        "use_storm_balanced_sampler": bool(tr_cfg.get("use_storm_balanced_sampler", False)),
+        "storm_balance_exponent": float(tr_cfg.get("storm_balance_exponent", 0.5)),
+        "storm_balance_min_major_ratio": float(tr_cfg.get("storm_balance_min_major_ratio", 0.80)),
+        "storm_balance_min_exponent": float(tr_cfg.get("storm_balance_min_exponent", 0.25)),
+        "backbone_lr_scale": float(tr_cfg.get("backbone_lr_scale", 1.0)),
+        "decoupled_weight_decay": bool(tr_cfg.get("decoupled_weight_decay", False)),
+        "cosine_t_max": tr_cfg.get("cosine_t_max"),
+        "eta_min": float(tr_cfg.get("eta_min", 1e-6)),
+        "early_stop_patience": tr_cfg.get("early_stop_patience"),
+        "selection_metric": str(tr_cfg.get("selection_metric", "val_loss")),
+        "train_eval_subset_size": int(tr_cfg.get("train_eval_subset_size", 0)),
+        "full_train_eval_on_best": bool(tr_cfg.get("full_train_eval_on_best", False)),
+        "experiment_name": exp_cfg.get("name") or tr_cfg.get("experiment_name"),
     }
 
 
@@ -632,6 +1049,7 @@ def main():
         allow_legacy_resume=resolved["allow_legacy_resume"],
         checkpoint_dir=resolved["checkpoint_dir"],
         summary_report=resolved["summary_report"],
+        epoch_csv_report=resolved["epoch_csv_report"],
         device=resolved["device"],
         cuda_device_id=resolved["cuda_device_id"],
         use_amp=resolved["use_amp"],
@@ -639,6 +1057,25 @@ def main():
         seed=resolved["seed"],
         loss_weights=resolved["loss_weights"],
         dry_run=resolved["dry_run"],
+        use_ema=resolved["use_ema"],
+        ema_decay=resolved["ema_decay"],
+        modality_dropout_prob=resolved["modality_dropout_prob"],
+        sector_token_dropout=resolved["sector_token_dropout"],
+        drop_path_rate=resolved["drop_path_rate"],
+        head_dropout=resolved["head_dropout"],
+        use_storm_balanced_sampler=resolved["use_storm_balanced_sampler"],
+        storm_balance_exponent=resolved["storm_balance_exponent"],
+        storm_balance_min_major_ratio=resolved["storm_balance_min_major_ratio"],
+        storm_balance_min_exponent=resolved["storm_balance_min_exponent"],
+        backbone_lr_scale=resolved["backbone_lr_scale"],
+        decoupled_weight_decay=resolved["decoupled_weight_decay"],
+        cosine_t_max=resolved["cosine_t_max"],
+        eta_min=resolved["eta_min"],
+        early_stop_patience=resolved["early_stop_patience"],
+        selection_metric=resolved["selection_metric"],
+        train_eval_subset_size=resolved["train_eval_subset_size"],
+        full_train_eval_on_best=resolved["full_train_eval_on_best"],
+        experiment_name=resolved["experiment_name"],
     )
 
 

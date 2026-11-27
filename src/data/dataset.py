@@ -7,7 +7,10 @@ Supports both single-overpass and historical storm sequence workflows.
 
 import os
 import math
+import hashlib
 import logging
+import threading
+from collections import OrderedDict
 from typing import Dict, Any, Optional, Tuple, List, Union
 import numpy as np
 import pandas as pd
@@ -165,12 +168,24 @@ class TCPRIMEDDataset(Dataset):
     mask-aware preprocessing and physical validation.
     """
 
+    # Bounded LRU in-memory sample cache across dataset instances (safe for 100 GB scale)
+    _GLOBAL_SAMPLE_CACHE: "OrderedDict[Tuple[Any, ...], Tuple[Any, ...]]" = OrderedDict()
+    DEFAULT_MAX_CACHE_ENTRIES: int = 2048
+    DEFAULT_DISK_CACHE_DIR: str = "data/cache/resampled_64x64"
+    CACHE_PREPROCESSING_VERSION: str = "v3_strict_causal_kin_cappi16_grid64"
+
     def __new__(cls, *args, **kwargs):
         instance = super().__new__(cls)
         instance.geospatial_policy = "nominal_fallback"
         instance.strict_mode = False
         instance._query_pts_cache = {}
         instance._raw_radar_coord_cache = {}
+        instance._grp_resample_cache = {}
+        instance._sample_cache = cls._GLOBAL_SAMPLE_CACHE
+        instance.max_cache_entries = cls.DEFAULT_MAX_CACHE_ENTRIES
+        instance.disk_cache_dir = cls.DEFAULT_DISK_CACHE_DIR
+        instance.enable_memory_cache = True
+        instance.enable_disk_cache = True
         instance.processing_errors = []
         return instance
 
@@ -187,6 +202,8 @@ class TCPRIMEDDataset(Dataset):
         basin: Optional[str] = None,
         df: Optional[pd.DataFrame] = None,
         raw_data_dir: Optional[str] = "data/raw/pilot",
+        max_cache_entries: int = DEFAULT_MAX_CACHE_ENTRIES,
+        disk_cache_dir: Optional[str] = DEFAULT_DISK_CACHE_DIR,
     ):
         super().__init__()
         self.sample_index_csv = sample_index_csv
@@ -216,10 +233,23 @@ class TCPRIMEDDataset(Dataset):
         self.raw_data_dir = raw_data_dir if (raw_data_dir and os.path.exists(raw_data_dir)) else None
         self._raw_radar_coord_cache: Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
         self._query_pts_cache: Dict[Tuple[int, int, bool], np.ndarray] = {}
+        self._grp_resample_cache: Dict[Tuple[Any, ...], Any] = {}
+        if not hasattr(self, "_sample_cache") or self._sample_cache is None:
+            self._sample_cache = self._GLOBAL_SAMPLE_CACHE
+        self.max_cache_entries = max(1, int(max_cache_entries))
+        self.disk_cache_dir = disk_cache_dir
+        if not hasattr(self, "enable_memory_cache"):
+            self.enable_memory_cache = True
+        if not hasattr(self, "enable_disk_cache"):
+            self.enable_disk_cache = True
         self.processing_errors: List[Dict[str, Any]] = []
 
         if df is not None:
             self.df = df.copy()
+            if "partition" in self.df.columns and len(self.df) > 0:
+                uniq_p = self.df["partition"].dropna().unique().tolist()
+                if len(uniq_p) == 1:
+                    self.partition = str(uniq_p[0]).upper()
         else:
             if not os.path.exists(sample_index_csv):
                 raise FileNotFoundError(f"Sample index not found at: {sample_index_csv}")
@@ -299,71 +329,86 @@ class TCPRIMEDDataset(Dataset):
 
         x_2d, y_2d = None, None
         source = "nominal_fallback"
+        grp_cache = getattr(self, "_grp_resample_cache", None)
+        coord_cache_key = ("coords", id(grp), arr.shape, storm_lat, storm_lon) if grp is not None else None
 
         if grp is not None:
-            try:
-                if "x" in grp.variables and "y" in grp.variables:
-                    x_raw = np.ma.filled(grp.variables["x"][:], np.nan)
-                    y_raw = np.ma.filled(grp.variables["y"][:], np.nan)
-                    if x_raw.ndim == 1 and y_raw.ndim == 1:
-                        if (len(y_raw), len(x_raw)) == arr.shape:
-                            x_2d, y_2d = np.meshgrid(x_raw, y_raw)
+            if grp_cache is not None and coord_cache_key in grp_cache:
+                x_2d, y_2d, source = grp_cache[coord_cache_key]
+            else:
+                try:
+                    if "x" in grp.variables and "y" in grp.variables:
+                        x_raw = np.ma.filled(grp.variables["x"][:], np.nan)
+                        y_raw = np.ma.filled(grp.variables["y"][:], np.nan)
+                        if x_raw.ndim == 1 and y_raw.ndim == 1:
+                            if (len(y_raw), len(x_raw)) == arr.shape:
+                                x_2d, y_2d = np.meshgrid(x_raw, y_raw)
+                                source = "utm_storm_centered_km"
+                            elif (len(x_raw), len(y_raw)) == arr.shape:
+                                y_2d, x_2d = np.meshgrid(y_raw, x_raw)
+                                source = "utm_storm_centered_km"
+                        elif x_raw.shape == arr.shape and y_raw.shape == arr.shape:
+                            x_2d, y_2d = x_raw, y_raw
                             source = "utm_storm_centered_km"
-                        elif (len(x_raw), len(y_raw)) == arr.shape:
-                            y_2d, x_2d = np.meshgrid(y_raw, x_raw)
-                            source = "utm_storm_centered_km"
-                    elif x_raw.shape == arr.shape and y_raw.shape == arr.shape:
-                        x_2d, y_2d = x_raw, y_raw
-                        source = "utm_storm_centered_km"
-                elif "latitude" in grp.variables and "longitude" in grp.variables and storm_lat is not None and storm_lon is not None:
-                    lat_raw = np.ma.filled(grp.variables["latitude"][:], np.nan)
-                    lon_raw = np.ma.filled(grp.variables["longitude"][:], np.nan)
-                    if lat_raw.ndim == 1 and lon_raw.ndim == 1:
-                        if (len(lat_raw), len(lon_raw)) == arr.shape:
-                            lat_2d, lon_2d = np.meshgrid(lat_raw, lon_raw, indexing="ij")
-                        elif (len(lon_raw), len(lat_raw)) == arr.shape:
-                            lon_2d, lat_2d = np.meshgrid(lon_raw, lat_raw, indexing="ij")
-                        else:
-                            lat_2d, lon_2d = None, None
-                        if lat_2d is not None and lon_2d is not None:
+                    elif "latitude" in grp.variables and "longitude" in grp.variables and storm_lat is not None and storm_lon is not None:
+                        lat_raw = np.ma.filled(grp.variables["latitude"][:], np.nan)
+                        lon_raw = np.ma.filled(grp.variables["longitude"][:], np.nan)
+                        if lat_raw.ndim == 1 and lon_raw.ndim == 1:
+                            if (len(lat_raw), len(lon_raw)) == arr.shape:
+                                lat_2d, lon_2d = np.meshgrid(lat_raw, lon_raw, indexing="ij")
+                            elif (len(lon_raw), len(lat_raw)) == arr.shape:
+                                lon_2d, lat_2d = np.meshgrid(lon_raw, lat_raw, indexing="ij")
+                            else:
+                                lat_2d, lon_2d = None, None
+                            if lat_2d is not None and lon_2d is not None:
+                                cos_lat = max(1e-4, math.cos(math.radians(storm_lat)))
+                                d_lon = ((lon_2d - storm_lon + 180.0) % 360.0) - 180.0
+                                x_2d = d_lon * cos_lat * 111.32
+                                y_2d = (lat_2d - storm_lat) * 110.57
+                                source = "tangent_plane_geodetic_km"
+                        elif lat_raw.shape == arr.shape and lon_raw.shape == arr.shape:
                             cos_lat = max(1e-4, math.cos(math.radians(storm_lat)))
-                            d_lon = ((lon_2d - storm_lon + 180.0) % 360.0) - 180.0
+                            d_lon = ((lon_raw - storm_lon + 180.0) % 360.0) - 180.0
                             x_2d = d_lon * cos_lat * 111.32
-                            y_2d = (lat_2d - storm_lat) * 110.57
+                            y_2d = (lat_raw - storm_lat) * 110.57
                             source = "tangent_plane_geodetic_km"
-                    elif lat_raw.shape == arr.shape and lon_raw.shape == arr.shape:
-                        cos_lat = max(1e-4, math.cos(math.radians(storm_lat)))
-                        d_lon = ((lon_raw - storm_lon + 180.0) % 360.0) - 180.0
-                        x_2d = d_lon * cos_lat * 111.32
-                        y_2d = (lat_raw - storm_lat) * 110.57
-                        source = "tangent_plane_geodetic_km"
-            except Exception:
-                x_2d, y_2d = None, None
-                source = "nominal_fallback"
+                except Exception:
+                    x_2d, y_2d = None, None
+                    source = "nominal_fallback"
+                if grp_cache is not None and coord_cache_key is not None:
+                    grp_cache[coord_cache_key] = (x_2d, y_2d, source)
 
         if x_2d is not None and y_2d is not None and HAS_SCIPY:
             valid_pts = (~np.isnan(arr)) & (arr > -9000.0) & (~np.isnan(x_2d)) & (~np.isnan(y_2d))
             valid_pts = valid_pts & (np.abs(x_2d) <= domain_km * 2.0) & (np.abs(y_2d) <= domain_km * 2.0)
 
             if np.any(valid_pts):
-                coords = np.column_stack([x_2d[valid_pts].flatten(), y_2d[valid_pts].flatten()])
                 vals = arr[valid_pts].flatten()
+                tree_cache_key = ("tree", id(grp), arr.shape, target_shape, domain_km, max_dist_km) if grp is not None else None
+                cached_tree_res = grp_cache.get(tree_cache_key) if (grp_cache is not None and tree_cache_key is not None) else None
 
-                tree = cKDTree(coords)
-                # Cell-centered target coordinates using unified GridGeometry with query caching
-                cache_key = (target_shape[0], target_shape[1], False)
-                if cache_key not in self._query_pts_cache:
-                    gx, gy = GLOBAL_GRID_GEOMETRY.get_coords(target_shape[0], target_shape[1], is_feature_grid=False)
-                    grid_x, grid_y = np.meshgrid(gx, gy)
-                    self._query_pts_cache[cache_key] = np.column_stack([grid_x.flatten(), grid_y.flatten()])
-                query_pts = self._query_pts_cache[cache_key]
+                if cached_tree_res is not None and np.array_equal(valid_pts, cached_tree_res[0]):
+                    _, is_valid, matched_indices = cached_tree_res
+                else:
+                    coords = np.column_stack([x_2d[valid_pts].flatten(), y_2d[valid_pts].flatten()])
+                    tree = cKDTree(coords)
+                    # Cell-centered target coordinates using unified GridGeometry with query caching
+                    cache_key = (target_shape[0], target_shape[1], False)
+                    if cache_key not in self._query_pts_cache:
+                        gx, gy = GLOBAL_GRID_GEOMETRY.get_coords(target_shape[0], target_shape[1], is_feature_grid=False)
+                        grid_x, grid_y = np.meshgrid(gx, gy)
+                        self._query_pts_cache[cache_key] = np.column_stack([grid_x.flatten(), grid_y.flatten()])
+                    query_pts = self._query_pts_cache[cache_key]
 
-                dists, indices = tree.query(query_pts, distance_upper_bound=max_dist_km)
-                is_valid = dists <= max_dist_km
+                    dists, indices = tree.query(query_pts, distance_upper_bound=max_dist_km)
+                    is_valid = dists <= max_dist_km
+                    matched_indices = indices[is_valid]
+                    if grp_cache is not None and tree_cache_key is not None:
+                        grp_cache[tree_cache_key] = (valid_pts, is_valid, matched_indices)
 
                 grid_vals = np.zeros(target_shape[0] * target_shape[1], dtype=np.float32)
                 grid_mask = np.zeros(target_shape[0] * target_shape[1], dtype=np.float32)
-                grid_vals[is_valid] = vals[indices[is_valid]].astype(np.float32)
+                grid_vals[is_valid] = vals[matched_indices].astype(np.float32)
                 grid_mask[is_valid] = 1.0
 
                 t_data = torch.from_numpy(grid_vals.reshape(1, target_shape[0], target_shape[1]))
@@ -736,11 +781,125 @@ class TCPRIMEDDataset(Dataset):
         rad_src = "none"
         env_srcs = []
 
-        # Targets from container if available
+        # Targets and strictly causal issue-time velocity from container if available
         storm_lat_from_nc = None
         storm_lon_from_nc = None
+        causal_u_kmh = 0.0
+        causal_v_kmh = 0.0
+        causal_has_kin = 0.0
+        t_obs_epoch = int(row["timestamp_epoch"])
 
-        if os.path.exists(nc_path):
+        use_mem_cache = getattr(self, "enable_memory_cache", True) and (getattr(self, "transform", None) is None)
+        sample_cache = getattr(self, "_sample_cache", None)
+        cache_key = None
+        disk_cache_path = None
+        if use_mem_cache and sample_cache is not None:
+            thresh_tuple = tuple(sorted(getattr(self, "resampling_thresholds", {}).items()))
+            nc_mtime_ns = 0
+            nc_size_bytes = 0
+            if os.path.exists(nc_path):
+                try:
+                    st_nc = os.stat(nc_path)
+                    nc_mtime_ns = int(st_nc.st_mtime_ns)
+                    nc_size_bytes = int(st_nc.st_size)
+                except OSError:
+                    pass
+            part_label = str(row.get("partition", self.partition or "ALL")).strip().upper()
+            cache_key = (
+                self.CACHE_PREPROCESSING_VERSION,
+                part_label,
+                storm_id,
+                nc_path,
+                nc_mtime_ns,
+                nc_size_bytes,
+                group_path,
+                sample_id,
+                t_obs_epoch,
+                instrument,
+                H,
+                W,
+                TARGET_RADAR_HEIGHTS_KM,
+                self.geospatial_policy,
+                self.strict_mode,
+                getattr(self, "raw_data_dir", None),
+                has_ir,
+                has_pmw,
+                has_gprof,
+                has_radar,
+                has_env,
+                thresh_tuple,
+            )
+            d_dir = getattr(self, "disk_cache_dir", None)
+            if (
+                getattr(self, "enable_disk_cache", True)
+                and d_dir
+                and "data/processed" in nc_path.replace("\\", "/")
+            ):
+                key_hash = hashlib.sha256(repr(cache_key).encode("utf-8")).hexdigest()[:16]
+                safe_sid = "".join(c if (c.isalnum() or c in ("_", "-")) else "_" for c in sample_id)
+                disk_cache_path = os.path.join(d_dir, f"{part_label}_{safe_sid}_{key_hash}.pt")
+
+        loaded_from_cache = False
+        if cache_key is not None and cache_key in sample_cache:
+            if hasattr(sample_cache, "move_to_end"):
+                sample_cache.move_to_end(cache_key)
+            cached_payload = sample_cache[cache_key]
+            loaded_from_cache = True
+        elif disk_cache_path is not None and os.path.exists(disk_cache_path):
+            try:
+                cached_payload = torch.load(disk_cache_path, map_location="cpu", weights_only=False)
+                if cache_key is not None and sample_cache is not None and len(cached_payload) == 29:
+                    max_entries = max(1, int(getattr(self, "max_cache_entries", 2048)))
+                    while len(sample_cache) >= max_entries:
+                        if hasattr(sample_cache, "popitem"):
+                            try:
+                                sample_cache.popitem(last=False)
+                            except TypeError:
+                                sample_cache.pop(next(iter(sample_cache)))
+                        else:
+                            sample_cache.pop(next(iter(sample_cache)))
+                    sample_cache[cache_key] = cached_payload
+                    loaded_from_cache = True
+            except Exception:
+                loaded_from_cache = False
+
+        if loaded_from_cache:
+            (
+                ir_tensor,
+                pmw_tensor,
+                gprof_tensor,
+                radar_tensor,
+                env_tensor,
+                ir_pixel_mask,
+                pmw_pixel_mask,
+                gprof_pixel_mask,
+                radar_voxel_mask,
+                radar_echo_mask,
+                env_pixel_mask,
+                pmw_channel_mask,
+                gprof_channel_mask,
+                env_channel_mask,
+                has_ir,
+                has_pmw,
+                has_gprof,
+                has_radar,
+                has_env,
+                ir_src,
+                pmw_srcs,
+                gp_srcs,
+                rad_src,
+                env_srcs,
+                storm_lat_from_nc,
+                storm_lon_from_nc,
+                causal_u_kmh,
+                causal_v_kmh,
+                causal_has_kin,
+            ) = cached_payload
+        elif os.path.exists(nc_path):
+            err_count_before = len(self.processing_errors)
+            grp_cache = getattr(self, "_grp_resample_cache", None)
+            if grp_cache is not None:
+                grp_cache.clear()
             try:
                 with nc.Dataset(nc_path, "r") as ds:
                     parts = [p for p in group_path.split("/") if p]
@@ -763,6 +922,56 @@ class TCPRIMEDDataset(Dataset):
 
                         storm_lat = storm_lat_from_nc if storm_lat_from_nc is not None else (float(row["latitude"]) if "latitude" in row and not pd.isna(row["latitude"]) else None)
                         storm_lon = storm_lon_from_nc if storm_lon_from_nc is not None else (float(row["longitude"]) if "longitude" in row and not pd.isna(row["longitude"]) else None)
+
+                        # Strictly causal backward-difference storm velocity from fixes at time <= t_obs_epoch
+                        if (
+                            storm_lat is not None
+                            and storm_lon is not None
+                            and not math.isnan(float(storm_lat))
+                            and not math.isnan(float(storm_lon))
+                            and "storm_metadata" in ds.groups
+                        ):
+                            sm_grp = ds.groups["storm_metadata"]
+                            if (
+                                "time" in sm_grp.variables
+                                and "storm_latitude" in sm_grp.variables
+                                and "storm_longitude" in sm_grp.variables
+                            ):
+                                bt_times = np.asarray(sm_grp.variables["time"][:], dtype=np.int64)
+                                bt_lats = np.asarray(sm_grp.variables["storm_latitude"][:], dtype=np.float64)
+                                bt_lons = np.asarray(sm_grp.variables["storm_longitude"][:], dtype=np.float64)
+                                # Enforce strict causal boundary: NEVER inspect any timestamp > t_obs_epoch
+                                causal_idx = np.where(
+                                    (bt_times <= t_obs_epoch)
+                                    & (np.abs(bt_lats) <= 90.0)
+                                    & (np.abs(bt_lons) <= 360.0)
+                                )[0]
+                                best_k = None
+                                for k_idx in reversed(causal_idx):
+                                    dt_h = (t_obs_epoch - int(bt_times[k_idx])) / 3600.0
+                                    if 2.0 <= dt_h <= 24.0:
+                                        best_k = k_idx
+                                        break
+                                if best_k is not None:
+                                    dt_h = (t_obs_epoch - int(bt_times[best_k])) / 3600.0
+                                    dx_c, dy_c = compute_tangent_plane_displacement_km(
+                                        float(bt_lats[best_k]), float(bt_lons[best_k]),
+                                        float(storm_lat), float(storm_lon),
+                                    )
+                                    causal_u_kmh = float(dx_c / dt_h)
+                                    causal_v_kmh = float(dy_c / dt_h)
+                                    causal_has_kin = 1.0
+                                elif len(causal_idx) >= 2:
+                                    k1, k0 = causal_idx[-1], causal_idx[-2]
+                                    dt_h = (int(bt_times[k1]) - int(bt_times[k0])) / 3600.0
+                                    if 1.0 <= dt_h <= 24.0:
+                                        dx_c, dy_c = compute_tangent_plane_displacement_km(
+                                            float(bt_lats[k0]), float(bt_lons[k0]),
+                                            float(bt_lats[k1]), float(bt_lons[k1]),
+                                        )
+                                        causal_u_kmh = float(dx_c / dt_h)
+                                        causal_v_kmh = float(dy_c / dt_h)
+                                        causal_has_kin = 1.0
 
                         # 1. Infrared (IRWIN)
                         if has_ir and "infrared" in curr_grp.groups:
@@ -926,6 +1135,64 @@ class TCPRIMEDDataset(Dataset):
                 self._record_error(sample_id, storm_id, nc_path, group_path, "container", "open", str(e_top))
                 if self.strict_mode or self.geospatial_policy == "raise":
                     raise RuntimeError(f"Strict mode failure loading container {nc_path}: {e_top}")
+            finally:
+                if grp_cache is not None:
+                    grp_cache.clear()
+
+            if cache_key is not None and len(self.processing_errors) == err_count_before:
+                payload_to_cache = (
+                    ir_tensor,
+                    pmw_tensor,
+                    gprof_tensor,
+                    radar_tensor,
+                    env_tensor,
+                    ir_pixel_mask,
+                    pmw_pixel_mask,
+                    gprof_pixel_mask,
+                    radar_voxel_mask,
+                    radar_echo_mask,
+                    env_pixel_mask,
+                    pmw_channel_mask,
+                    gprof_channel_mask,
+                    env_channel_mask,
+                    has_ir,
+                    has_pmw,
+                    has_gprof,
+                    has_radar,
+                    has_env,
+                    ir_src,
+                    list(pmw_srcs),
+                    list(gp_srcs),
+                    rad_src,
+                    list(env_srcs),
+                    storm_lat_from_nc,
+                    storm_lon_from_nc,
+                    causal_u_kmh,
+                    causal_v_kmh,
+                    causal_has_kin,
+                )
+                max_entries = max(1, int(getattr(self, "max_cache_entries", 2048)))
+                while len(sample_cache) >= max_entries:
+                    if hasattr(sample_cache, "popitem"):
+                        try:
+                            sample_cache.popitem(last=False)
+                        except TypeError:
+                            sample_cache.pop(next(iter(sample_cache)))
+                    else:
+                        sample_cache.pop(next(iter(sample_cache)))
+                sample_cache[cache_key] = payload_to_cache
+                if disk_cache_path is not None and not os.path.exists(disk_cache_path):
+                    tmp_p = f"{disk_cache_path}.{os.getpid()}.{threading.get_ident()}.tmp"
+                    try:
+                        os.makedirs(os.path.dirname(disk_cache_path), exist_ok=True)
+                        torch.save(payload_to_cache, tmp_p)
+                        os.replace(tmp_p, disk_cache_path)
+                    except Exception:
+                        try:
+                            if os.path.exists(tmp_p):
+                                os.remove(tmp_p)
+                        except OSError:
+                            pass
         else:
             self._record_error(sample_id, storm_id, nc_path, group_path, "filesystem", "missing", "Container path does not exist")
             if self.strict_mode or self.geospatial_policy == "raise":
@@ -940,6 +1207,41 @@ class TCPRIMEDDataset(Dataset):
             cur_lon = storm_lon_from_nc
 
         has_valid_cur_pos = (cur_lat is not None) and (cur_lon is not None) and (not math.isnan(float(cur_lat))) and (not math.isnan(float(cur_lon)))
+
+        # Strictly causal observation-time kinematic & geophysical storm state vector (10 features)
+        # Uses ONLY backward-difference positions at t_prev <= t_obs (never IBTrACS centered-difference storm_speed_mps)
+        raw_dland = row.get("distance_to_land_km")
+        if causal_has_kin > 0.5:
+            u_kmh = float(causal_u_kmh)
+            v_kmh = float(causal_v_kmh)
+            spd_kmh = math.hypot(u_kmh, v_kmh)
+            spd_val = spd_kmh / 3.6
+            if spd_kmh > 1e-4:
+                sin_hdg = u_kmh / spd_kmh
+                cos_hdg = v_kmh / spd_kmh
+            else:
+                sin_hdg, cos_hdg = 0.0, 1.0
+            has_kin = 1.0
+        else:
+            spd_val, sin_hdg, cos_hdg, u_kmh, v_kmh, has_kin = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+
+        if has_valid_cur_pos:
+            lat_rad = math.radians(float(cur_lat))
+            sin_lat = math.sin(lat_rad)
+            cos_lat = math.cos(lat_rad)
+            hemi = 1.0 if float(cur_lat) >= 0.0 else -1.0
+        else:
+            sin_lat, cos_lat, hemi = 0.0, 1.0, 1.0
+
+        if raw_dland is not None and not pd.isna(raw_dland) and float(raw_dland) >= 0.0:
+            dland_norm = math.log10(1.0 + float(raw_dland)) / 3.5
+        else:
+            dland_norm = 0.8
+
+        kinematic_state = torch.tensor(
+            [u_kmh, v_kmh, spd_val, sin_hdg, cos_hdg, sin_lat, cos_lat, hemi, dland_norm, has_kin],
+            dtype=torch.float32,
+        )
 
         # Target 1: Current Intensity (v_max kt)
         raw_v = row.get("intensity_vmax_kt")
@@ -1032,6 +1334,7 @@ class TCPRIMEDDataset(Dataset):
             "gprof": gprof_tensor,
             "radar": radar_tensor,
             "env": env_tensor,
+            "kinematic_state": kinematic_state,
             "masks": {
                 "ir_pixel": ir_pixel_mask,
                 "pmw_pixel": pmw_pixel_mask,
@@ -1165,3 +1468,51 @@ class TCPRIMEDSequenceDataset(Dataset):
         indices = self.sequence_index[idx]
         # Return list of observation dicts in chronological order
         return [self.base_dataset[i] for i in indices]
+
+
+def _warm_cache_chunk_worker(args_tuple: Tuple[str, int, int]) -> int:
+    """Top-level multiprocessing worker to populate on-disk 64x64 resampled cache for a slice of sample_index_csv."""
+    sample_index_csv, start_idx, end_idx = args_tuple
+    df_full = pd.read_csv(sample_index_csv)
+    df_slice = df_full.iloc[start_idx:end_idx].copy().reset_index(drop=True)
+    ds = TCPRIMEDDataset(
+        sample_index_csv=sample_index_csv,
+        partition=None,
+        df=df_slice,
+        max_cache_entries=64,
+    )
+    count = 0
+    for i in range(len(ds)):
+        _ = ds[i]
+        count += 1
+    return count
+
+
+def warm_disk_cache_parallel(sample_index_csv: str, max_workers: int = 12) -> int:
+    """Populate the atomic on-disk preprocessing cache in parallel across multiple CPU workers."""
+    from concurrent.futures import ProcessPoolExecutor, as_completed
+    df_full = pd.read_csv(sample_index_csv)
+    n_total = len(df_full)
+    if n_total == 0:
+        return 0
+    chunk_size = max(1, (n_total + max_workers * 4 - 1) // (max_workers * 4))
+    tasks = []
+    for s in range(0, n_total, chunk_size):
+        tasks.append((sample_index_csv, s, min(n_total, s + chunk_size)))
+
+    done_samples = 0
+    t0 = os.times().elapsed if hasattr(os.times(), "elapsed") else 0.0
+    import time
+    t_start = time.time()
+    with ProcessPoolExecutor(max_workers=max_workers) as ex:
+        futs = [ex.submit(_warm_cache_chunk_worker, t) for t in tasks]
+        for idx, fut in enumerate(as_completed(futs), 1):
+            done_samples += fut.result()
+            if idx % 4 == 0 or done_samples == n_total:
+                el = max(1e-3, time.time() - t_start)
+                print(
+                    f"[PARALLEL CACHE WARM] {done_samples}/{n_total} samples cached "
+                    f"({100.0 * done_samples / n_total:.1f}%, {done_samples / el:.1f} samples/sec, {el:.1f}s elapsed)",
+                    flush=True,
+                )
+    return done_samples

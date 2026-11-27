@@ -1,0 +1,13 @@
+partition,basin,valid_intensity_targets,tc_graphformer_wind_mae_kt,mean_wind_kt,checkpoint_status
+VAL,AL,644,8.56,54.05,trained_checkpoint
+VAL,CP,95,6.35,31.34,trained_checkpoint
+VAL,EP,420,6.2,51.21,trained_checkpoint
+VAL,IO,207,7.5,34.65,trained_checkpoint
+VAL,SH,26,23.67,42.38,trained_checkpoint
+VAL,WP,423,7.91,74.39,trained_checkpoint
+TEST,AL,176,11.01,55.05,trained_checkpoint
+TEST,CP,12,1.41,26.25,trained_checkpoint
+TEST,EP,241,7.35,54.88,trained_checkpoint
+TEST,IO,386,8.66,58.17,trained_checkpoint
+TEST,SH,28,4.98,30.0,trained_checkpoint
+TEST,WP,586,11.9,38.49,trained_checkpoint

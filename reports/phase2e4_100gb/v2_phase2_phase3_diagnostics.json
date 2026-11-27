@@ -1,0 +1,771 @@
+{
+  "phase2_generalization": {
+    "orig_epoch_005": {
+      "checkpoint": "D:\\Enjula uchoi\\TC-GraphFormer-verified\\checkpoints\\tcprimed_100gb\\multitask_epoch_005.pt",
+      "TRAIN_EVAL": {
+        "partition": "TRAIN",
+        "num_samples": 10545,
+        "num_storms": 75,
+        "eval_time_sec": 246.16,
+        "batch_avg_loss": 12.9684,
+        "global_eval_loss": 13.0492,
+        "raw_task_losses": {
+          "intensity": 6.7661,
+          "pressure": 0.0934,
+          "stage": 0.5597,
+          "intensity_change": 4.6665,
+          "ri": 0.4798,
+          "track": 0.3305
+        },
+        "weighted_task_losses": {
+          "intensity": 6.7661,
+          "pressure": 0.0467,
+          "stage": 0.2799,
+          "intensity_change": 4.6665,
+          "ri": 0.9596,
+          "track": 0.3305
+        },
+        "unweighted_wind_huber": 3.7081,
+        "valid_counts": {
+          "intensity": 10545,
+          "pressure": 9499,
+          "stage": 9641,
+          "intensity_change": 39304,
+          "ri": 9514,
+          "track": 13650
+        },
+        "wind_mae_kt": 6.65,
+        "wind_rmse_kt": 8.69,
+        "wind_bias_kt": 3.12,
+        "ts_td_wind_mae_kt": 5.61,
+        "cat12_wind_mae_kt": 9.99,
+        "major_wind_mae_kt": 6.64,
+        "major_wind_bias_kt": 4.71,
+        "major_wind_count": 1417,
+        "pressure_mae_hpa": 5.18,
+        "pressure_rmse_hpa": 6.84,
+        "pressure_bias_hpa": -0.11,
+        "stage_acc_pct": 75.88,
+        "stage_balanced_acc_pct": 70.62,
+        "dv_mae_kt": {
+          "6": 3.09,
+          "12": 5.5,
+          "18": 7.49,
+          "24": 9.26
+        },
+        "ri_pr_auc": 0.5574,
+        "ri_brier": 0.032,
+        "ri_f1_at_050": 0.3873,
+        "ri_f1_at_025": 0.5632,
+        "ri_pos_mean_prob": 0.3283,
+        "ri_neg_mean_prob": 0.0239,
+        "ri_pos_dv24_mae_kt": 23.79,
+        "track_mae_km": {
+          "6": 32.4,
+          "12": 71.91,
+          "18": 119.56,
+          "24": 170.04
+        },
+        "per_storm_summary": {
+          "wind_mae_mean_std_median": [
+            6.65,
+            2.38,
+            6.41
+          ],
+          "dv24_mae_mean_std_median": [
+            9.68,
+            4.29,
+            9.05
+          ],
+          "track24_mae_mean_std_median": [
+            167.18,
+            94.94,
+            144.28
+          ]
+        },
+        "per_basin_wind_mae_kt": {
+          "AL": 6.48,
+          "CP": 5.65,
+          "EP": 5.95,
+          "IO": 6.13,
+          "SH": 6.47,
+          "WP": 7.68
+        },
+        "modality_wind_mae_kt": {
+          "radar_present": 7.07,
+          "radar_absent": 6.6,
+          "ir_present": 6.88,
+          "ir_absent": 3.95
+        }
+      },
+      "VAL_EVAL": {
+        "partition": "VAL",
+        "num_samples": 1815,
+        "num_storms": 17,
+        "eval_time_sec": 43.67,
+        "batch_avg_loss": 16.7881,
+        "global_eval_loss": 16.6384,
+        "raw_task_losses": {
+          "intensity": 8.5792,
+          "pressure": 0.1373,
+          "stage": 0.8382,
+          "intensity_change": 5.1818,
+          "ri": 0.974,
+          "track": 0.4416
+        },
+        "weighted_task_losses": {
+          "intensity": 8.5792,
+          "pressure": 0.0687,
+          "stage": 0.4191,
+          "intensity_change": 5.1818,
+          "ri": 1.948,
+          "track": 0.4416
+        },
+        "unweighted_wind_huber": 4.7838,
+        "valid_counts": {
+          "intensity": 1815,
+          "pressure": 1604,
+          "stage": 1549,
+          "intensity_change": 6596,
+          "ri": 1576,
+          "track": 2246
+        },
+        "wind_mae_kt": 7.84,
+        "wind_rmse_kt": 10.52,
+        "wind_bias_kt": 1.36,
+        "ts_td_wind_mae_kt": 7.51,
+        "cat12_wind_mae_kt": 9.83,
+        "major_wind_mae_kt": 7.78,
+        "major_wind_bias_kt": -1.08,
+        "major_wind_count": 245,
+        "pressure_mae_hpa": 5.99,
+        "pressure_rmse_hpa": 8.29,
+        "pressure_bias_hpa": 1.54,
+        "stage_acc_pct": 65.14,
+        "stage_balanced_acc_pct": 64.27,
+        "dv_mae_kt": {
+          "6": 3.22,
+          "12": 5.96,
+          "18": 8.27,
+          "24": 10.18
+        },
+        "ri_pr_auc": 0.5017,
+        "ri_brier": 0.0386,
+        "ri_f1_at_050": 0.4526,
+        "ri_f1_at_025": 0.53,
+        "ri_pos_mean_prob": 0.3185,
+        "ri_neg_mean_prob": 0.0263,
+        "ri_pos_dv24_mae_kt": 29.78,
+        "track_mae_km": {
+          "6": 35.72,
+          "12": 85.89,
+          "18": 147.15,
+          "24": 213.65
+        },
+        "per_storm_summary": {
+          "wind_mae_mean_std_median": [
+            8.19,
+            4.51,
+            8.03
+          ],
+          "dv24_mae_mean_std_median": [
+            9.94,
+            4.48,
+            9.72
+          ],
+          "track24_mae_mean_std_median": [
+            243.3,
+            85.45,
+            209.75
+          ]
+        },
+        "per_basin_wind_mae_kt": {
+          "AL": 8.56,
+          "CP": 6.35,
+          "EP": 6.2,
+          "IO": 7.5,
+          "SH": 23.67,
+          "WP": 7.91
+        },
+        "modality_wind_mae_kt": {
+          "radar_present": 8.44,
+          "radar_absent": 7.75,
+          "ir_present": 7.65,
+          "ir_absent": 9.97
+        }
+      },
+      "GENERALIZATION_GAP": {
+        "global_eval_loss_gap": 3.5892,
+        "batch_avg_loss_gap": 3.8197,
+        "unweighted_wind_huber_gap": 1.0757,
+        "weighted_task_loss_gaps": {
+          "intensity": 1.8131,
+          "pressure": 0.022,
+          "stage": 0.1392,
+          "intensity_change": 0.5153,
+          "ri": 0.9884,
+          "track": 0.1111
+        },
+        "wind_mae_gap_kt": 1.19,
+        "major_wind_mae_gap_kt": 1.14,
+        "pressure_mae_gap_hpa": 0.81,
+        "stage_acc_gap_pct": -10.74,
+        "dv24_mae_gap_kt": 0.92,
+        "ri_pr_auc_gap": -0.0557,
+        "track24_mae_gap_km": 43.61
+      }
+    },
+    "orig_epoch_011": {
+      "checkpoint": "D:\\Enjula uchoi\\TC-GraphFormer-verified\\checkpoints\\tcprimed_100gb\\multitask_epoch_011.pt",
+      "TRAIN_EVAL": {
+        "partition": "TRAIN",
+        "num_samples": 10545,
+        "num_storms": 75,
+        "eval_time_sec": 248.54,
+        "batch_avg_loss": 5.7384,
+        "global_eval_loss": 5.7588,
+        "raw_task_losses": {
+          "intensity": 1.6843,
+          "pressure": 0.0667,
+          "stage": 0.4169,
+          "intensity_change": 3.1779,
+          "ri": 0.1635,
+          "track": 0.3278
+        },
+        "weighted_task_losses": {
+          "intensity": 1.6843,
+          "pressure": 0.0334,
+          "stage": 0.2085,
+          "intensity_change": 3.1779,
+          "ri": 0.3269,
+          "track": 0.3278
+        },
+        "unweighted_wind_huber": 1.1331,
+        "valid_counts": {
+          "intensity": 10545,
+          "pressure": 9499,
+          "stage": 9641,
+          "intensity_change": 39304,
+          "ri": 9514,
+          "track": 13650
+        },
+        "wind_mae_kt": 3.31,
+        "wind_rmse_kt": 4.39,
+        "wind_bias_kt": 0.49,
+        "ts_td_wind_mae_kt": 3.41,
+        "cat12_wind_mae_kt": 3.49,
+        "major_wind_mae_kt": 2.5,
+        "major_wind_bias_kt": 1.16,
+        "major_wind_count": 1417,
+        "pressure_mae_hpa": 4.41,
+        "pressure_rmse_hpa": 5.78,
+        "pressure_bias_hpa": 2.63,
+        "stage_acc_pct": 82.78,
+        "stage_balanced_acc_pct": 77.92,
+        "dv_mae_kt": {
+          "6": 2.63,
+          "12": 4.32,
+          "18": 5.45,
+          "24": 6.62
+        },
+        "ri_pr_auc": 0.8928,
+        "ri_brier": 0.0137,
+        "ri_f1_at_050": 0.8139,
+        "ri_f1_at_025": 0.8003,
+        "ri_pos_mean_prob": 0.7138,
+        "ri_neg_mean_prob": 0.0187,
+        "ri_pos_dv24_mae_kt": 7.87,
+        "track_mae_km": {
+          "6": 32.3,
+          "12": 71.55,
+          "18": 118.74,
+          "24": 168.74
+        },
+        "per_storm_summary": {
+          "wind_mae_mean_std_median": [
+            3.7,
+            1.02,
+            3.52
+          ],
+          "dv24_mae_mean_std_median": [
+            7.19,
+            2.63,
+            6.88
+          ],
+          "track24_mae_mean_std_median": [
+            166.53,
+            96.04,
+            144.39
+          ]
+        },
+        "per_basin_wind_mae_kt": {
+          "AL": 3.02,
+          "CP": 3.37,
+          "EP": 3.19,
+          "IO": 3.55,
+          "SH": 3.63,
+          "WP": 3.39
+        },
+        "modality_wind_mae_kt": {
+          "radar_present": 3.59,
+          "radar_absent": 3.27,
+          "ir_present": 3.36,
+          "ir_absent": 2.66
+        }
+      },
+      "VAL_EVAL": {
+        "partition": "VAL",
+        "num_samples": 1815,
+        "num_storms": 17,
+        "eval_time_sec": 43.29,
+        "batch_avg_loss": 17.1745,
+        "global_eval_loss": 17.1831,
+        "raw_task_losses": {
+          "intensity": 9.1217,
+          "pressure": 0.1266,
+          "stage": 0.7705,
+          "intensity_change": 4.9369,
+          "ri": 1.1173,
+          "track": 0.4414
+        },
+        "weighted_task_losses": {
+          "intensity": 9.1217,
+          "pressure": 0.0633,
+          "stage": 0.3852,
+          "intensity_change": 4.9369,
+          "ri": 2.2345,
+          "track": 0.4414
+        },
+        "unweighted_wind_huber": 4.036,
+        "valid_counts": {
+          "intensity": 1815,
+          "pressure": 1604,
+          "stage": 1549,
+          "intensity_change": 6596,
+          "ri": 1576,
+          "track": 2246
+        },
+        "wind_mae_kt": 6.93,
+        "wind_rmse_kt": 9.43,
+        "wind_bias_kt": -0.62,
+        "ts_td_wind_mae_kt": 6.27,
+        "cat12_wind_mae_kt": 8.23,
+        "major_wind_mae_kt": 9.28,
+        "major_wind_bias_kt": -6.31,
+        "major_wind_count": 245,
+        "pressure_mae_hpa": 5.54,
+        "pressure_rmse_hpa": 7.96,
+        "pressure_bias_hpa": 3.55,
+        "stage_acc_pct": 68.3,
+        "stage_balanced_acc_pct": 66.88,
+        "dv_mae_kt": {
+          "6": 3.1,
+          "12": 5.73,
+          "18": 7.95,
+          "24": 9.82
+        },
+        "ri_pr_auc": 0.5192,
+        "ri_brier": 0.0396,
+        "ri_f1_at_050": 0.5238,
+        "ri_f1_at_025": 0.5359,
+        "ri_pos_mean_prob": 0.4312,
+        "ri_neg_mean_prob": 0.0307,
+        "ri_pos_dv24_mae_kt": 19.9,
+        "track_mae_km": {
+          "6": 35.83,
+          "12": 85.63,
+          "18": 147.21,
+          "24": 213.57
+        },
+        "per_storm_summary": {
+          "wind_mae_mean_std_median": [
+            7.82,
+            4.04,
+            7.19
+          ],
+          "dv24_mae_mean_std_median": [
+            9.56,
+            4.31,
+            10.61
+          ],
+          "track24_mae_mean_std_median": [
+            243.0,
+            85.19,
+            210.42
+          ]
+        },
+        "per_basin_wind_mae_kt": {
+          "AL": 5.88,
+          "CP": 6.01,
+          "EP": 5.92,
+          "IO": 6.54,
+          "SH": 20.65,
+          "WP": 9.08
+        },
+        "modality_wind_mae_kt": {
+          "radar_present": 7.29,
+          "radar_absent": 6.87,
+          "ir_present": 6.77,
+          "ir_absent": 8.75
+        }
+      },
+      "GENERALIZATION_GAP": {
+        "global_eval_loss_gap": 11.4243,
+        "batch_avg_loss_gap": 11.4361,
+        "unweighted_wind_huber_gap": 2.9029,
+        "weighted_task_loss_gaps": {
+          "intensity": 7.4374,
+          "pressure": 0.0299,
+          "stage": 0.1767,
+          "intensity_change": 1.759,
+          "ri": 1.9076,
+          "track": 0.1136
+        },
+        "wind_mae_gap_kt": 3.62,
+        "major_wind_mae_gap_kt": 6.78,
+        "pressure_mae_gap_hpa": 1.13,
+        "stage_acc_gap_pct": -14.48,
+        "dv24_mae_gap_kt": 3.2,
+        "ri_pr_auc_gap": -0.3736,
+        "track24_mae_gap_km": 44.83
+      }
+    },
+    "exp_c1_epoch_008": {
+      "checkpoint": "D:\\Enjula uchoi\\TC-GraphFormer-verified\\checkpoints\\tcprimed_100gb_exp_c1\\best_checkpoint.pt",
+      "TRAIN_EVAL": {
+        "partition": "TRAIN",
+        "num_samples": 10545,
+        "num_storms": 75,
+        "eval_time_sec": 253.64,
+        "batch_avg_loss": 7.9496,
+        "global_eval_loss": 7.9958,
+        "raw_task_losses": {
+          "intensity": 2.8644,
+          "pressure": 0.072,
+          "stage": 0.4788,
+          "intensity_change": 3.906,
+          "ri": 0.3103,
+          "track": 0.3294
+        },
+        "weighted_task_losses": {
+          "intensity": 2.8644,
+          "pressure": 0.036,
+          "stage": 0.2394,
+          "intensity_change": 3.906,
+          "ri": 0.6206,
+          "track": 0.3294
+        },
+        "unweighted_wind_huber": 1.7528,
+        "valid_counts": {
+          "intensity": 10545,
+          "pressure": 9499,
+          "stage": 9641,
+          "intensity_change": 39304,
+          "ri": 9514,
+          "track": 13650
+        },
+        "wind_mae_kt": 4.19,
+        "wind_rmse_kt": 5.61,
+        "wind_bias_kt": 0.69,
+        "ts_td_wind_mae_kt": 4.12,
+        "cat12_wind_mae_kt": 4.73,
+        "major_wind_mae_kt": 3.69,
+        "major_wind_bias_kt": 1.98,
+        "major_wind_count": 1417,
+        "pressure_mae_hpa": 4.69,
+        "pressure_rmse_hpa": 6.0,
+        "pressure_bias_hpa": 2.25,
+        "stage_acc_pct": 80.22,
+        "stage_balanced_acc_pct": 75.2,
+        "dv_mae_kt": {
+          "6": 2.82,
+          "12": 4.88,
+          "18": 6.47,
+          "24": 7.97
+        },
+        "ri_pr_auc": 0.7069,
+        "ri_brier": 0.024,
+        "ri_f1_at_050": 0.6597,
+        "ri_f1_at_025": 0.658,
+        "ri_pos_mean_prob": 0.5554,
+        "ri_neg_mean_prob": 0.031,
+        "ri_pos_dv24_mae_kt": 14.01,
+        "track_mae_km": {
+          "6": 32.37,
+          "12": 71.71,
+          "18": 119.05,
+          "24": 169.44
+        },
+        "per_storm_summary": {
+          "wind_mae_mean_std_median": [
+            4.58,
+            1.25,
+            4.36
+          ],
+          "dv24_mae_mean_std_median": [
+            8.6,
+            3.24,
+            8.14
+          ],
+          "track24_mae_mean_std_median": [
+            166.81,
+            95.74,
+            145.27
+          ]
+        },
+        "per_basin_wind_mae_kt": {
+          "AL": 3.72,
+          "CP": 4.27,
+          "EP": 4.19,
+          "IO": 4.27,
+          "SH": 4.63,
+          "WP": 4.4
+        },
+        "modality_wind_mae_kt": {
+          "radar_present": 4.56,
+          "radar_absent": 4.15,
+          "ir_present": 4.3,
+          "ir_absent": 2.94
+        }
+      },
+      "VAL_EVAL": {
+        "partition": "VAL",
+        "num_samples": 1815,
+        "num_storms": 17,
+        "eval_time_sec": 42.56,
+        "batch_avg_loss": 16.4568,
+        "global_eval_loss": 16.4052,
+        "raw_task_losses": {
+          "intensity": 8.4333,
+          "pressure": 0.1183,
+          "stage": 0.7428,
+          "intensity_change": 5.1652,
+          "ri": 0.9673,
+          "track": 0.4416
+        },
+        "weighted_task_losses": {
+          "intensity": 8.4333,
+          "pressure": 0.0591,
+          "stage": 0.3714,
+          "intensity_change": 5.1652,
+          "ri": 1.9346,
+          "track": 0.4416
+        },
+        "unweighted_wind_huber": 3.981,
+        "valid_counts": {
+          "intensity": 1815,
+          "pressure": 1604,
+          "stage": 1549,
+          "intensity_change": 6596,
+          "ri": 1576,
+          "track": 2246
+        },
+        "wind_mae_kt": 6.9,
+        "wind_rmse_kt": 9.35,
+        "wind_bias_kt": -0.75,
+        "ts_td_wind_mae_kt": 6.33,
+        "cat12_wind_mae_kt": 8.3,
+        "major_wind_mae_kt": 8.68,
+        "major_wind_bias_kt": -4.21,
+        "major_wind_count": 245,
+        "pressure_mae_hpa": 5.53,
+        "pressure_rmse_hpa": 7.69,
+        "pressure_bias_hpa": 3.37,
+        "stage_acc_pct": 69.14,
+        "stage_balanced_acc_pct": 68.39,
+        "dv_mae_kt": {
+          "6": 3.16,
+          "12": 5.91,
+          "18": 8.27,
+          "24": 10.26
+        },
+        "ri_pr_auc": 0.5226,
+        "ri_brier": 0.0391,
+        "ri_f1_at_050": 0.5568,
+        "ri_f1_at_025": 0.5195,
+        "ri_pos_mean_prob": 0.4343,
+        "ri_neg_mean_prob": 0.0376,
+        "ri_pos_dv24_mae_kt": 23.54,
+        "track_mae_km": {
+          "6": 35.69,
+          "12": 85.61,
+          "18": 147.18,
+          "24": 213.58
+        },
+        "per_storm_summary": {
+          "wind_mae_mean_std_median": [
+            7.71,
+            3.97,
+            7.56
+          ],
+          "dv24_mae_mean_std_median": [
+            9.98,
+            4.18,
+            10.81
+          ],
+          "track24_mae_mean_std_median": [
+            243.19,
+            86.49,
+            209.73
+          ]
+        },
+        "per_basin_wind_mae_kt": {
+          "AL": 6.31,
+          "CP": 5.67,
+          "EP": 5.92,
+          "IO": 6.26,
+          "SH": 20.57,
+          "WP": 8.51
+        },
+        "modality_wind_mae_kt": {
+          "radar_present": 7.61,
+          "radar_absent": 6.78,
+          "ir_present": 6.7,
+          "ir_absent": 9.03
+        }
+      },
+      "GENERALIZATION_GAP": {
+        "global_eval_loss_gap": 8.4094,
+        "batch_avg_loss_gap": 8.5072,
+        "unweighted_wind_huber_gap": 2.2282,
+        "weighted_task_loss_gaps": {
+          "intensity": 5.5689,
+          "pressure": 0.0231,
+          "stage": 0.132,
+          "intensity_change": 1.2592,
+          "ri": 1.314,
+          "track": 0.1122
+        },
+        "wind_mae_gap_kt": 2.71,
+        "major_wind_mae_gap_kt": 4.99,
+        "pressure_mae_gap_hpa": 0.84,
+        "stage_acc_gap_pct": -11.08,
+        "dv24_mae_gap_kt": 2.29,
+        "ri_pr_auc_gap": -0.1843,
+        "track24_mae_gap_km": 44.14
+      }
+    }
+  },
+  "phase3_gradients": {
+    "per_task": {
+      "intensity": {
+        "raw_loss_mean": 6.7675,
+        "weighted_loss_mean": 6.7675,
+        "loss_fraction_pct": 52.56,
+        "shared_encoder_grad_norm_mean": 380.218,
+        "shared_grad_norm_share_pct": 72.74,
+        "head_grad_norm_mean": 88.0072,
+        "valid_target_count_20batches": 640,
+        "nonfinite_grad_count": 0
+      },
+      "pressure": {
+        "raw_loss_mean": 0.0911,
+        "weighted_loss_mean": 0.0456,
+        "loss_fraction_pct": 0.35,
+        "shared_encoder_grad_norm_mean": 2.5298,
+        "shared_grad_norm_share_pct": 0.48,
+        "head_grad_norm_mean": 0.3891,
+        "valid_target_count_20batches": 575,
+        "nonfinite_grad_count": 0
+      },
+      "stage": {
+        "raw_loss_mean": 0.5259,
+        "weighted_loss_mean": 0.263,
+        "loss_fraction_pct": 2.04,
+        "shared_encoder_grad_norm_mean": 8.6154,
+        "shared_grad_norm_share_pct": 1.65,
+        "head_grad_norm_mean": 0.6405,
+        "valid_target_count_20batches": 590,
+        "nonfinite_grad_count": 0
+      },
+      "intensity_change": {
+        "raw_loss_mean": 4.6415,
+        "weighted_loss_mean": 4.6415,
+        "loss_fraction_pct": 36.05,
+        "shared_encoder_grad_norm_mean": 60.9534,
+        "shared_grad_norm_share_pct": 11.66,
+        "head_grad_norm_mean": 3.4434,
+        "valid_target_count_20batches": 2380,
+        "nonfinite_grad_count": 0
+      },
+      "ri": {
+        "raw_loss_mean": 0.4148,
+        "weighted_loss_mean": 0.8296,
+        "loss_fraction_pct": 6.44,
+        "shared_encoder_grad_norm_mean": 68.7454,
+        "shared_grad_norm_share_pct": 13.15,
+        "head_grad_norm_mean": 2.8103,
+        "valid_target_count_20batches": 574,
+        "nonfinite_grad_count": 0
+      },
+      "track": {
+        "raw_loss_mean": 0.3292,
+        "weighted_loss_mean": 0.3292,
+        "loss_fraction_pct": 2.56,
+        "shared_encoder_grad_norm_mean": 1.6126,
+        "shared_grad_norm_share_pct": 0.31,
+        "head_grad_norm_mean": 0.1462,
+        "valid_target_count_20batches": 842,
+        "nonfinite_grad_count": 0
+      }
+    },
+    "task_names": [
+      "intensity",
+      "pressure",
+      "stage",
+      "intensity_change",
+      "ri",
+      "track"
+    ],
+    "pairwise_shared_grad_cosine_similarity": [
+      [
+        1.0,
+        0.4937,
+        0.3706,
+        0.0229,
+        -0.0099,
+        0.0624
+      ],
+      [
+        0.4937,
+        1.0,
+        0.397,
+        -0.0305,
+        -0.039,
+        -0.0804
+      ],
+      [
+        0.3706,
+        0.397,
+        1.0,
+        0.0003,
+        -0.0292,
+        0.0656
+      ],
+      [
+        0.0229,
+        -0.0305,
+        0.0003,
+        1.0,
+        0.172,
+        0.0202
+      ],
+      [
+        -0.0099,
+        -0.039,
+        -0.0292,
+        0.172,
+        1.0,
+        -0.0795
+      ],
+      [
+        0.0624,
+        -0.0804,
+        0.0656,
+        0.0202,
+        -0.0795,
+        1.0
+      ]
+    ]
+  }
+}

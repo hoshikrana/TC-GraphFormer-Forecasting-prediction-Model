@@ -462,6 +462,72 @@ class TestPhase2E42GPUHandoff(unittest.TestCase):
         self.assertEqual(pipe_cfg["output"]["root"], "data/processed/tcprimed_100gb")
         self.assertEqual(pipe_cfg["output"]["reports_dir"], "reports/pipeline_100gb")
 
+    # -----------------------------------------------------------------------
+    # 6. FP16 AMP Masking & DSA O(1) Sample Cache Regression
+    # -----------------------------------------------------------------------
+    def test_06_fp16_amp_spatial_graph_and_dsa_cache_regression(self):
+        """Verify SpatialGraphEncoder supports FP16 without half overflow, physical priors init, and O(1) sample cache matches uncached."""
+        from src.models.graph.spatial_graph import SpatialGraphEncoder
+        from src.models.heads.task_heads import TaskPredictionHeads
+        from src.data.dataset import TCPRIMEDDataset
+
+        # 1. FP16 masking safety in SpatialGraphEncoder
+        graph = SpatialGraphEncoder(d_model=64, num_spatial_nodes=16, num_layers=2).half()
+        nodes = torch.randn(2, 16, 64, dtype=torch.float16)
+        validity = torch.ones(2, 16, 1, dtype=torch.float16)
+        validity[0, 8:, 0] = 0.0
+        validity[1, :, 0] = 0.0  # All invalid edge case
+        out = graph(nodes, node_validity=validity)
+        self.assertEqual(out.shape, (2, 64))
+        self.assertTrue(torch.all(torch.isfinite(out)))
+
+        # 2. Physical prior bias initialization
+        heads = TaskPredictionHeads(d_model=64, num_stages=5)
+        self.assertAlmostEqual(float(heads.head_intensity[-1].bias.item()), 38.19, places=2)
+        self.assertAlmostEqual(float(heads.head_pressure[-1].bias.item()), 997.25, places=2)
+        self.assertAlmostEqual(float(heads.head_ri[-1].bias.item()), -3.5124, places=2)
+
+        # 3. Bounded LRU & O(1) sample cache bitwise equivalence
+        if os.path.exists("reports/pipeline/sample_index.csv"):
+            ds_u = TCPRIMEDDataset("reports/pipeline/sample_index.csv", partition="TRAIN", max_samples=3)
+            ds_u.enable_memory_cache = False
+            ds_u.enable_disk_cache = False
+            s_u = ds_u[0]
+            self.assertIn("kinematic_state", s_u)
+            self.assertEqual(s_u["kinematic_state"].shape, (10,))
+
+            ds_c = TCPRIMEDDataset("reports/pipeline/sample_index.csv", partition="TRAIN", max_samples=3, max_cache_entries=2)
+            ds_c._sample_cache.clear()
+            s_c0 = ds_c[0]
+            s_c1 = ds_c[1]
+            s_c2 = ds_c[2]
+            self.assertLessEqual(len(ds_c._sample_cache), 2, "Bounded LRU cache must enforce max_cache_entries!")
+            self.assertTrue(torch.equal(s_u["ir"], s_c0["ir"]))
+            self.assertTrue(torch.equal(s_u["pmw"], s_c0["pmw"]))
+            self.assertTrue(torch.equal(s_u["kinematic_state"], s_c0["kinematic_state"]))
+
+        # 4. Track velocity baseline & incremental skill calculation
+        true_v = np.array([[100.0, 50.0], [200.0, 100.0]])
+        vel_v = np.array([[90.0, 40.0], [180.0, 90.0]])
+        pred_v = np.array([[96.0, 48.0], [195.0, 97.0]])
+        tr_metrics = compute_track_errors(true_v, pred_v, clim_vec=(50.0, 25.0), vel_vec=vel_v)
+        self.assertIsNotNone(tr_metrics["vel_mae"])
+        self.assertIsNotNone(tr_metrics["impr_vel"])
+        self.assertGreater(tr_metrics["impr_vel"], 0.0)
+
+        # 5. StormSplitter pilot isolation for expanded (>80 storms) dataset
+        from tcprimed_pipeline.storm_splitter import StormSplitter
+        splitter = StormSplitter()
+        exp_records = {}
+        for i in range(109):
+            sid = f"WP{i+1:02d}2018"
+            exp_records[sid] = {"season": 2018, "basin": "WP", "overpass_files": ["a.nc"]}
+        # Inject one known pilot TEST storm WP072021
+        exp_records["WP072021"] = {"season": 2021, "basin": "WP", "overpass_files": ["b.nc"]}
+        sp_map = splitter.split_storms(exp_records)
+        if os.path.exists("reports/pipeline/storm_split_manifest.csv"):
+            self.assertNotEqual(sp_map["WP072021"], "TEST", "Prior pilot TEST storm must not enter 100GB FINAL_TEST!")
+
 
 if __name__ == "__main__":
     unittest.main()

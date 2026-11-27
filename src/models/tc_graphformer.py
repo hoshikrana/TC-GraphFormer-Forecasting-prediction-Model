@@ -38,10 +38,38 @@ class TCGraphFormer(nn.Module):
         num_stages: int = 5,
         min_sector_coverage: float = 0.05,
         dropout: float = 0.1,
+        head_dropout: float = 0.0,
+        modality_dropout_prob: float = 0.0,
+        sector_token_dropout: float = 0.0,
+        drop_path_rate: float = 0.0,
     ):
         super().__init__()
         self.d_model = d_model
         self.min_sector_coverage = min_sector_coverage
+        self.head_dropout = float(head_dropout)
+        self.modality_dropout_prob = float(modality_dropout_prob)
+        self.sector_token_dropout = float(sector_token_dropout)
+        self.drop_path_rate = float(drop_path_rate)
+        if not (0.0 <= self.modality_dropout_prob < 1.0):
+            raise ValueError(f"modality_dropout_prob must be in [0.0, 1.0), got {modality_dropout_prob}")
+        if not (0.0 <= self.sector_token_dropout < 1.0):
+            raise ValueError(f"sector_token_dropout must be in [0.0, 1.0), got {sector_token_dropout}")
+        if not (0.0 <= self.drop_path_rate < 1.0):
+            raise ValueError(f"drop_path_rate must be in [0.0, 1.0), got {drop_path_rate}")
+
+        # Linearly schedule stochastic depth (DropPath) from 0 -> drop_path_rate across
+        # the 2 fusion layers + 2 graph layers + 2 temporal layers (6 total layers)
+        total_dp_layers = num_fusion_layers + num_graph_layers + num_temporal_layers
+        if self.drop_path_rate > 0.0 and total_dp_layers > 1:
+            all_dp_rates = [
+                self.drop_path_rate * float(i) / float(total_dp_layers - 1)
+                for i in range(total_dp_layers)
+            ]
+        else:
+            all_dp_rates = [0.0] * total_dp_layers
+        self.fusion_drop_path_rates = all_dp_rates[:num_fusion_layers]
+        self.graph_drop_path_rates = all_dp_rates[num_fusion_layers:num_fusion_layers + num_graph_layers]
+        self.temporal_drop_path_rates = all_dp_rates[num_fusion_layers + num_graph_layers:]
 
         # 1. Modality Encoders (extract 2D spatial feature representations)
         self.ir_encoder = IREncoder(in_channels=1, d_model=d_model)
@@ -69,6 +97,8 @@ class TCGraphFormer(nn.Module):
             num_heads=num_fusion_heads,
             num_layers=num_fusion_layers,
             num_tokens_per_mod=16,
+            sector_token_dropout=self.sector_token_dropout,
+            drop_path_rates=self.fusion_drop_path_rates,
         )
 
         # 4. Spatial Polar Node Aggregator: Project 80 multi-modal tokens -> 16 spatial graph nodes
@@ -84,6 +114,7 @@ class TCGraphFormer(nn.Module):
             d_model=d_model,
             num_spatial_nodes=16,
             num_layers=num_graph_layers,
+            drop_path_rates=self.graph_drop_path_rates,
         )
 
         # 6. Causal Continuous-Time Temporal Transformer
@@ -91,10 +122,47 @@ class TCGraphFormer(nn.Module):
             d_model=d_model,
             num_heads=num_fusion_heads,
             num_layers=num_temporal_layers,
+            drop_path_rates=self.temporal_drop_path_rates,
         )
 
         # 7. Multi-Task Heads
-        self.task_heads = TaskPredictionHeads(d_model=d_model, num_stages=num_stages)
+        self.task_heads = TaskPredictionHeads(
+            d_model=d_model, num_stages=num_stages, head_dropout=self.head_dropout
+        )
+
+    def _apply_whole_modality_dropout(self, modality_masks: torch.Tensor) -> torch.Tensor:
+        """
+        Train-only whole-modality dropout:
+        - Each non-IR modality (indices 1..4: PMW, GPROF, Radar, Env) is dropped independently
+          per sample with probability `self.modality_dropout_prob` by setting its modality mask to 0.0.
+        - Never drops the IR modality (index 0).
+        - Never drops all modalities: if a sample had >= 1 valid modality before dropout (e.g. when IR
+          was absent in the data) and dropout would zero all remaining modalities, restores one
+          randomly chosen originally-present modality for that sample.
+        """
+        if not self.training or self.modality_dropout_prob <= 0.0:
+            return modality_masks
+
+        orig_present = modality_masks > 0.5  # (..., 5)
+        keep_non_ir = torch.rand(modality_masks[..., 1:].shape, device=modality_masks.device) >= self.modality_dropout_prob
+        out_masks = modality_masks.clone()
+        out_masks[..., 1:] = out_masks[..., 1:] * keep_non_ir.to(out_masks.dtype)
+
+        # Guard against all-modality-dropped edge case on samples that had at least 1 valid modality
+        had_any = orig_present.any(dim=-1)
+        now_any = (out_masks > 0.5).any(dim=-1)
+        all_dropped = had_any & (~now_any)
+        if all_dropped.any():
+            # Restore original mask for any sample where all available modalities were dropped
+            out_masks[all_dropped] = modality_masks[all_dropped]
+            # If a restored sample had >1 non-IR modality, keep at least its first available modality
+            flat_orig = orig_present[all_dropped]  # (K, 5)
+            first_valid_idx = flat_orig.float().argmax(dim=-1, keepdim=True)  # (K, 1)
+            one_hot_restore = torch.zeros_like(out_masks[all_dropped])
+            one_hot_restore.scatter_(-1, first_valid_idx, 1.0)
+            out_masks[all_dropped] = one_hot_restore
+
+        return out_masks
 
     def extract_overpass_features(
         self,
@@ -112,6 +180,7 @@ class TCGraphFormer(nn.Module):
         Returns: (B, d_model)
         """
         B = modality_masks.size(0)
+        modality_masks = self._apply_whole_modality_dropout(modality_masks)
 
         # Unpack masks: [ir, pmw, gprof, radar, env]
         m_ir = modality_masks[:, 0]
@@ -208,6 +277,34 @@ class TCGraphFormer(nn.Module):
         graph_latent = self.spatial_graph(spatial_nodes, node_validity=node_validity)  # (B, d_model)
         return graph_latent
 
+    def _encode_kinematic_context(self, kinematic_state: torch.Tensor, target_dim: int, dtype: torch.dtype) -> torch.Tensor:
+        """
+        Deterministic multi-frequency Fourier physical encoding of causal observation-time
+        kinematic and geophysical state (speed, heading, Coriolis latitude, hemisphere, distance to land).
+        Introduces zero additional state_dict keys so checkpoint compatibility remains 100% strict.
+        """
+        kin = kinematic_state.to(dtype=torch.float32)
+        # Extract 8 normalized physical components: (..., 8)
+        f_kin = torch.stack([
+            kin[..., 0] / 30.0,   # u_trans (30 km/h scale)
+            kin[..., 1] / 30.0,   # v_trans (30 km/h scale)
+            kin[..., 2] / 10.0,   # translation speed (10 m/s scale)
+            kin[..., 3],          # sin(heading)
+            kin[..., 4],          # cos(heading)
+            kin[..., 5],          # sin(lat) -> Coriolis parameter f / 2*Omega
+            kin[..., 7],          # hemisphere sign (+1 NH, -1 SH)
+            kin[..., 8],          # log10(1 + dist_to_land_km) / 3.5
+        ], dim=-1)
+        freqs = torch.tensor([0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0], device=kin.device, dtype=torch.float32)
+        angles = f_kin.unsqueeze(-1) * freqs  # (..., 8, 8)
+        emb = torch.cat([torch.sin(angles), torch.cos(angles)], dim=-1).reshape(*kin.shape[:-1], 128)
+        if target_dim < 128:
+            emb = emb[..., :target_dim]
+        elif target_dim > 128:
+            reps = (target_dim + 127) // 128
+            emb = emb.repeat(*([1] * (emb.dim() - 1)), reps)[..., :target_dim]
+        return (0.15 * emb).to(dtype=dtype)
+
     def forward(
         self,
         ir: torch.Tensor,
@@ -221,6 +318,7 @@ class TCGraphFormer(nn.Module):
         channel_masks: Dict[str, torch.Tensor] = None,
         pixel_masks: Dict[str, torch.Tensor] = None,
         timestamps: torch.Tensor = None,
+        kinematic_state: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
         """
         Multimodal forward pass supporting both single observations and historical sequences.
@@ -260,6 +358,15 @@ class TCGraphFormer(nn.Module):
             )
             seq_latent = latent_flat.view(B, T, self.d_model) # (B, T, d_model)
 
+            anchor_kin = None
+            if kinematic_state is not None:
+                if kinematic_state.dim() == 3 and kinematic_state.size(1) == T:
+                    kin_emb = self._encode_kinematic_context(kinematic_state, self.d_model, seq_latent.dtype)
+                    has_any_mod = (modality_masks.sum(dim=-1, keepdim=True) > 0.5).to(seq_latent.dtype)
+                    seq_latent = seq_latent + kin_emb * has_any_mod
+                elif kinematic_state.dim() == 2:
+                    anchor_kin = kinematic_state
+
             # Delta times in hours
             if delta_times_hours is None:
                 delta_times_hours = torch.zeros((B, T), device=ir.device, dtype=torch.float32)
@@ -270,6 +377,7 @@ class TCGraphFormer(nn.Module):
             # Anchor selection: select representation corresponding to anchor observation
             # (the last valid, non-padded historical observation in each sequence)
             anchor_latents = []
+            anchor_kins = []
             for b in range(B):
                 if seq_pad_mask is not None:
                     valid_idx = torch.where(~seq_pad_mask[b])[0]
@@ -277,11 +385,15 @@ class TCGraphFormer(nn.Module):
                 else:
                     last_idx = T - 1
                 anchor_latents.append(temporal_out[b, last_idx, :])
+                if kinematic_state is not None and kinematic_state.dim() == 3:
+                    anchor_kins.append(kinematic_state[b, last_idx, :])
 
             final_latent = torch.stack(anchor_latents, dim=0) # (B, d_model)
+            if anchor_kins:
+                anchor_kin = torch.stack(anchor_kins, dim=0)
 
             # Multi-task predictions for anchor forecast
-            predictions = self.task_heads(final_latent)
+            predictions = self.task_heads(final_latent, kinematic_state=anchor_kin)
             predictions["latent"] = final_latent
             predictions["temporal_sequence"] = temporal_out
             return predictions
@@ -294,12 +406,18 @@ class TCGraphFormer(nn.Module):
                 channel_masks=channel_masks, pixel_masks=pixel_masks
             )
 
+            anchor_kin = kinematic_state if (kinematic_state is not None and kinematic_state.dim() == 2) else None
+            if anchor_kin is not None:
+                kin_emb = self._encode_kinematic_context(anchor_kin, self.d_model, latent.dtype)
+                has_any_mod = (modality_masks.sum(dim=-1, keepdim=True) > 0.5).to(latent.dtype)
+                latent = latent + kin_emb * has_any_mod
+
             # Pass through temporal model as T=1
             delta_t_hours = torch.zeros((B, 1), device=latent.device, dtype=torch.float32)
             seq_latent = latent.unsqueeze(1) # (B, 1, d_model)
             temporal_out = self.temporal_transformer(seq_latent, delta_t_hours).squeeze(1) # (B, d_model)
 
-            predictions = self.task_heads(temporal_out)
+            predictions = self.task_heads(temporal_out, kinematic_state=anchor_kin)
             predictions["latent"] = temporal_out
             return predictions
 

@@ -55,9 +55,32 @@ class StormSplitter:
         target_val_count = round(self.config.validation * total_storms)
         target_test_count = total_storms - target_train_count - target_val_count
 
+        # Check for prior pilot storms when splitting an expanded (>80 storms) dataset
+        # so prior pilot storms never cross partitions or enter the untouched FINAL_TEST partition
+        prior_pilot_splits: Dict[str, str] = {}
+        pilot_split_csv = "reports/pipeline/storm_split_manifest.csv"
+        if total_storms > 80 and os.path.exists(pilot_split_csv):
+            try:
+                with open(pilot_split_csv, "r", encoding="utf-8") as pf:
+                    reader = csv.DictReader(pf)
+                    for row in reader:
+                        p_sid = row.get("storm_id", "").strip()
+                        p_part = row.get("partition", "").strip().upper()
+                        if p_sid in storm_records and p_part in ("TRAIN", "VAL", "TEST"):
+                            prior_pilot_splits[p_sid] = p_part
+            except Exception:
+                prior_pilot_splits = {}
+
+        # Only enforce pilot isolation when there are sufficient new non-pilot storms for VAL and TEST
+        non_pilot_sids = [sid for sid in all_sids if sid not in prior_pilot_splits]
+        enforce_pilot_isolation = (
+            len(prior_pilot_splits) > 0
+            and len(non_pilot_sids) >= (target_val_count + target_test_count)
+        )
+
         # Stratified grouping by (basin, era)
         strata = defaultdict(list)
-        for sid in all_sids:
+        for sid in (non_pilot_sids if enforce_pilot_isolation else all_sids):
             st = storm_records[sid]
             basin = st.get("basin", sid[:2])
             season = st.get("season", 0)
@@ -75,30 +98,87 @@ class StormSplitter:
         val_sids: List[str] = []
         test_sids: List[str] = []
 
-        # Proportional round-robin assignment preserving exact target counts
-        for idx, sid in enumerate(all_sids_ordered):
-            mod = idx % 20  # 14 to train (70%), 3 to val (15%), 3 to test (15%)
-            if mod < 14:
-                if len(train_sids) < target_train_count:
-                    train_sids.append(sid)
-                elif len(val_sids) < target_val_count:
-                    val_sids.append(sid)
+        if enforce_pilot_isolation:
+            # Per-basin proportional allocation ensuring every basin with >=3 storms
+            # has representation in TRAIN, VAL, and untouched FINAL_TEST
+            by_basin = defaultdict(list)
+            for sid in all_sids:
+                b = storm_records[sid].get("basin", sid[:2])
+                by_basin[b].append(sid)
+
+            for b in sorted(by_basin.keys()):
+                b_sids = by_basin[b]
+                n_b = len(b_sids)
+                b_val_target = max(1, round(self.config.validation * n_b)) if n_b >= 3 else 0
+                b_test_target = max(1, round(self.config.test * n_b)) if n_b >= 3 else 0
+                b_train_target = n_b - b_val_target - b_test_target
+
+                b_train, b_val, b_test = [], [], []
+                # 1. Assign prior pilot storms first (never into TEST)
+                b_non_pilot = []
+                for sid in b_sids:
+                    if sid in prior_pilot_splits:
+                        if prior_pilot_splits[sid] == "TRAIN" and len(b_train) < b_train_target:
+                            b_train.append(sid)
+                        elif len(b_val) < b_val_target:
+                            b_val.append(sid)
+                        else:
+                            b_train.append(sid)
+                    else:
+                        b_non_pilot.append(sid)
+
+                # 2. Order remaining non-pilot storms in this basin by era and shuffle deterministically
+                b_era_groups = defaultdict(list)
+                for sid in b_non_pilot:
+                    era = classify_era(storm_records[sid].get("season", 0))
+                    b_era_groups[era].append(sid)
+                b_ordered = []
+                for e_k in sorted(b_era_groups.keys()):
+                    e_list = b_era_groups[e_k]
+                    random.shuffle(e_list)
+                    b_ordered.extend(e_list)
+
+                # 3. Fill TEST, VAL, and TRAIN for this basin
+                for idx, sid in enumerate(b_ordered):
+                    if idx % 6 == 0 and len(b_test) < b_test_target:
+                        b_test.append(sid)
+                    elif idx % 6 == 3 and len(b_val) < b_val_target:
+                        b_val.append(sid)
+                    elif len(b_train) < b_train_target:
+                        b_train.append(sid)
+                    elif len(b_val) < b_val_target:
+                        b_val.append(sid)
+                    else:
+                        b_test.append(sid)
+
+                train_sids.extend(b_train)
+                val_sids.extend(b_val)
+                test_sids.extend(b_test)
+        else:
+            # Proportional round-robin assignment preserving exact target counts
+            for idx, sid in enumerate(all_sids_ordered):
+                mod = idx % 20  # 14 to train (70%), 3 to val (15%), 3 to test (15%)
+                if mod < 14:
+                    if len(train_sids) < target_train_count:
+                        train_sids.append(sid)
+                    elif len(val_sids) < target_val_count:
+                        val_sids.append(sid)
+                    else:
+                        test_sids.append(sid)
+                elif mod < 17:
+                    if len(val_sids) < target_val_count:
+                        val_sids.append(sid)
+                    elif len(test_sids) < target_test_count:
+                        test_sids.append(sid)
+                    else:
+                        train_sids.append(sid)
                 else:
-                    test_sids.append(sid)
-            elif mod < 17:
-                if len(val_sids) < target_val_count:
-                    val_sids.append(sid)
-                elif len(test_sids) < target_test_count:
-                    test_sids.append(sid)
-                else:
-                    train_sids.append(sid)
-            else:
-                if len(test_sids) < target_test_count:
-                    test_sids.append(sid)
-                elif len(train_sids) < target_train_count:
-                    train_sids.append(sid)
-                else:
-                    val_sids.append(sid)
+                    if len(test_sids) < target_test_count:
+                        test_sids.append(sid)
+                    elif len(train_sids) < target_train_count:
+                        train_sids.append(sid)
+                    else:
+                        val_sids.append(sid)
 
         split_map = {}
         for sid in train_sids: split_map[sid] = "TRAIN"

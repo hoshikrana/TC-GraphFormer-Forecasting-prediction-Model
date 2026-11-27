@@ -1,13 +1,16 @@
 """
 Causal Continuous-Time Temporal Transformer for TC-GraphFormer.
-Processes irregular satellite overpass sequences with continuous time-delta embeddings
-and strict causal attention masking (t_j <= t_i).
+Processes irregular satellite overpass sequences with continuous time-delta embeddings,
+strict causal attention masking (t_j <= t_i), and optional per-layer stochastic depth (DropPath).
 """
 
 import math
+from typing import List, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from ..fusion.cross_modal_fusion import drop_path
 
 
 class ContinuousTimeEmbedding(nn.Module):
@@ -33,22 +36,36 @@ class ContinuousTimeEmbedding(nn.Module):
         Returns: (B, T, d_model)
         """
         if delta_t_hours.dim() == 2:
-            delta_t_hours = delta_t_hours.unsqueeze(-1) # (B, T, 1)
+            delta_t_hours = delta_t_hours.unsqueeze(-1)  # (B, T, 1)
 
-        angles = delta_t_hours * self.freqs.view(1, 1, -1) # (B, T, half_dim)
-        emb = torch.cat([torch.sin(angles), torch.cos(angles)], dim=-1) # (B, T, d_model)
+        angles = delta_t_hours * self.freqs.view(1, 1, -1)  # (B, T, half_dim)
+        emb = torch.cat([torch.sin(angles), torch.cos(angles)], dim=-1)  # (B, T, d_model)
         return self.proj(emb)
 
 
 class CausalTemporalTransformer(nn.Module):
     """
     Applies multi-layer causal continuous-time self-attention over storm overpass history.
+    Supports optional per-layer stochastic depth (`drop_path_rates`).
     """
 
-    def __init__(self, d_model: int = 128, num_heads: int = 4, num_layers: int = 2, max_seq_len: int = 64):
+    def __init__(
+        self,
+        d_model: int = 128,
+        num_heads: int = 4,
+        num_layers: int = 2,
+        max_seq_len: int = 64,
+        drop_path_rates: Optional[List[float]] = None,
+    ):
         super().__init__()
         self.d_model = d_model
         self.time_embed = ContinuousTimeEmbedding(d_model)
+        if drop_path_rates is None:
+            self.drop_path_rates = [0.0] * num_layers
+        else:
+            if len(drop_path_rates) != num_layers:
+                raise ValueError(f"Expected {num_layers} drop_path_rates, got {len(drop_path_rates)}")
+            self.drop_path_rates = [float(r) for r in drop_path_rates]
 
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
@@ -62,11 +79,27 @@ class CausalTemporalTransformer(nn.Module):
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers, enable_nested_tensor=False)
         self.norm = nn.LayerNorm(d_model)
 
+    def _forward_layer_with_drop_path(
+        self,
+        layer: nn.TransformerEncoderLayer,
+        x: torch.Tensor,
+        attn_mask: torch.Tensor,
+        src_key_padding_mask: Optional[torch.Tensor],
+        drop_prob: float,
+    ) -> torch.Tensor:
+        if drop_prob <= 0.0 or not self.training:
+            return layer(x, src_mask=attn_mask, src_key_padding_mask=src_key_padding_mask)
+        sa_out = layer._sa_block(layer.norm1(x), attn_mask, src_key_padding_mask)
+        x = x + drop_path(sa_out, drop_prob, self.training)
+        ff_out = layer._ff_block(layer.norm2(x))
+        x = x + drop_path(ff_out, drop_prob, self.training)
+        return x
+
     def forward(
         self,
         features: torch.Tensor,
         delta_times_hours: torch.Tensor,
-        mask: torch.Tensor = None
+        mask: torch.Tensor = None,
     ) -> torch.Tensor:
         """
         features: (B, T, d_model)
@@ -78,13 +111,36 @@ class CausalTemporalTransformer(nn.Module):
         B, T, D = features.shape
 
         # Add continuous time encoding
-        time_pe = self.time_embed(delta_times_hours) # (B, T, d_model)
+        time_pe = self.time_embed(delta_times_hours)  # (B, T, d_model)
         h = features + time_pe
 
         # Causal attention mask: lower triangular matrix (T, T)
         # In PyTorch nn.TransformerEncoder, True means masked / forbidden
         causal_mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=features.device), diagonal=1)
 
-        out = self.transformer(h, mask=causal_mask, src_key_padding_mask=mask)
-        return self.norm(out)
+        safe_mask = mask
+        all_masked = None
+        if mask is not None:
+            all_masked = mask.all(dim=1)
+            # Also guard case where timestep 0 is padded (row 0 of causal_mask only attends to col 0)
+            first_masked = mask[:, 0]
+            needs_unmask = all_masked | first_masked
+            if needs_unmask.any():
+                safe_mask = mask.clone()
+                safe_mask[needs_unmask, 0] = False
 
+        if any(r > 0.0 for r in self.drop_path_rates) and self.training:
+            out = h
+            for layer_idx, layer in enumerate(self.transformer.layers):
+                dp_rate = self.drop_path_rates[layer_idx] if layer_idx < len(self.drop_path_rates) else 0.0
+                out = self._forward_layer_with_drop_path(layer, out, causal_mask, safe_mask, dp_rate)
+            if self.transformer.norm is not None:
+                out = self.transformer.norm(out)
+        else:
+            out = self.transformer(h, mask=causal_mask, src_key_padding_mask=safe_mask)
+
+        out = self.norm(out)
+        if mask is not None:
+            valid_step = (~mask).unsqueeze(-1).to(out.dtype)
+            out = out * valid_step
+        return out
